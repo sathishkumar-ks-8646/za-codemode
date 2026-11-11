@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Troubleshooting &amp; FAQ &mdash; Zoho Analytics Code Mode for AI agents</title>
+<meta name="description" content="Troubleshooting Zoho Analytics Code Mode — symptoms, Analytics error codes, startup failures, and frequently asked questions.">
+<link rel="stylesheet" href="assets/migration.css">
+<script src="assets/migration.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <a class="wordmark" href="index.html">
+      <svg class="zoho-mark" role="img" aria-label="Zoho" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.66 6.897a1.299 1.299 0 0 0-1.205.765l-.642 1.44-.062-.385A1.291 1.291 0 0 0 5.27 7.648l-4.185.678A1.291 1.291 0 0 0 .016 9.807l.678 4.18a1.293 1.293 0 0 0 1.27 1.087c.074 0 .143-.01.216-.017l4.18-.678c.436-.07.784-.351.96-.723l2.933 1.307a1.304 1.304 0 0 0 .988.026c.321-.12.575-.365.716-.678l.28-.629.038.276a1.297 1.297 0 0 0 1.455 1.103l3.712-.501a1.29 1.29 0 0 0 1.03.514h4.236c.713 0 1.29-.58 1.291-1.291V9.545c0-.712-.58-1.291-1.291-1.291h-4.236c-.079 0-.155.008-.23.022a1.309 1.309 0 0 0-.275-.288c-.275-.21-.614-.3-.958-.253l-4.197.571c-.155.021-.3.07-.432.14L9.159 7.01a1.27 1.27 0 0 0-.499-.113zm-.025.705c.077 0 .159.013.24.052l2.971 1.324c-.128.238-.18.508-.142.782l.357 2.596h.002l-.745 1.672a.59.59 0 0 1-.777.296l-3.107-1.385-.004-.041-.41-2.526L8.1 7.95a.589.589 0 0 1 .536-.348zm-3.159.733c.125 0 .245.039.343.112.13.09.21.227.237.382l.234 1.446-.56 1.259a1.27 1.27 0 0 0-.026.987c.12.322.364.575.678.717l.295.131a.585.585 0 0 1-.428.314l-4.185.678a.59.59 0 0 1-.674-.485l-.678-4.18a.588.588 0 0 1 .485-.674l4.185-.678c.03-.004.064-.01.094-.01zm11.705.09a.59.59 0 0 1 .415.173 1.287 1.287 0 0 0-.416.947v4.237c0 .033.003.065.005.097l-3.55.482a.586.586 0 0 1-.66-.502l-.191-1.403.899-2.017a1.29 1.29 0 0 0-.333-1.5l3.754-.51c.026-.004.051-.004.077-.004zm1.3.532h4.227c.326 0 .588.266.588.588v4.237a.589.589 0 0 1-.588.588h-4.237a.564.564 0 0 1-.12-.013c.47-.246.758-.765.684-1.318zm-5.988.309.254.113c.296.133.43.48.296.777l-.432.97-.207-1.465a.58.58 0 0 1 .09-.395zm5.39.538.453 3.325a.583.583 0 0 1-.453.65zM6.496 11.545l.17 1.052a.588.588 0 0 1-.293-.776zm3.985 4.344a.588.588 0 0 0-.612.603c0 .358.244.61.601.61a.582.582 0 0 0 .607-.608c0-.35-.242-.605-.596-.605zm5.545 0a.588.588 0 0 0-.612.603c0 .358.245.61.602.61a.582.582 0 0 0 .606-.608c0-.35-.24-.605-.596-.605zm-8.537.018a.047.047 0 0 0-.048.047v.085c0 .026.021.047.048.047h.52l-.623.9a.052.052 0 0 0-.009.027v.027c0 .026.021.047.048.047h.815a.047.047 0 0 0 .047-.047v-.085a.047.047 0 0 0-.047-.047h-.55l.606-.9a.05.05 0 0 0 .008-.026v-.028a.047.047 0 0 0-.047-.047zm5.303 0a.047.047 0 0 0-.047.047v1.086c0 .026.02.047.047.047h.135a.047.047 0 0 0 .047-.047v-.454h.545v.454c0 .026.02.047.047.047h.134a.047.047 0 0 0 .047-.047v-1.086a.047.047 0 0 0-.047-.047h-.134a.047.047 0 0 0-.047.047v.453h-.545v-.453a.047.047 0 0 0-.047-.047zm-2.324.164c.25 0 .372.194.372.425 0 .219-.109.425-.358.426-.242 0-.375-.197-.375-.419 0-.235.108-.432.36-.432zm5.545 0c.25 0 .372.194.372.425 0 .219-.108.425-.358.426-.242 0-.374-.197-.374-.419 0-.235.108-.432.36-.432z" fill="currentColor"></path></svg>
+      Analytics Code Mode<span>&nbsp;/ UTCP for AI agents</span>
+    </a>
+    <span class="chip">Zoho Analytics API v2</span>
+    <nav class="topnav" aria-label="Guide chapters">
+      <a href="index.html">Start here</a>
+      <a href="01-what-it-is.html">What it is</a>
+      <a href="02-install.html">Install</a>
+      <a href="03-using-it.html">Using it</a>
+      <a href="04-security.html">Security</a>
+      <a href="05-troubleshooting.html" aria-current="page">Troubleshooting</a>
+      <a href="06-operating.html">Operating</a>
+      <a href="07-remote-deployment.html">Remote</a>
+      <a href="08-engine.html">Engine</a>
+    </nav>
+    <button class="icon-btn nav-toggle" id="nav-toggle" type="button"
+            aria-expanded="false" aria-controls="sidebar"
+            aria-label="Show chapter navigation">&#9776;</button>
+    <button class="icon-btn" id="theme-toggle" type="button"
+            aria-label="Switch colour theme">&#9680;</button>
+  </div>
+</header>
+
+<div class="deadline-bar">
+  <div class="deadline-bar__inner">
+    <span class="chip chip--sdk">zoho-analytics-code-mode-mcp</span>
+    <p>Install with <strong>npx&nbsp;zoho-analytics-code-mode-mcp</strong>, version&nbsp;2.0.0.
+    <a href="02-install.html">Setup in five minutes &rarr;</a></p>
+    <span class="chip chip--deadline">Read-only</span>
+    <p>Write operations are <strong>disabled by default</strong>. Enable them
+    deliberately. <a href="04-security.html">Security model &rarr;</a></p>
+  </div>
+</div>
+
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidenav" aria-label="Chapters">
+    <h2>Guide</h2>
+    <a href="index.html"><span class="n">00</span><span>Start here</span></a>
+    <a href="01-what-it-is.html"><span class="n">01</span><span>What it is</span></a>
+    <a href="02-install.html"><span class="n">02</span><span>Install &amp; configure</span></a>
+    <a href="03-using-it.html"><span class="n">03</span><span>Using it</span></a>
+    <a href="04-security.html"><span class="n">04</span><span>Security &amp; governance</span></a>
+    <a href="05-troubleshooting.html" aria-current="page"><span class="n">05</span><span>Troubleshooting &amp; FAQ</span></a>
+    <a href="06-operating.html"><span class="n">06</span><span>Operating &amp; updating</span></a>
+    <a href="07-remote-deployment.html"><span class="n">07</span><span>Remote deployment</span></a>
+    <a href="08-engine.html"><span class="n">08</span><span>How the engine works</span></a>
+    <h2>Source</h2>
+    <a href="05-troubleshooting.md"><span class="n">md</span><span>This page as Markdown</span></a>
+    <a href="README.md"><span class="n">&#8212;</span><span>Folder README</span></a>
+    </nav>
+  </aside>
+
+  <main class="doc" id="main">
+<header class="page-head">
+  <div class="spine"><i></i><i></i><i></i><i></i></div>
+  <p class="eyebrow">Code Mode &middot; <b>Chapter 05</b></p>
+  <h1>Troubleshooting &amp; FAQ</h1>
+  
+</header>
+<section id="symptom-first">
+<h2><span class="num">01</span>Symptom first</h2>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Symptom</th><th>Likely cause</th><th>Go to</th></tr></thead><tbody><tr><td class="col-narrow">The tools do not appear in my agent</td><td>Config not loaded, or the server exited at startup</td><td><a href="#the-server-will-not-start">§2</a></td></tr><tr><td class="col-narrow">"server failed to start", nothing else</td><td>Missing or invalid configuration</td><td><a href="#the-server-will-not-start">§2</a></td></tr><tr><td class="col-narrow">Everything fails with 8535</td><td>Credentials rejected, or data centre mismatch</td><td><a href="#error-codes">§3</a></td></tr><tr><td class="col-narrow"><code>... is not a function</code></td><td>The agent guessed an operation name, or it is a write</td><td><a href="#operation-not-found">§4</a></td></tr><tr><td class="col-narrow">Error 8080 on every call</td><td><code>CONFIG</code> sent as an object instead of a string</td><td><a href="#error-codes">§3</a></td></tr><tr><td class="col-narrow">"API call budget exhausted"</td><td>The program looped more than 200 times</td><td><a href="#limits-and-timeouts">§5</a></td></tr><tr><td class="col-narrow">Programs time out</td><td>A blocking export that should be an async job</td><td><a href="#limits-and-timeouts">§5</a></td></tr><tr><td class="col-narrow">Answers are wrong but confident</td><td>Model quality, or a wrong filter</td><td><a href="#the-answers-look-wrong">§6</a></td></tr></tbody></table></div>
+</section>
+<section id="the-server-will-not-start">
+<h2><span class="num">02</span>The server will not start</h2>
+<p>A stdio server that exits is reported by most agents as a bare "failed to start". Run it by hand to see the real reason:</p>
+<pre><code class="lang-bash">ANALYTICS_CLIENT_ID=... ANALYTICS_CLIENT_SECRET=... \
+ANALYTICS_REFRESH_TOKEN=... ANALYTICS_ORG_ID=... \
+npx -y zoho-analytics-code-mode-mcp</code></pre>
+<p>A healthy start prints one line and then waits:</p>
+<pre><code class="lang-text">[za] ready — 76/203 operations (read-only), org 2375824000000000001, https://analyticsapi.zoho.com</code></pre>
+<p>A configuration problem prints exactly what is wrong:</p>
+<pre><code class="lang-text">Zoho Analytics Code Mode — cannot start:
+
+  • ANALYTICS_ORG_ID is not set. Every Analytics v2 request must name an
+    organization; find the ID in the Analytics UI under Settings &gt; Organization.</code></pre>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Exit code</th><th>Meaning</th></tr></thead><tbody><tr><td class="col-narrow">78</td><td>Configuration problem — the message lists every one</td></tr><tr><td class="col-narrow">70</td><td>Startup failed, usually a credential rejection</td></tr></tbody></table></div>
+<div class="note note--warn"><div class="note__title">Never print to stdout from a fork of this server</div><p>An MCP stdio server's stdout <em>is</em> the protocol channel. A single stray <code>console.log</code> corrupts it and the agent disconnects with no useful message. <code>src/quiet.mjs</code> redirects all console output to stderr and must stay the first import.</p></div>
+</section>
+<section id="error-codes">
+<h2><span class="num">03</span>Error codes</h2>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Code</th><th>Meaning</th><th>Fix</th></tr></thead><tbody><tr><td class="col-narrow"><strong>8535</strong></td><td>Access token rejected</td><td>Check the three OAuth values, and that <code>ACCOUNTS_SERVER_URL</code> and <code>ANALYTICS_SERVER_URL</code> name the <strong>same</strong> data centre</td></tr><tr><td class="col-narrow"><strong>8080</strong></td><td><code>CONFIG</code> is not valid</td><td>It must be a <code>JSON.stringify()</code>'d string, not an object literal</td></tr><tr><td class="col-narrow"><strong>7103</strong></td><td>Organization, workspace, view or job not found</td><td>It does not exist, was deleted, or is not visible to this user. Resolve IDs by name first</td></tr><tr><td class="col-narrow"><strong>7301</strong></td><td>Authenticated, but not permitted</td><td>The Analytics user lacks the role or view permission this operation needs</td></tr><tr><td class="col-narrow"><strong>7390</strong></td><td>Workspace is in a different organization</td><td>The workspace does not belong to the organization in <code>ZANALYTICS-ORGID</code></td></tr><tr><td class="col-narrow"><strong>8084</strong></td><td>No such organization</td><td><code>ANALYTICS_ORG_ID</code> names an organization that does not exist</td></tr><tr><td class="col-narrow"><strong>6045</strong></td><td>API frequency limit exceeded</td><td>Too many calls inside one window. Calls are capped at 55/min and retried with backoff; if it persists, narrow the task to one workspace or lower <code>ZA_MAX_CALLS_PER_MINUTE</code></td></tr><tr><td class="col-narrow"><strong>HTTP 401</strong></td><td>Same as 8535</td><td>As above</td></tr></tbody></table></div>
+<p>The server annotates these automatically from the OKF error catalog — all <strong>385 documented codes</strong>, not just the ones above — so the agent usually corrects itself on the next attempt. Your agent can also look one up directly with <code>get_analytics_guide("8080")</code>.</p>
+<h3 id="data-centre-mismatch">Data centre mismatch</h3>
+<p>The single most common setup error: a token minted at <code>accounts.zoho.com</code> but spent at <code>analyticsapi.zoho.eu</code>. The server detects the mismatch at startup and refuses to run rather than letting you debug 8535 in the dark. Both URLs must be the same row of <a href="02-install.html#step-3-pick-your-data-centre">the data centre table</a>.</p>
+</section>
+<section id="operation-not-found">
+<h2><span class="num">04</span>Operation not found</h2>
+<pre><code class="lang-text">Execution failed: za.getOwnedWorkspaces is not a function</code></pre>
+<p>Three possibilities:</p>
+<ol><li><strong>The agent guessed.</strong> Operation names come from the OpenAPI specification and are case-sensitive. Tell it to call <code>search_analytics_api</code> first.</li><li><strong>It is a write operation.</strong> Those are hidden unless <code>ZA_ALLOW_WRITES=true</code>. See <a href="04-security.html#enabling-write-operations">Security</a>.</li><li><strong>The name genuinely changed.</strong> For example <code>getOwnedWorkspaces</code> no longer exists; the current operation is <code>getOrgWorkspaces</code>. See the <a href="https://www.zoho.com/analytics/api/v2/">organization context migration guide</a>.</li></ol>
+</section>
+<section id="limits-and-timeouts">
+<h2><span class="num">05</span>Limits and timeouts</h2>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Message</th><th>Meaning</th><th>Options</th></tr></thead><tbody><tr><td class="col-narrow">"API call budget exhausted after 200 calls"</td><td>The program looped too far</td><td>Narrow the task; filter with <code>CONFIG</code> criteria instead of fetching everything; or raise <code>ZA_MAX_TOOL_CALLS</code></td></tr><tr><td class="col-narrow">Timed out</td><td>Longer than 60 s</td><td>Use <code>createExportJob*</code> + <code>getExportJobDetails</code> instead of a blocking export; or raise <code>ZA_EXEC_TIMEOUT_MS</code></td></tr><tr><td class="col-narrow">Out of memory</td><td>Accumulated too many rows</td><td>Aggregate per view instead of collecting everything first; or raise <code>ZA_EXEC_MEMORY_MB</code></td></tr></tbody></table></div>
+<p>Raising a limit is usually the wrong first move. Each one is normally telling you the program is fetching data it does not need.</p>
+</section>
+<section id="you-have-no-data-but-you-definitely-do">
+<h2><span class="num">06</span>"You have no data" but you definitely do</h2>
+<p>Almost always one of two things, both of which the <code>rows</code> helpers exist to prevent:</p>
+<ul><li>The program read <code>out.data.rows</code>. Export returns a <strong>flat array</strong> in <code>data</code>; <code>data.rows</code> is <code>undefined</code>, and <code>?? []</code> turns that into an empty result.</li><li>The program summed <code>Number(row.Sales)</code> on <code>"$1,682.39"</code>, which is <code>NaN</code>.</li></ul>
+<p>Ask your agent to show the code. If it is not using <code>rows.of()</code> and <code>rows.sum()</code>, tell it to.</p>
+</section>
+<section id="the-answers-look-wrong">
+<h2><span class="num">07</span>The answers look wrong</h2>
+<p>The sandbox guarantees the code is <em>contained</em>, not that it is <em>correct</em>. When a figure looks off:</p>
+<ol><li><strong>Ask to see the code.</strong> "Show me the code you ran." Check the filter, the date range and the column names.</li><li><strong>Check the organization.</strong> Everything is scoped to <code>ANALYTICS_ORG_ID</code>; data in another organization is invisible.</li><li><strong>Check read-only mode.</strong> If the agent tried to create something and silently moved on, it may be working from a partial picture.</li><li><strong>Consider the model.</strong> A stronger model writes noticeably better code. This is the most common cause of poor results.</li></ol>
+</section>
+<section id="frequently-asked-questions">
+<h2><span class="num">08</span>Frequently asked questions</h2>
+<h3 id="q-does-this-replace-the-zoho-analytics-mcp-server">Q. Does this replace the Zoho Analytics MCP Server?</h3>
+<p>No. They complement each other: 26 named tools for single lookups, this for multi-step work. Install both. See <a href="01-what-it-is.html#how-this-relates-to-the-zoho-analytics-mcp-server">the comparison</a>.</p>
+<h3 id="q-does-it-reduce-my-api-unit-consumption">Q. Does it reduce my API unit consumption?</h3>
+<p>No. The same operations are called, so the same units are billed. What it reduces is model turns and context — in a measured multi-workspace export, 19 model turns became 1.</p>
+<h3 id="q-do-i-need-an-openai-or-anthropic-api-key">Q. Do I need an OpenAI or Anthropic API key?</h3>
+<p>No. Your agent supplies the model. This server contains no AI.</p>
+<h3 id="q-where-does-my-data-go">Q. Where does my data go?</h3>
+<p>From Zoho Analytics to your machine, and from there only what the program returns goes to your AI provider. Nothing is routed through Zoho's agent infrastructure.</p>
+<h3 id="q-can-i-run-it-for-my-whole-team-from-one-place">Q. Can I run it for my whole team from one place?</h3>
+<p>Yes. Run it in remote mode: one instance, browser sign-in through Zoho, an organization allowlist, and nothing for users to install. See <a href="07-remote-deployment.html">Remote deployment</a>.</p>
+<h3 id="q-which-operations-are-available">Q. Which operations are available?</h3>
+<p>All 203 from the v2 OpenAPI specifications; 76 read-only ones are exposed by default. Ask your agent to search — that is what <code>search_analytics_api</code> is for.</p>
+<h3 id="q-can-the-model-see-my-credentials">Q. Can the model see my credentials?</h3>
+<p>No. They stay in the host process and are substituted into requests after the sandbox hands over a call.</p>
+<h3 id="q-is-there-an-audit-log">Q. Is there an audit log?</h3>
+<p>Not yet, in either mode. Each execution reports its API call count, but programs are not persisted. If you need to know who ran what, you will have to add it — see <a href="07-remote-deployment.html#what-this-does-not-give-you">Remote deployment</a>.</p>
+<h3 id="q-why-does-it-need-node-20">Q. Why does it need Node 20?</h3>
+<p>The sandbox is a V8 isolate from a native module that requires a modern Node. Older versions will fail to install it.</p>
+<h3 id="q-can-i-add-my-own-operations">Q. Can I add my own operations?</h3>
+<p>Yes — point <code>ZA_MANUAL_PATH</code> at your own catalog, or regenerate the bundled one from the OpenAPI specs with <code>npm run build:manual</code>. See <a href="06-operating.html#building-the-catalog-from-source">Operating</a>.</p>
+</section>
+    <nav class="pager" aria-label="Chapter">
+      <a href="04-security.html"><span class="pager__side">Previous</span>&larr; Security &amp; governance</a>
+      <a href="06-operating.html" style="margin-left:auto;text-align:right"><span class="pager__side">Next</span>Operating &amp; updating &rarr;</a>
+    </nav>
+  </main>
+
+<aside class="toc" aria-label="On this page">
+  <nav>
+    <h2>On this page</h2>
+    <a href="#symptom-first">Symptom first</a>
+    <a href="#the-server-will-not-start">The server will not start</a>
+    <a href="#error-codes">Error codes</a>
+    <a href="#operation-not-found">Operation not found</a>
+    <a href="#limits-and-timeouts">Limits and timeouts</a>
+    <a href="#you-have-no-data-but-you-definitely-do">&quot;You have no data&quot; but you definitely do</a>
+    <a href="#the-answers-look-wrong">The answers look wrong</a>
+    <a href="#frequently-asked-questions">Frequently asked questions</a>
+  </nav>
+</aside>
+</div>
+
+<footer class="footer">
+  <div class="spine"><i></i><i></i><i></i><i></i></div>
+  <div class="footer__inner">
+    <div>
+      <h2>Guide</h2>
+      <a href="index.html">00 &nbsp;Start here</a>
+      <a href="01-what-it-is.html">01 &nbsp;What it is</a>
+      <a href="02-install.html">02 &nbsp;Install &amp; configure</a>
+      <a href="03-using-it.html">03 &nbsp;Using it</a>
+      <a href="04-security.html">04 &nbsp;Security &amp; governance</a>
+      <a href="05-troubleshooting.html">05 &nbsp;Troubleshooting &amp; FAQ</a>
+      <a href="06-operating.html">06 &nbsp;Operating &amp; updating</a>
+      <a href="07-remote-deployment.html">07 &nbsp;Remote deployment</a>
+      <a href="08-engine.html">08 &nbsp;How the engine works</a>
+    </div>
+    <div>
+      <h2>Reference</h2>
+      <a href="02-install.html#configuration-reference">Configuration reference</a>
+      <a href="05-troubleshooting.html#error-codes">Error codes</a>
+      <a href="04-security.html#what-the-sandbox-cannot-do">Sandbox boundary</a>
+      <a href="02-install.html#step-1-get-your-credentials">Get your credentials</a>
+    </div>
+    <div class="footer__meta">
+      <h2>About</h2>
+      <p>Setup and usage guide for Zoho Analytics Code Mode, the MCP server
+      that lets AI agents run sandboxed code against the Analytics v2 API,
+      powered by the UTCP code-mode engine.</p>
+      <p>Rendered from the Markdown in this folder by <code>build.py</code>.
+      Generated 2026-11-11.</p>
+      <p><strong>zoho-analytics-code-mode-mcp v2.0.0. Read-only by default.</strong></p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

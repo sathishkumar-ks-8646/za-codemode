@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Remote deployment &mdash; Zoho Analytics Code Mode for AI agents</title>
+<meta name="description" content="Deploying Zoho Analytics Code Mode as a shared, multi-user remote MCP server — Docker, browser sign-in through Zoho, organization access control and Redis-backed sessions.">
+<link rel="stylesheet" href="assets/migration.css">
+<script src="assets/migration.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <a class="wordmark" href="index.html">
+      <svg class="zoho-mark" role="img" aria-label="Zoho" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.66 6.897a1.299 1.299 0 0 0-1.205.765l-.642 1.44-.062-.385A1.291 1.291 0 0 0 5.27 7.648l-4.185.678A1.291 1.291 0 0 0 .016 9.807l.678 4.18a1.293 1.293 0 0 0 1.27 1.087c.074 0 .143-.01.216-.017l4.18-.678c.436-.07.784-.351.96-.723l2.933 1.307a1.304 1.304 0 0 0 .988.026c.321-.12.575-.365.716-.678l.28-.629.038.276a1.297 1.297 0 0 0 1.455 1.103l3.712-.501a1.29 1.29 0 0 0 1.03.514h4.236c.713 0 1.29-.58 1.291-1.291V9.545c0-.712-.58-1.291-1.291-1.291h-4.236c-.079 0-.155.008-.23.022a1.309 1.309 0 0 0-.275-.288c-.275-.21-.614-.3-.958-.253l-4.197.571c-.155.021-.3.07-.432.14L9.159 7.01a1.27 1.27 0 0 0-.499-.113zm-.025.705c.077 0 .159.013.24.052l2.971 1.324c-.128.238-.18.508-.142.782l.357 2.596h.002l-.745 1.672a.59.59 0 0 1-.777.296l-3.107-1.385-.004-.041-.41-2.526L8.1 7.95a.589.589 0 0 1 .536-.348zm-3.159.733c.125 0 .245.039.343.112.13.09.21.227.237.382l.234 1.446-.56 1.259a1.27 1.27 0 0 0-.026.987c.12.322.364.575.678.717l.295.131a.585.585 0 0 1-.428.314l-4.185.678a.59.59 0 0 1-.674-.485l-.678-4.18a.588.588 0 0 1 .485-.674l4.185-.678c.03-.004.064-.01.094-.01zm11.705.09a.59.59 0 0 1 .415.173 1.287 1.287 0 0 0-.416.947v4.237c0 .033.003.065.005.097l-3.55.482a.586.586 0 0 1-.66-.502l-.191-1.403.899-2.017a1.29 1.29 0 0 0-.333-1.5l3.754-.51c.026-.004.051-.004.077-.004zm1.3.532h4.227c.326 0 .588.266.588.588v4.237a.589.589 0 0 1-.588.588h-4.237a.564.564 0 0 1-.12-.013c.47-.246.758-.765.684-1.318zm-5.988.309.254.113c.296.133.43.48.296.777l-.432.97-.207-1.465a.58.58 0 0 1 .09-.395zm5.39.538.453 3.325a.583.583 0 0 1-.453.65zM6.496 11.545l.17 1.052a.588.588 0 0 1-.293-.776zm3.985 4.344a.588.588 0 0 0-.612.603c0 .358.244.61.601.61a.582.582 0 0 0 .607-.608c0-.35-.242-.605-.596-.605zm5.545 0a.588.588 0 0 0-.612.603c0 .358.245.61.602.61a.582.582 0 0 0 .606-.608c0-.35-.24-.605-.596-.605zm-8.537.018a.047.047 0 0 0-.048.047v.085c0 .026.021.047.048.047h.52l-.623.9a.052.052 0 0 0-.009.027v.027c0 .026.021.047.048.047h.815a.047.047 0 0 0 .047-.047v-.085a.047.047 0 0 0-.047-.047h-.55l.606-.9a.05.05 0 0 0 .008-.026v-.028a.047.047 0 0 0-.047-.047zm5.303 0a.047.047 0 0 0-.047.047v1.086c0 .026.02.047.047.047h.135a.047.047 0 0 0 .047-.047v-.454h.545v.454c0 .026.02.047.047.047h.134a.047.047 0 0 0 .047-.047v-1.086a.047.047 0 0 0-.047-.047h-.134a.047.047 0 0 0-.047.047v.453h-.545v-.453a.047.047 0 0 0-.047-.047zm-2.324.164c.25 0 .372.194.372.425 0 .219-.109.425-.358.426-.242 0-.375-.197-.375-.419 0-.235.108-.432.36-.432zm5.545 0c.25 0 .372.194.372.425 0 .219-.108.425-.358.426-.242 0-.374-.197-.374-.419 0-.235.108-.432.36-.432z" fill="currentColor"></path></svg>
+      Analytics Code Mode<span>&nbsp;/ UTCP for AI agents</span>
+    </a>
+    <span class="chip">Zoho Analytics API v2</span>
+    <nav class="topnav" aria-label="Guide chapters">
+      <a href="index.html">Start here</a>
+      <a href="01-what-it-is.html">What it is</a>
+      <a href="02-install.html">Install</a>
+      <a href="03-using-it.html">Using it</a>
+      <a href="04-security.html">Security</a>
+      <a href="05-troubleshooting.html">Troubleshooting</a>
+      <a href="06-operating.html">Operating</a>
+      <a href="07-remote-deployment.html" aria-current="page">Remote</a>
+      <a href="08-engine.html">Engine</a>
+    </nav>
+    <button class="icon-btn nav-toggle" id="nav-toggle" type="button"
+            aria-expanded="false" aria-controls="sidebar"
+            aria-label="Show chapter navigation">&#9776;</button>
+    <button class="icon-btn" id="theme-toggle" type="button"
+            aria-label="Switch colour theme">&#9680;</button>
+  </div>
+</header>
+
+<div class="deadline-bar">
+  <div class="deadline-bar__inner">
+    <span class="chip chip--sdk">zoho-analytics-code-mode-mcp</span>
+    <p>Install with <strong>npx&nbsp;zoho-analytics-code-mode-mcp</strong>, version&nbsp;2.0.0.
+    <a href="02-install.html">Setup in five minutes &rarr;</a></p>
+    <span class="chip chip--deadline">Read-only</span>
+    <p>Write operations are <strong>disabled by default</strong>. Enable them
+    deliberately. <a href="04-security.html">Security model &rarr;</a></p>
+  </div>
+</div>
+
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidenav" aria-label="Chapters">
+    <h2>Guide</h2>
+    <a href="index.html"><span class="n">00</span><span>Start here</span></a>
+    <a href="01-what-it-is.html"><span class="n">01</span><span>What it is</span></a>
+    <a href="02-install.html"><span class="n">02</span><span>Install &amp; configure</span></a>
+    <a href="03-using-it.html"><span class="n">03</span><span>Using it</span></a>
+    <a href="04-security.html"><span class="n">04</span><span>Security &amp; governance</span></a>
+    <a href="05-troubleshooting.html"><span class="n">05</span><span>Troubleshooting &amp; FAQ</span></a>
+    <a href="06-operating.html"><span class="n">06</span><span>Operating &amp; updating</span></a>
+    <a href="07-remote-deployment.html" aria-current="page"><span class="n">07</span><span>Remote deployment</span></a>
+    <a href="08-engine.html"><span class="n">08</span><span>How the engine works</span></a>
+    <h2>Source</h2>
+    <a href="07-remote-deployment.md"><span class="n">md</span><span>This page as Markdown</span></a>
+    <a href="README.md"><span class="n">&#8212;</span><span>Folder README</span></a>
+    </nav>
+  </aside>
+
+  <main class="doc" id="main">
+<header class="page-head">
+  <div class="spine"><i></i><i></i><i></i><i></i></div>
+  <p class="eyebrow">Code Mode &middot; <b>Chapter 07</b></p>
+  <h1>Remote deployment</h1>
+  <p class="lede">Everything so far describes the <strong>local</strong> server: one person, one machine, credentials in their agent's configuration file. This chapter is the other way to run it — <strong>one instance, many users, browser sign-in, no per-user installation.</strong></p>
+</header>
+<div class="note note--info"><div class="note__title">Which one do you want?</div><p>If you are an individual trying this out, stay with <a href="02-install.html">the local setup</a>. This chapter is for an administrator rolling the tool out to a team.</p></div>
+<section id="what-changes">
+<h2><span class="num">01</span>What changes</h2>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow"></th><th>Local (stdio)</th><th>Remote (HTTP)</th></tr></thead><tbody><tr><td class="col-narrow">Users per instance</td><td>1</td><td>many</td></tr><tr><td class="col-narrow">Who installs anything</td><td>each user</td><td class="is-new">nobody</td></tr><tr><td class="col-narrow">Credentials</td><td>each user's config file</td><td class="is-new">held by the server</td></tr><tr><td class="col-narrow">Sign-in</td><td>paste a refresh token</td><td class="is-new">browser, through Zoho</td></tr><tr><td class="col-narrow">Access control</td><td>none</td><td class="is-new">organization allowlist</td></tr><tr><td class="col-narrow">Infrastructure</td><td>none</td><td>a container and a public HTTPS URL</td></tr><tr><td class="col-narrow">OAuth app type</td><td>Self Client</td><td class="is-new">Server-based Application</td></tr></tbody></table></div>
+<p>The variable names deliberately mirror the <a href="https://www.zoho.com/analytics/api/v2/zoho-analytics-mcp-server/remote-mcp/self-hosted.html">self-hosted Zoho Analytics Remote MCP Server</a>, so if you already run that one, most of your <code>.env</code> carries over.</p>
+</section>
+<section id="what-the-user-does">
+<h2><span class="num">02</span>What the user does</h2>
+<p>Nothing but paste four lines. No credentials, no install:</p>
+<pre><code class="lang-json">{
+  "mcpServers": {
+    "zoho-analytics-code-mode": {
+      "url": "https://analytics-code.example.com/mcp",
+      "type": "http"
+    }
+  }
+}</code></pre>
+<p>On first use their MCP client opens a browser, they sign in to Zoho and consent, and the client is connected. Tokens are held by the server; the user never sees one.</p>
+</section>
+<section id="step-1-register-a-server-based-oauth-application">
+<h2><span class="num">03</span>Step 1 — Register a server-based OAuth application</h2>
+<div class="note note--danger"><div class="note__title">Not a Self Client</div><p>A Self Client issues single-user personal tokens and cannot perform the redirect-based flow a shared server needs. Choose <strong>Server-based Application</strong>.</p></div>
+<ol><li>Go to <a href="https://api-console.zoho.com">api-console.zoho.com</a> → <strong>Add Client</strong> → <strong>Server-based Applications</strong>.</li><li>Give it a name and your homepage URL.</li><li>Set the <strong>Authorized Redirect URI</strong> to exactly: ``<code>text https://analytics-code.example.com/auth/callback </code>`<code> It must match </code>MCP_SERVER_PUBLIC_URL<code> + </code>/auth/callback` character for character, including the scheme and any trailing path.</li><li>Copy the <strong>Client ID</strong> and <strong>Client Secret</strong>.</li></ol>
+</section>
+<section id="step-2-write-the-env">
+<h2><span class="num">04</span>Step 2 — Write the <code>.env</code></h2>
+<pre><code class="lang-bash">cp .env.example .env</code></pre>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Variable</th><th>Required</th><th>Default</th><th>Purpose</th></tr></thead><tbody><tr><td class="col-narrow"><code>ANALYTICS_SERVER_URL</code></td><td><strong>yes</strong></td><td>—</td><td>Your data centre's Analytics API host</td></tr><tr><td class="col-narrow"><code>OIDC_PROVIDER_CLIENT_ID</code></td><td><strong>yes</strong></td><td>—</td><td>From the server-based OAuth app</td></tr><tr><td class="col-narrow"><code>OIDC_PROVIDER_CLIENT_SECRET</code></td><td><strong>yes</strong></td><td>—</td><td>From the same app. Keep it secret</td></tr><tr><td class="col-narrow"><code>MCP_SERVER_PUBLIC_URL</code></td><td><strong>yes</strong></td><td>—</td><td>The public HTTPS URL users reach</td></tr><tr><td class="col-narrow"><code>SESSION_SECRET_KEY</code></td><td><strong>yes</strong></td><td>—</td><td>Signs sessions. <code>openssl rand -base64 48</code></td></tr><tr><td class="col-narrow"><code>MCP_SERVER_ORG_IDS</code></td><td><strong>yes</strong></td><td>—</td><td>Comma-separated Organization IDs allowed to use this server</td></tr><tr><td class="col-narrow"><code>ACCOUNTS_SERVER_URL</code></td><td>no</td><td>derived</td><td>Only if the data centre guess is wrong</td></tr><tr><td class="col-narrow"><code>PORT</code></td><td>no</td><td><code>4000</code></td><td>Listening port</td></tr><tr><td class="col-narrow"><code>TRUST_PROXY_HOPS</code></td><td>no</td><td><code>1</code></td><td>Number of reverse proxies in front</td></tr><tr><td class="col-narrow"><code>STORAGE_BACKEND</code></td><td>no</td><td><code>memory</code></td><td><code>memory</code> or <code>redis</code></td></tr><tr><td class="col-narrow"><code>REDIS_HOST</code> / <code>REDIS_PORT</code> / <code>REDIS_PASSWORD</code></td><td>conditional</td><td>—</td><td>Required when <code>STORAGE_BACKEND=redis</code></td></tr><tr><td class="col-narrow"><code>ZA_ALLOW_WRITES</code></td><td>no</td><td><code>false</code></td><td>Exposes write operations <strong>for every user</strong></td></tr><tr><td class="col-narrow"><code>ZA_DOMAINS</code></td><td>no</td><td>all ten</td><td>API domains this deployment serves</td></tr><tr><td class="col-narrow"><code>ZA_MAX_SESSIONS</code></td><td>no</td><td><code>100</code></td><td>Cached per-user catalogs (~2.6 MB each)</td></tr><tr><td class="col-narrow"><code>ZA_SESSION_IDLE_MS</code></td><td>no</td><td><code>1800000</code></td><td>Idle time before a cached catalog is dropped</td></tr></tbody></table></div>
+<p>The sandbox limits from <a href="03-using-it.html#limits-you-will-meet">Using it</a> apply here too.</p>
+<div class="note note--warn"><div class="note__title">Get <code>TRUST_PROXY_HOPS</code> right</div><p>It must equal the number of proxies actually in front of this server. Setting it too high lets a client spoof <code>X-Forwarded-For</code> and slip past the rate limiting on the OAuth endpoints.</p></div>
+</section>
+<section id="step-3-run-it">
+<h2><span class="num">05</span>Step 3 — Run it</h2>
+<pre><code class="lang-bash">docker build -t zoho-analytics-code-mode-mcp:remote .
+
+docker run --name zoho-analytics-code-mode \
+  --env-file .env \
+  -p 4000:4000 \
+  zoho-analytics-code-mode-mcp:remote</code></pre>
+<p>Or with Redis, which you need for more than one replica:</p>
+<pre><code class="lang-bash">docker compose up -d</code></pre>
+<p>Put TLS in front of it. <code>MCP_SERVER_PUBLIC_URL</code> must be <code>https</code> outside localhost — the server refuses to start otherwise, because OAuth redirects and bearer tokens must not travel in clear text.</p>
+<p>Check it:</p>
+<pre><code class="lang-bash">curl https://analytics-code.example.com/healthz
+# {"status":"ok","operations":76,"writes":false,"sessions":0,"storage":"redis"}</code></pre>
+</section>
+<section id="how-sign-in-works">
+<h2><span class="num">06</span>How sign-in works</h2>
+<pre><code class="lang-text"> 1. MCP client POSTs /mcp with no token      -&gt; 401 + WWW-Authenticate
+ 2. Client reads /.well-known/oauth-protected-resource
+ 3. Client registers itself                  -&gt; POST /register
+ 4. Client opens a browser at /authorize     -&gt; we redirect to Zoho
+ 5. User signs in and consents at Zoho
+ 6. Zoho redirects to /auth/callback         -&gt; we exchange the code for Zoho
+                                                tokens, check the org allowlist,
+                                                and mint our own code
+ 7. We redirect back to the client           -&gt; client exchanges it at /token
+ 8. Client calls /mcp with its bearer token</code></pre>
+<p>Standard OAuth 2.1 with PKCE throughout, implemented by the MCP SDK. Two things worth knowing:</p>
+<ul><li><strong>The user's Zoho tokens never leave the server.</strong> The MCP client receives a token we mint, which maps to a server-side session holding the Zoho credentials. The sandbox never sees either.</li><li><strong>Access tokens live one hour and refresh silently.</strong> The Zoho token behind a session is renewed in the background, so a long session does not interrupt the user.</li></ul>
+</section>
+<section id="organization-access-control">
+<h2><span class="num">07</span>Organization access control</h2>
+<p><code>MCP_SERVER_ORG_IDS</code> is an allowlist. At sign-in, the server checks the user's own token against each listed organization and keeps the ones that answer. A user who can reach <strong>none</strong> of them is refused before any token is minted, and sees:</p>
+<p>&gt; Your Zoho Analytics account does not have access to any organization permitted by this server. Ask the administrator to add your organization to <code>MCP_SERVER_ORG_IDS</code>.</p>
+<div class="note note--good"><div class="note__title">Membership is tested, not asserted</div><p>There is no "list my organizations" endpoint any more, so the server probes each permitted organization with the user's own credentials. That tests real access rather than trusting a claim — a user cannot reach an organization merely because it appears in the allowlist.</p></div>
+<p>Each signed-in user gets a private operation catalog scoped to their own organization, so <code>ORG_ID</code> inside the sandbox is <em>their</em> organization, and one user's token can never be used for another's calls.</p>
+</section>
+<section id="storage-backend">
+<h2><span class="num">08</span>Storage backend</h2>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow"></th><th><code>memory</code> (default)</th><th><code>redis</code></th></tr></thead><tbody><tr><td class="col-narrow">Replicas supported</td><td><strong>one</strong></td><td>many</td></tr><tr><td class="col-narrow">Survives a restart</td><td>no — everyone signs in again</td><td>yes</td></tr><tr><td class="col-narrow">Extra infrastructure</td><td>none</td><td>a Redis instance</td></tr></tbody></table></div>
+<p>Use Redis as soon as you run more than one instance behind a load balancer: an authorization code issued by one replica must be redeemable by another, and a bearer token minted by one must be verifiable by all of them. With <code>memory</code>, a user whose request lands on a different replica is silently signed out.</p>
+</section>
+<section id="capacity">
+<h2><span class="num">09</span>Capacity</h2>
+<p>Each signed-in user holds a private catalog of roughly <strong>2.6 MB</strong>, built in about <strong>21 ms</strong>. <code>ZA_MAX_SESSIONS</code> caps how many are kept (default 100, so around 260 MB), and idle ones are evicted after <code>ZA_SESSION_IDLE_MS</code>. Evicting a catalog does not sign the user out; the next request rebuilds it.</p>
+</section>
+<section id="operational-notes">
+<h2><span class="num">10</span>Operational notes</h2>
+<ul><li><code>GET /healthz</code> reports operation count, write mode, live sessions and storage backend. It needs no authentication — put it behind your load balancer, not the public internet, if that bothers you.</li><li><code>GET /</code> serves a short landing page with the client configuration snippet, so you can send users a single URL.</li><li>Logs go to <strong>stderr</strong>, one line per event, prefixed <code>[za]</code>.</li><li><code>SIGTERM</code> and <code>SIGINT</code> drain cleanly: sessions are dropped, the listener closes, the store disconnects.</li></ul>
+<div class="note note--danger"><div class="note__title">Writes are a server-wide decision</div><p><code>ZA_ALLOW_WRITES=true</code> enables create, update and <strong>delete</strong> for every user of the instance, not per user. On a shared server that is a much larger decision than on a laptop. Read <a href="04-security.html#enabling-write-operations">Security</a> first, and prefer a separate instance pointed at a non-production organization.</p></div>
+</section>
+<section id="what-this-does-not-give-you">
+<h2><span class="num">11</span>What this does not give you</h2>
+<p>Stated plainly, because a security review will ask:</p>
+<ul><li><strong>No audit log.</strong> Programs are not persisted. Each response reports its API call count, and that is all. If you need to know who ran what, you need to add it.</li><li><strong>No per-user rate limiting of Analytics calls.</strong> <code>ZA_MAX_TOOL_CALLS</code> is per program, not per user per hour.</li><li><strong>No scope reduction per user.</strong> Every user gets the same operation set; what they can actually touch is governed by their own Zoho permissions.</li></ul>
+</section>
+    <nav class="pager" aria-label="Chapter">
+      <a href="06-operating.html"><span class="pager__side">Previous</span>&larr; Operating &amp; updating</a>
+      <a href="08-engine.html" style="margin-left:auto;text-align:right"><span class="pager__side">Next</span>How the engine works &rarr;</a>
+    </nav>
+  </main>
+
+<aside class="toc" aria-label="On this page">
+  <nav>
+    <h2>On this page</h2>
+    <a href="#what-changes">What changes</a>
+    <a href="#what-the-user-does">What the user does</a>
+    <a href="#step-1-register-a-server-based-oauth-application">Step 1 — Register a server-based OAuth application</a>
+    <a href="#step-2-write-the-env">Step 2 — Write the .env</a>
+    <a href="#step-3-run-it">Step 3 — Run it</a>
+    <a href="#how-sign-in-works">How sign-in works</a>
+    <a href="#organization-access-control">Organization access control</a>
+    <a href="#storage-backend">Storage backend</a>
+    <a href="#capacity">Capacity</a>
+    <a href="#operational-notes">Operational notes</a>
+    <a href="#what-this-does-not-give-you">What this does not give you</a>
+  </nav>
+</aside>
+</div>
+
+<footer class="footer">
+  <div class="spine"><i></i><i></i><i></i><i></i></div>
+  <div class="footer__inner">
+    <div>
+      <h2>Guide</h2>
+      <a href="index.html">00 &nbsp;Start here</a>
+      <a href="01-what-it-is.html">01 &nbsp;What it is</a>
+      <a href="02-install.html">02 &nbsp;Install &amp; configure</a>
+      <a href="03-using-it.html">03 &nbsp;Using it</a>
+      <a href="04-security.html">04 &nbsp;Security &amp; governance</a>
+      <a href="05-troubleshooting.html">05 &nbsp;Troubleshooting &amp; FAQ</a>
+      <a href="06-operating.html">06 &nbsp;Operating &amp; updating</a>
+      <a href="07-remote-deployment.html">07 &nbsp;Remote deployment</a>
+      <a href="08-engine.html">08 &nbsp;How the engine works</a>
+    </div>
+    <div>
+      <h2>Reference</h2>
+      <a href="02-install.html#configuration-reference">Configuration reference</a>
+      <a href="05-troubleshooting.html#error-codes">Error codes</a>
+      <a href="04-security.html#what-the-sandbox-cannot-do">Sandbox boundary</a>
+      <a href="02-install.html#step-1-get-your-credentials">Get your credentials</a>
+    </div>
+    <div class="footer__meta">
+      <h2>About</h2>
+      <p>Setup and usage guide for Zoho Analytics Code Mode, the MCP server
+      that lets AI agents run sandboxed code against the Analytics v2 API,
+      powered by the UTCP code-mode engine.</p>
+      <p>Rendered from the Markdown in this folder by <code>build.py</code>.
+      Generated 2026-11-11.</p>
+      <p><strong>zoho-analytics-code-mode-mcp v2.0.0. Read-only by default.</strong></p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

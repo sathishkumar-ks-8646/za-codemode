@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Start here &mdash; Zoho Analytics Code Mode for AI agents</title>
+<meta name="description" content="Zoho Analytics Code Mode is an MCP server that lets an AI agent write and run sandboxed code against the Analytics v2 API. Install it with one block in your agent&#x27;s configuration.">
+<link rel="stylesheet" href="assets/migration.css">
+<script src="assets/migration.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <a class="wordmark" href="index.html">
+      <svg class="zoho-mark" role="img" aria-label="Zoho" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.66 6.897a1.299 1.299 0 0 0-1.205.765l-.642 1.44-.062-.385A1.291 1.291 0 0 0 5.27 7.648l-4.185.678A1.291 1.291 0 0 0 .016 9.807l.678 4.18a1.293 1.293 0 0 0 1.27 1.087c.074 0 .143-.01.216-.017l4.18-.678c.436-.07.784-.351.96-.723l2.933 1.307a1.304 1.304 0 0 0 .988.026c.321-.12.575-.365.716-.678l.28-.629.038.276a1.297 1.297 0 0 0 1.455 1.103l3.712-.501a1.29 1.29 0 0 0 1.03.514h4.236c.713 0 1.29-.58 1.291-1.291V9.545c0-.712-.58-1.291-1.291-1.291h-4.236c-.079 0-.155.008-.23.022a1.309 1.309 0 0 0-.275-.288c-.275-.21-.614-.3-.958-.253l-4.197.571c-.155.021-.3.07-.432.14L9.159 7.01a1.27 1.27 0 0 0-.499-.113zm-.025.705c.077 0 .159.013.24.052l2.971 1.324c-.128.238-.18.508-.142.782l.357 2.596h.002l-.745 1.672a.59.59 0 0 1-.777.296l-3.107-1.385-.004-.041-.41-2.526L8.1 7.95a.589.589 0 0 1 .536-.348zm-3.159.733c.125 0 .245.039.343.112.13.09.21.227.237.382l.234 1.446-.56 1.259a1.27 1.27 0 0 0-.026.987c.12.322.364.575.678.717l.295.131a.585.585 0 0 1-.428.314l-4.185.678a.59.59 0 0 1-.674-.485l-.678-4.18a.588.588 0 0 1 .485-.674l4.185-.678c.03-.004.064-.01.094-.01zm11.705.09a.59.59 0 0 1 .415.173 1.287 1.287 0 0 0-.416.947v4.237c0 .033.003.065.005.097l-3.55.482a.586.586 0 0 1-.66-.502l-.191-1.403.899-2.017a1.29 1.29 0 0 0-.333-1.5l3.754-.51c.026-.004.051-.004.077-.004zm1.3.532h4.227c.326 0 .588.266.588.588v4.237a.589.589 0 0 1-.588.588h-4.237a.564.564 0 0 1-.12-.013c.47-.246.758-.765.684-1.318zm-5.988.309.254.113c.296.133.43.48.296.777l-.432.97-.207-1.465a.58.58 0 0 1 .09-.395zm5.39.538.453 3.325a.583.583 0 0 1-.453.65zM6.496 11.545l.17 1.052a.588.588 0 0 1-.293-.776zm3.985 4.344a.588.588 0 0 0-.612.603c0 .358.244.61.601.61a.582.582 0 0 0 .607-.608c0-.35-.242-.605-.596-.605zm5.545 0a.588.588 0 0 0-.612.603c0 .358.245.61.602.61a.582.582 0 0 0 .606-.608c0-.35-.24-.605-.596-.605zm-8.537.018a.047.047 0 0 0-.048.047v.085c0 .026.021.047.048.047h.52l-.623.9a.052.052 0 0 0-.009.027v.027c0 .026.021.047.048.047h.815a.047.047 0 0 0 .047-.047v-.085a.047.047 0 0 0-.047-.047h-.55l.606-.9a.05.05 0 0 0 .008-.026v-.028a.047.047 0 0 0-.047-.047zm5.303 0a.047.047 0 0 0-.047.047v1.086c0 .026.02.047.047.047h.135a.047.047 0 0 0 .047-.047v-.454h.545v.454c0 .026.02.047.047.047h.134a.047.047 0 0 0 .047-.047v-1.086a.047.047 0 0 0-.047-.047h-.134a.047.047 0 0 0-.047.047v.453h-.545v-.453a.047.047 0 0 0-.047-.047zm-2.324.164c.25 0 .372.194.372.425 0 .219-.109.425-.358.426-.242 0-.375-.197-.375-.419 0-.235.108-.432.36-.432zm5.545 0c.25 0 .372.194.372.425 0 .219-.108.425-.358.426-.242 0-.374-.197-.374-.419 0-.235.108-.432.36-.432z" fill="currentColor"></path></svg>
+      Analytics Code Mode<span>&nbsp;/ UTCP for AI agents</span>
+    </a>
+    <span class="chip">Zoho Analytics API v2</span>
+    <nav class="topnav" aria-label="Guide chapters">
+      <a href="index.html" aria-current="page">Start here</a>
+      <a href="01-what-it-is.html">What it is</a>
+      <a href="02-install.html">Install</a>
+      <a href="03-using-it.html">Using it</a>
+      <a href="04-security.html">Security</a>
+      <a href="05-troubleshooting.html">Troubleshooting</a>
+      <a href="06-operating.html">Operating</a>
+      <a href="07-remote-deployment.html">Remote</a>
+      <a href="08-engine.html">Engine</a>
+    </nav>
+    <button class="icon-btn nav-toggle" id="nav-toggle" type="button"
+            aria-expanded="false" aria-controls="sidebar"
+            aria-label="Show chapter navigation">&#9776;</button>
+    <button class="icon-btn" id="theme-toggle" type="button"
+            aria-label="Switch colour theme">&#9680;</button>
+  </div>
+</header>
+
+<div class="deadline-bar">
+  <div class="deadline-bar__inner">
+    <span class="chip chip--sdk">zoho-analytics-code-mode-mcp</span>
+    <p>Install with <strong>npx&nbsp;zoho-analytics-code-mode-mcp</strong>, version&nbsp;2.0.0.
+    <a href="02-install.html">Setup in five minutes &rarr;</a></p>
+    <span class="chip chip--deadline">Read-only</span>
+    <p>Write operations are <strong>disabled by default</strong>. Enable them
+    deliberately. <a href="04-security.html">Security model &rarr;</a></p>
+  </div>
+</div>
+
+<section class="hero">
+  <div class="hero__inner">
+    <div class="spine" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <h1>Let your AI agent write code against Zoho&nbsp;Analytics.</h1>
+    <p class="hero__lede">
+      Instead of calling one endpoint per turn, your agent writes a single
+      program &mdash; loops, filters, joins and all &mdash; and runs it in a
+      sealed V8 isolate next to the API. The operation catalog is a UTCP
+      manual generated from the published OpenAPI specifications, and the
+      product documentation ships with it.
+    </p>
+    <div class="hero__actions">
+      <a class="btn btn--primary" href="02-install.html">Install it</a>
+      <a class="btn" href="01-what-it-is.html">How it works</a>
+    </div>
+    <dl class="hero__facts">
+      <div class="fact fact--new"><dt>Tools your agent sees</dt><dd>3</dd></div>
+      <div class="fact"><dt>Operations reachable</dt><dd>203</dd></div>
+      <div class="fact fact--new"><dt>API domains</dt><dd>10</dd></div>
+      <div class="fact"><dt>Documented error codes</dt><dd>385</dd></div>
+      <div class="fact fact--warn"><dt>Setup time</dt><dd>5 min</dd></div>
+    </dl>
+  </div>
+</section>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidenav" aria-label="Chapters">
+    <h2>Guide</h2>
+    <a href="index.html" aria-current="page"><span class="n">00</span><span>Start here</span></a>
+    <a href="01-what-it-is.html"><span class="n">01</span><span>What it is</span></a>
+    <a href="02-install.html"><span class="n">02</span><span>Install &amp; configure</span></a>
+    <a href="03-using-it.html"><span class="n">03</span><span>Using it</span></a>
+    <a href="04-security.html"><span class="n">04</span><span>Security &amp; governance</span></a>
+    <a href="05-troubleshooting.html"><span class="n">05</span><span>Troubleshooting &amp; FAQ</span></a>
+    <a href="06-operating.html"><span class="n">06</span><span>Operating &amp; updating</span></a>
+    <a href="07-remote-deployment.html"><span class="n">07</span><span>Remote deployment</span></a>
+    <a href="08-engine.html"><span class="n">08</span><span>How the engine works</span></a>
+    <h2>Source</h2>
+    <a href="index.md"><span class="n">md</span><span>This page as Markdown</span></a>
+    <a href="README.md"><span class="n">&#8212;</span><span>Folder README</span></a>
+    </nav>
+  </aside>
+
+  <main class="doc" id="main">
+
+<p>It is built on the <strong>UTCP code-mode engine</strong>: the operation catalog is a UTCP manual generated from the published OpenAPI specifications, and the program runs in a V8 isolate with those operations bridged in. Your agent speaks MCP and never sees any of that — see <a href="08-engine.html">How the engine works</a>.</p>
+<div class="note note--good"><div class="note__title">Five minutes, nothing to host</div><p>Add one block to your agent's configuration file. There is no server to deploy, no port to open, and no AI model to supply — your agent brings its own. Jump to <a href="02-install.html">Install &amp; configure</a>.</p></div>
+<section id="is-this-for-you">
+<h2><span class="num">01</span>Is this for you?</h2>
+<div class="note note--good"><div class="note__title">Yes, if…</div><p>…you use an MCP-capable agent — Claude Desktop, Claude Code, Cursor, VS Code, Windsurf — and you want it to answer questions that span <strong>more than one call</strong>: totals across workspaces, exports that must be polled to completion, or anything needing a loop.</p></div>
+<div class="note note--info"><div class="note__title">Probably not, if…</div><p>…you only need single lookups like "list my workspaces". The <a href="https://www.zoho.com/analytics/api/v2/zoho-analytics-mcp-server.html">Zoho Analytics MCP Server</a> already does that with named tools, and a named tool is cheaper and clearer for one-shot work. The two are designed to sit side by side — see <a href="01-what-it-is.html#how-this-relates-to-the-zoho-analytics-mcp-server">How this relates to the MCP Server</a>.</p></div>
+</section>
+<section id="the-idea-in-sixty-seconds">
+<h2><span class="num">02</span>The idea in sixty seconds</h2>
+<p>Ask an agent <em>"what were East-region sales since July, across every workspace?"</em> and a conventional tool-calling setup has to make a round trip per step:</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Approach</th><th>What happens</th><th>Model turns</th></tr></thead><tbody><tr><td class="is-old col-narrow">One tool call per turn</td><td>list workspaces → list views → start export → poll → poll → poll → download → repeat per view, then add the numbers up in the model's head</td><td class="is-old">19</td></tr><tr><td class="is-new col-narrow">One program</td><td>the model writes a loop that does all of it in the sandbox and returns four numbers</td><td class="is-new">1</td></tr></tbody></table></div>
+<p>Both make the same API calls. The difference is that the intermediate data — every row, every <code>JOB IN PROGRESS</code> poll — never reaches the model.</p>
+</section>
+<section id="what-your-agent-sees">
+<h2><span class="num">03</span>What your agent sees</h2>
+<p>Four tools, no matter how large the API is:</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Tool</th><th>What it does</th></tr></thead><tbody><tr><td class="col-narrow"><code>find_analytics_objects</code></td><td>Turn "my profit table" into a real workspace and view ID</td></tr><tr><td class="col-narrow"><code>search_analytics_api</code></td><td>Describe a task, get back the exact call signatures for the matching operations</td></tr><tr><td class="col-narrow"><code>get_analytics_guide</code></td><td>Read how something actually works — criteria grammar, job polling, what an error code means</td></tr><tr><td class="col-narrow"><code>run_analytics_code</code></td><td>Run TypeScript against those operations in a sandbox, get back the result</td></tr></tbody></table></div>
+<p>Behind them sit <strong>203 operations</strong> across ten API domains, generated from the published OpenAPI specifications, plus the <strong>OKF knowledge base</strong>: 8 multi-step playbooks, 9 references and 385 documented error codes.</p>
+</section>
+<section id="install-it">
+<h2><span class="num">04</span>Install it</h2>
+<pre><code class="lang-json">{
+  "mcpServers": {
+    "zoho-analytics-code-mode": {
+      "command": "npx",
+      "args": ["-y", "zoho-analytics-code-mode-mcp"],
+      "env": {
+        "ANALYTICS_CLIENT_ID": "1000.XXXXXXXXXXXX",
+        "ANALYTICS_CLIENT_SECRET": "your-client-secret",
+        "ANALYTICS_REFRESH_TOKEN": "1000.xxxxxxxxxxxx",
+        "ANALYTICS_ORG_ID": "2375824000000000001",
+        "ACCOUNTS_SERVER_URL": "https://accounts.zoho.com",
+        "ANALYTICS_SERVER_URL": "https://analyticsapi.zoho.com"
+      }
+    }
+  }
+}</code></pre>
+<p>Restart your agent and ask it something. The full walkthrough, including how to obtain each value, is in <a href="02-install.html">Install &amp; configure</a>.</p>
+<div class="note note--info"><div class="note__title">Rolling this out to a team?</div><p>Deploy it once and let everyone sign in through their browser — no per-user credentials and no installation. See <a href="07-remote-deployment.html">Remote deployment</a>.</p></div>
+</section>
+<section id="read-the-guide-in-order">
+<h2><span class="num">05</span>Read the guide in order</h2>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Chapter</th><th>What it covers</th></tr></thead><tbody><tr><td class="col-narrow"><a href="01-what-it-is.html">01 What it is</a></td><td>How the sandbox works, where your code runs, and how this relates to the MCP Server</td></tr><tr><td class="col-narrow"><a href="02-install.html">02 Install &amp; configure</a></td><td>Credentials, every environment variable, and per-host setup</td></tr><tr><td class="col-narrow"><a href="03-using-it.html">03 Using it</a></td><td>What good prompts look like, worked examples, and what to expect</td></tr><tr><td class="col-narrow"><a href="04-security.html">04 Security &amp; governance</a></td><td>The sandbox boundary, read-only mode, budgets, and what to tell your security team</td></tr><tr><td class="col-narrow"><a href="05-troubleshooting.html">05 Troubleshooting &amp; FAQ</a></td><td>Symptoms, error codes, and answers</td></tr><tr><td class="col-narrow"><a href="06-operating.html">06 Operating &amp; updating</a></td><td>Updates, API-unit cost, and running it from source</td></tr><tr><td class="col-narrow"><a href="07-remote-deployment.html">07 Remote deployment</a></td><td>Running one shared instance for a team, with browser sign-in</td></tr><tr><td class="col-narrow"><a href="08-engine.html">08 How the engine works</a></td><td>UTCP, code mode, the isolate and the knowledge base</td></tr></tbody></table></div>
+</section>
+<section id="the-three-things-to-know-before-you-start">
+<h2><span class="num">06</span>The three things to know before you start</h2>
+<ol><li><strong>It does not reduce API units.</strong> The same calls are made, so the same units are billed. What it saves is model turns and context.</li><li><strong>Write operations are off by default,</strong> and you can narrow further. 76 read-only operations are exposed out of 203, and <code>ZA_DOMAINS</code> restricts that to the API domains you actually need. See <a href="02-install.html#choosing-what-to-expose">Choosing what to expose</a>.</li><li><strong>Your agent's model writes the code.</strong> A more capable model writes better code. If results are poor, that is the first thing to check.</li><li><strong>It will not guess which table you meant.</strong> When two views both match your words, it returns both and asks. See <a href="03-using-it.html#finding-your-data">Finding your data</a>.</li></ol>
+</section>
+<section id="conventions-used-in-this-guide">
+<h2><span class="num">07</span>Conventions used in this guide</h2>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Convention</th><th>Meaning</th></tr></thead><tbody><tr><td class="col-narrow"><code>za.operationName()</code></td><td>A call your agent's generated code makes inside the sandbox</td></tr><tr><td class="col-narrow"><code>ANALYTICS_*</code></td><td>An environment variable you set in your agent's configuration</td></tr><tr><td class="is-new col-narrow">green</td><td>The recommended choice</td></tr><tr><td class="is-old col-narrow">red</td><td>A thing to avoid</td></tr></tbody></table></div>
+</section>
+    <nav class="pager" aria-label="Chapter">
+      
+      <a href="01-what-it-is.html" style="margin-left:auto;text-align:right"><span class="pager__side">Next</span>What it is &rarr;</a>
+    </nav>
+  </main>
+
+<aside class="toc" aria-label="On this page">
+  <nav>
+    <h2>On this page</h2>
+    <a href="#is-this-for-you">Is this for you?</a>
+    <a href="#the-idea-in-sixty-seconds">The idea in sixty seconds</a>
+    <a href="#what-your-agent-sees">What your agent sees</a>
+    <a href="#install-it">Install it</a>
+    <a href="#read-the-guide-in-order">Read the guide in order</a>
+    <a href="#the-three-things-to-know-before-you-start">The three things to know before you start</a>
+    <a href="#conventions-used-in-this-guide">Conventions used in this guide</a>
+  </nav>
+</aside>
+</div>
+
+<footer class="footer">
+  <div class="spine"><i></i><i></i><i></i><i></i></div>
+  <div class="footer__inner">
+    <div>
+      <h2>Guide</h2>
+      <a href="index.html">00 &nbsp;Start here</a>
+      <a href="01-what-it-is.html">01 &nbsp;What it is</a>
+      <a href="02-install.html">02 &nbsp;Install &amp; configure</a>
+      <a href="03-using-it.html">03 &nbsp;Using it</a>
+      <a href="04-security.html">04 &nbsp;Security &amp; governance</a>
+      <a href="05-troubleshooting.html">05 &nbsp;Troubleshooting &amp; FAQ</a>
+      <a href="06-operating.html">06 &nbsp;Operating &amp; updating</a>
+      <a href="07-remote-deployment.html">07 &nbsp;Remote deployment</a>
+      <a href="08-engine.html">08 &nbsp;How the engine works</a>
+    </div>
+    <div>
+      <h2>Reference</h2>
+      <a href="02-install.html#configuration-reference">Configuration reference</a>
+      <a href="05-troubleshooting.html#error-codes">Error codes</a>
+      <a href="04-security.html#what-the-sandbox-cannot-do">Sandbox boundary</a>
+      <a href="02-install.html#step-1-get-your-credentials">Get your credentials</a>
+    </div>
+    <div class="footer__meta">
+      <h2>About</h2>
+      <p>Setup and usage guide for Zoho Analytics Code Mode, the MCP server
+      that lets AI agents run sandboxed code against the Analytics v2 API,
+      powered by the UTCP code-mode engine.</p>
+      <p>Rendered from the Markdown in this folder by <code>build.py</code>.
+      Generated 2026-11-11.</p>
+      <p><strong>zoho-analytics-code-mode-mcp v2.0.0. Read-only by default.</strong></p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,10 @@
+node_modules/
+
+# Credentials — never commit. See .env.example for the variable list.
+.env
+.env.live
+.env.local
+
+*.log
+*.tmp.mjs
+test/.tmp/

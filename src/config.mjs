@@ -1,0 +1,195 @@
+/**
+ * Environment parsing, with errors a user can act on.
+ *
+ * A misconfigured stdio server fails invisibly - the host reports only
+ * "server failed to start" - so every problem detectable at boot is reported
+ * here, in full, before anything else runs.
+ */
+import { DOMAINS } from './catalog.mjs';
+
+const DC_HINTS = [
+  ['https://analyticsapi.zoho.com', 'https://accounts.zoho.com', 'US'],
+  ['https://analyticsapi.zoho.eu', 'https://accounts.zoho.eu', 'EU'],
+  ['https://analyticsapi.zoho.in', 'https://accounts.zoho.in', 'IN'],
+  ['https://analyticsapi.zoho.com.au', 'https://accounts.zoho.com.au', 'AU'],
+  ['https://analyticsapi.zoho.jp', 'https://accounts.zoho.jp', 'JP'],
+  ['https://analyticsapi.zohocloud.ca', 'https://accounts.zohocloud.ca', 'CA'],
+  ['https://analyticsapi.zoho.sa', 'https://accounts.zoho.sa', 'SA'],
+];
+
+/** Parse and validate a comma-separated domain list against the known set. */
+function parseDomains(raw, problems) {
+  if (!raw) return [];
+  const names = raw.split(',').map((s) => s.trim()).filter(Boolean);
+  const unknown = names.filter((n) => !(n in DOMAINS));
+  if (unknown.length) {
+    problems.push(`ZA_DOMAINS contains unknown ${unknown.length === 1 ? 'domain' : 'domains'} `
+      + `${unknown.join(', ')}. Valid: ${Object.keys(DOMAINS).join(', ')}.`);
+  }
+  return names.filter((n) => n in DOMAINS);
+}
+
+function bool(value, fallback) {
+  if (value === undefined) return fallback;
+  return value === 'true' || value === '1' || value === 'yes';
+}
+
+/** Config for the local stdio server: one user, credentials from the agent config. */
+export function loadConfig(env = process.env) {
+  const problems = [];
+
+  const analyticsUrl = env.ANALYTICS_SERVER_URL ?? 'https://analyticsapi.zoho.com';
+  const accountsUrl = env.ACCOUNTS_SERVER_URL ?? 'https://accounts.zoho.com';
+
+  // A mismatched pair is the single most common setup mistake: the token is
+  // minted in one data centre and spent in another, and the only symptom is a
+  // confusing 8535 on the first call.
+  const aDc = DC_HINTS.find(([a]) => analyticsUrl.startsWith(a))?.[2];
+  const cDc = DC_HINTS.find(([, c]) => accountsUrl.startsWith(c))?.[2];
+  if (aDc && cDc && aDc !== cDc) {
+    problems.push(
+      `ANALYTICS_SERVER_URL looks like the ${aDc} data centre but ACCOUNTS_SERVER_URL `
+      + `looks like ${cDc}. Both must name the same one.`);
+  }
+
+  const hasOAuth = Boolean(env.ANALYTICS_CLIENT_ID && env.ANALYTICS_CLIENT_SECRET
+    && env.ANALYTICS_REFRESH_TOKEN);
+  const hasStaticToken = Boolean(env.ANALYTICS_ACCESS_TOKEN);
+
+  if (!hasOAuth && !hasStaticToken) {
+    const missing = ['ANALYTICS_CLIENT_ID', 'ANALYTICS_CLIENT_SECRET', 'ANALYTICS_REFRESH_TOKEN']
+      .filter((k) => !env[k]);
+    problems.push(
+      `No credentials. Set ${missing.join(', ')} (recommended), or `
+      + 'ANALYTICS_ACCESS_TOKEN for a short-lived test.');
+  }
+
+  if (!env.ANALYTICS_ORG_ID) {
+    problems.push('ANALYTICS_ORG_ID is not set. Every Analytics v2 request must name '
+      + 'an organization; find the ID in the Analytics UI under Settings > Organization.');
+  }
+
+  const maxToolCalls = Number(env.ZA_MAX_TOOL_CALLS ?? 200);
+  if (!Number.isFinite(maxToolCalls) || maxToolCalls < 1) {
+    problems.push(`ZA_MAX_TOOL_CALLS must be a positive number, got "${env.ZA_MAX_TOOL_CALLS}".`);
+  }
+
+  return {
+    analyticsUrl,
+    accountsUrl,
+    orgId: env.ANALYTICS_ORG_ID ?? '',
+    clientId: env.ANALYTICS_CLIENT_ID,
+    clientSecret: env.ANALYTICS_CLIENT_SECRET,
+    refreshToken: env.ANALYTICS_REFRESH_TOKEN,
+    staticToken: env.ANALYTICS_ACCESS_TOKEN,
+    allowWrites: bool(env.ZA_ALLOW_WRITES, false),
+    domains: parseDomains(env.ZA_DOMAINS, problems),
+    maxToolCalls,
+    // Pacing, so a loop in generated code does not trip the API frequency
+    // limit. Measured need: an 81-workspace sweep trips it unspaced.
+    minCallIntervalMs: Number(env.ZA_MIN_CALL_INTERVAL_MS ?? 50),
+    // Measured safe rate on a real org: 53/min ran clean, 105/min tripped.
+    maxCallsPerMinute: Number(env.ZA_MAX_CALLS_PER_MINUTE ?? 55),
+    throttleRetries: Number(env.ZA_THROTTLE_RETRIES ?? 3),
+    timeoutMs: Number(env.ZA_EXEC_TIMEOUT_MS ?? 60_000),
+    memoryLimitMb: Number(env.ZA_EXEC_MEMORY_MB ?? 256),
+    problems,
+  };
+}
+
+
+/**
+ * Config for the remote, multi-user server.
+ *
+ * Variable names deliberately mirror the self-hosted Zoho Analytics Remote MCP
+ * Server, so an operator who has deployed that one can reuse their `.env`.
+ */
+export function loadRemoteConfig(env = process.env) {
+  const problems = [];
+
+  const analyticsUrl = env.ANALYTICS_SERVER_URL;
+  if (!analyticsUrl) problems.push('ANALYTICS_SERVER_URL is required, e.g. https://analyticsapi.zoho.com');
+
+  // Not in the reference variable set: derived from the API host so operators
+  // only name their data centre once, and overridable when that guess is wrong.
+  const accountsUrl = env.ACCOUNTS_SERVER_URL
+    ?? (analyticsUrl ? deriveAccountsUrl(analyticsUrl) : undefined);
+  if (analyticsUrl && !accountsUrl) {
+    problems.push(`Cannot derive the accounts host from ANALYTICS_SERVER_URL=${analyticsUrl}. `
+      + 'Set ACCOUNTS_SERVER_URL explicitly.');
+  }
+
+  for (const key of ['OIDC_PROVIDER_CLIENT_ID', 'OIDC_PROVIDER_CLIENT_SECRET',
+    'MCP_SERVER_PUBLIC_URL', 'SESSION_SECRET_KEY', 'MCP_SERVER_ORG_IDS']) {
+    if (!env[key]) problems.push(`${key} is required.`);
+  }
+
+  const publicUrl = (env.MCP_SERVER_PUBLIC_URL ?? '').replace(/\/+$/, '');
+  if (publicUrl && !/^https?:\/\//.test(publicUrl)) {
+    problems.push('MCP_SERVER_PUBLIC_URL must be a fully qualified URL.');
+  }
+  if (publicUrl.startsWith('http://') && !/^http:\/\/(localhost|127\.0\.0\.1)/.test(publicUrl)) {
+    problems.push('MCP_SERVER_PUBLIC_URL must use https outside localhost — OAuth '
+      + 'redirects and bearer tokens must not travel in clear text.');
+  }
+
+  const sessionSecret = env.SESSION_SECRET_KEY ?? '';
+  if (sessionSecret && sessionSecret.length < 32) {
+    problems.push('SESSION_SECRET_KEY must be at least 32 characters. Generate one with '
+      + '`openssl rand -base64 48`.');
+  }
+
+  const orgIds = (env.MCP_SERVER_ORG_IDS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  if (env.MCP_SERVER_ORG_IDS && !orgIds.length) {
+    problems.push('MCP_SERVER_ORG_IDS is set but contains no organization IDs.');
+  }
+
+  const storageBackend = env.STORAGE_BACKEND ?? 'memory';
+  if (!['memory', 'redis'].includes(storageBackend)) {
+    problems.push(`STORAGE_BACKEND must be "memory" or "redis", got "${storageBackend}".`);
+  }
+  if (storageBackend === 'redis' && !env.REDIS_HOST) {
+    problems.push('STORAGE_BACKEND=redis requires REDIS_HOST.');
+  }
+  if (storageBackend === 'memory' && env.REPLICAS && Number(env.REPLICAS) > 1) {
+    problems.push('STORAGE_BACKEND=memory cannot serve more than one replica: a token '
+      + 'minted by one instance is unknown to the others. Use redis.');
+  }
+
+  return {
+    analyticsUrl,
+    accountsUrl,
+    oidcClientId: env.OIDC_PROVIDER_CLIENT_ID,
+    oidcClientSecret: env.OIDC_PROVIDER_CLIENT_SECRET,
+    publicUrl,
+    sessionSecret,
+    orgIds,
+    port: Number(env.PORT ?? 4000),
+    // Number of reverse proxies in front of this server. Must be exact: too
+    // high and clients can spoof their IP past the rate limiter.
+    trustProxyHops: Number(env.TRUST_PROXY_HOPS ?? 1),
+    storageBackend,
+    redisHost: env.REDIS_HOST,
+    redisPort: Number(env.REDIS_PORT ?? 6379),
+    redisPassword: env.REDIS_PASSWORD,
+    allowWrites: bool(env.ZA_ALLOW_WRITES, false),
+    domains: parseDomains(env.ZA_DOMAINS, problems),
+    maxToolCalls: Number(env.ZA_MAX_TOOL_CALLS ?? 200),
+    // Pacing, so a loop in generated code does not trip the API frequency
+    // limit. Measured need: an 81-workspace sweep trips it unspaced.
+    minCallIntervalMs: Number(env.ZA_MIN_CALL_INTERVAL_MS ?? 50),
+    // Measured safe rate on a real org: 53/min ran clean, 105/min tripped.
+    maxCallsPerMinute: Number(env.ZA_MAX_CALLS_PER_MINUTE ?? 55),
+    throttleRetries: Number(env.ZA_THROTTLE_RETRIES ?? 3),
+    timeoutMs: Number(env.ZA_EXEC_TIMEOUT_MS ?? 60_000),
+    memoryLimitMb: Number(env.ZA_EXEC_MEMORY_MB ?? 256),
+    maxSessions: Number(env.ZA_MAX_SESSIONS ?? 100),
+    sessionIdleMs: Number(env.ZA_SESSION_IDLE_MS ?? 30 * 60_000),
+    problems,
+  };
+}
+
+function deriveAccountsUrl(analyticsUrl) {
+  const match = DC_HINTS.find(([api]) => analyticsUrl.startsWith(api));
+  return match?.[1];
+}

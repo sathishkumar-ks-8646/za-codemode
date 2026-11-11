@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>How the engine works &mdash; Zoho Analytics Code Mode for AI agents</title>
+<meta name="description" content="What Zoho Analytics Code Mode is built on — the UTCP code-mode engine, the generated operation catalog, the V8 isolate, and the OKF knowledge base.">
+<link rel="stylesheet" href="assets/migration.css">
+<script src="assets/migration.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <a class="wordmark" href="index.html">
+      <svg class="zoho-mark" role="img" aria-label="Zoho" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.66 6.897a1.299 1.299 0 0 0-1.205.765l-.642 1.44-.062-.385A1.291 1.291 0 0 0 5.27 7.648l-4.185.678A1.291 1.291 0 0 0 .016 9.807l.678 4.18a1.293 1.293 0 0 0 1.27 1.087c.074 0 .143-.01.216-.017l4.18-.678c.436-.07.784-.351.96-.723l2.933 1.307a1.304 1.304 0 0 0 .988.026c.321-.12.575-.365.716-.678l.28-.629.038.276a1.297 1.297 0 0 0 1.455 1.103l3.712-.501a1.29 1.29 0 0 0 1.03.514h4.236c.713 0 1.29-.58 1.291-1.291V9.545c0-.712-.58-1.291-1.291-1.291h-4.236c-.079 0-.155.008-.23.022a1.309 1.309 0 0 0-.275-.288c-.275-.21-.614-.3-.958-.253l-4.197.571c-.155.021-.3.07-.432.14L9.159 7.01a1.27 1.27 0 0 0-.499-.113zm-.025.705c.077 0 .159.013.24.052l2.971 1.324c-.128.238-.18.508-.142.782l.357 2.596h.002l-.745 1.672a.59.59 0 0 1-.777.296l-3.107-1.385-.004-.041-.41-2.526L8.1 7.95a.589.589 0 0 1 .536-.348zm-3.159.733c.125 0 .245.039.343.112.13.09.21.227.237.382l.234 1.446-.56 1.259a1.27 1.27 0 0 0-.026.987c.12.322.364.575.678.717l.295.131a.585.585 0 0 1-.428.314l-4.185.678a.59.59 0 0 1-.674-.485l-.678-4.18a.588.588 0 0 1 .485-.674l4.185-.678c.03-.004.064-.01.094-.01zm11.705.09a.59.59 0 0 1 .415.173 1.287 1.287 0 0 0-.416.947v4.237c0 .033.003.065.005.097l-3.55.482a.586.586 0 0 1-.66-.502l-.191-1.403.899-2.017a1.29 1.29 0 0 0-.333-1.5l3.754-.51c.026-.004.051-.004.077-.004zm1.3.532h4.227c.326 0 .588.266.588.588v4.237a.589.589 0 0 1-.588.588h-4.237a.564.564 0 0 1-.12-.013c.47-.246.758-.765.684-1.318zm-5.988.309.254.113c.296.133.43.48.296.777l-.432.97-.207-1.465a.58.58 0 0 1 .09-.395zm5.39.538.453 3.325a.583.583 0 0 1-.453.65zM6.496 11.545l.17 1.052a.588.588 0 0 1-.293-.776zm3.985 4.344a.588.588 0 0 0-.612.603c0 .358.244.61.601.61a.582.582 0 0 0 .607-.608c0-.35-.242-.605-.596-.605zm5.545 0a.588.588 0 0 0-.612.603c0 .358.245.61.602.61a.582.582 0 0 0 .606-.608c0-.35-.24-.605-.596-.605zm-8.537.018a.047.047 0 0 0-.048.047v.085c0 .026.021.047.048.047h.52l-.623.9a.052.052 0 0 0-.009.027v.027c0 .026.021.047.048.047h.815a.047.047 0 0 0 .047-.047v-.085a.047.047 0 0 0-.047-.047h-.55l.606-.9a.05.05 0 0 0 .008-.026v-.028a.047.047 0 0 0-.047-.047zm5.303 0a.047.047 0 0 0-.047.047v1.086c0 .026.02.047.047.047h.135a.047.047 0 0 0 .047-.047v-.454h.545v.454c0 .026.02.047.047.047h.134a.047.047 0 0 0 .047-.047v-1.086a.047.047 0 0 0-.047-.047h-.134a.047.047 0 0 0-.047.047v.453h-.545v-.453a.047.047 0 0 0-.047-.047zm-2.324.164c.25 0 .372.194.372.425 0 .219-.109.425-.358.426-.242 0-.375-.197-.375-.419 0-.235.108-.432.36-.432zm5.545 0c.25 0 .372.194.372.425 0 .219-.108.425-.358.426-.242 0-.374-.197-.374-.419 0-.235.108-.432.36-.432z" fill="currentColor"></path></svg>
+      Analytics Code Mode<span>&nbsp;/ UTCP for AI agents</span>
+    </a>
+    <span class="chip">Zoho Analytics API v2</span>
+    <nav class="topnav" aria-label="Guide chapters">
+      <a href="index.html">Start here</a>
+      <a href="01-what-it-is.html">What it is</a>
+      <a href="02-install.html">Install</a>
+      <a href="03-using-it.html">Using it</a>
+      <a href="04-security.html">Security</a>
+      <a href="05-troubleshooting.html">Troubleshooting</a>
+      <a href="06-operating.html">Operating</a>
+      <a href="07-remote-deployment.html">Remote</a>
+      <a href="08-engine.html" aria-current="page">Engine</a>
+    </nav>
+    <button class="icon-btn nav-toggle" id="nav-toggle" type="button"
+            aria-expanded="false" aria-controls="sidebar"
+            aria-label="Show chapter navigation">&#9776;</button>
+    <button class="icon-btn" id="theme-toggle" type="button"
+            aria-label="Switch colour theme">&#9680;</button>
+  </div>
+</header>
+
+<div class="deadline-bar">
+  <div class="deadline-bar__inner">
+    <span class="chip chip--sdk">zoho-analytics-code-mode-mcp</span>
+    <p>Install with <strong>npx&nbsp;zoho-analytics-code-mode-mcp</strong>, version&nbsp;2.0.0.
+    <a href="02-install.html">Setup in five minutes &rarr;</a></p>
+    <span class="chip chip--deadline">Read-only</span>
+    <p>Write operations are <strong>disabled by default</strong>. Enable them
+    deliberately. <a href="04-security.html">Security model &rarr;</a></p>
+  </div>
+</div>
+
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidenav" aria-label="Chapters">
+    <h2>Guide</h2>
+    <a href="index.html"><span class="n">00</span><span>Start here</span></a>
+    <a href="01-what-it-is.html"><span class="n">01</span><span>What it is</span></a>
+    <a href="02-install.html"><span class="n">02</span><span>Install &amp; configure</span></a>
+    <a href="03-using-it.html"><span class="n">03</span><span>Using it</span></a>
+    <a href="04-security.html"><span class="n">04</span><span>Security &amp; governance</span></a>
+    <a href="05-troubleshooting.html"><span class="n">05</span><span>Troubleshooting &amp; FAQ</span></a>
+    <a href="06-operating.html"><span class="n">06</span><span>Operating &amp; updating</span></a>
+    <a href="07-remote-deployment.html"><span class="n">07</span><span>Remote deployment</span></a>
+    <a href="08-engine.html" aria-current="page"><span class="n">08</span><span>How the engine works</span></a>
+    <h2>Source</h2>
+    <a href="08-engine.md"><span class="n">md</span><span>This page as Markdown</span></a>
+    <a href="README.md"><span class="n">&#8212;</span><span>Folder README</span></a>
+    </nav>
+  </aside>
+
+  <main class="doc" id="main">
+<header class="page-head">
+  <div class="spine"><i></i><i></i><i></i><i></i></div>
+  <p class="eyebrow">Code Mode &middot; <b>Chapter 08</b></p>
+  <h1>How the engine works</h1>
+  <p class="lede">This chapter is for the curious and for anyone reviewing the tool. Nothing here is needed to use it.</p>
+</header>
+<section id="the-three-layers">
+<h2><span class="num">01</span>The three layers</h2>
+<pre><code class="lang-text">  ┌─ MCP ──────────────────────────────────────────────┐
+  │  what your agent speaks. Three tools.              │
+  │  @modelcontextprotocol/sdk                         │
+  └────────────────────┬───────────────────────────────┘
+                       │
+  ┌─ UTCP code mode ───▼───────────────────────────────┐
+  │  what runs the model's program and calls the API.  │
+  │  @utcp/code-mode  +  @utcp/http  +  isolated-vm    │
+  └────────────────────┬───────────────────────────────┘
+                       │
+  ┌─ Zoho Analytics ───▼───────────────────────────────┐
+  │  the REST API v2, unchanged.                       │
+  └────────────────────────────────────────────────────┘</code></pre>
+<p><strong>MCP is the doorway. UTCP code mode is the engine.</strong> Your agent only ever sees the MCP layer; UTCP is an implementation detail that no user configures and no client needs to understand.</p>
+</section>
+<section id="what-utcp-is">
+<h2><span class="num">02</span>What UTCP is</h2>
+<p><a href="https://www.utcp.io">UTCP</a> — the Universal Tool Calling Protocol — is a JSON format for describing callable operations, plus client libraries that call them. A UTCP <em>manual</em> lists tools; each carries a name, a description, a JSON-Schema input and a <strong>call template</strong> saying how to make the HTTP request.</p>
+<p><code>manual/analytics.utcp.json</code> is exactly that: <strong>203 operations</strong>, generated from the OpenAPI specifications published for the v2 API.</p>
+<pre><code class="lang-json">{
+  "name": "exportDataView",
+  "description": "Export Data from a View — Exports the data of a view...",
+  "inputs": { "type": "object", "properties": { "...": {} } },
+  "tool_call_template": {
+    "call_template_type": "http",
+    "http_method": "GET",
+    "url": "${ZA_BASE_URL}/restapi/v2/workspaces/{workspace-id}/views/{view-id}/data",
+    "header_fields": ["ZANALYTICS-ORGID"],
+    "auth": { "auth_type": "api_key", "api_key": "Bearer ${ZA_ACCESS_TOKEN}",
+              "var_name": "Authorization", "location": "header" }
+  }
+}</code></pre>
+<div class="note note--info"><div class="note__title">This manual is internal and is never published</div><p>UTCP has no token-refresh mechanism, which is why handing a manual to end users does not work — they would re-paste an access token every hour. Because ours stays inside the server, the server holds the credentials, mints tokens, and re-registers the manual when one rotates. Neither you nor the sandbox ever sees a token.</p></div>
+</section>
+<section id="what-code-mode-is">
+<h2><span class="num">03</span>What code mode is</h2>
+<p><strong>Code mode</strong> is the pattern of letting a model write <em>one program</em> that calls many tools, instead of calling them one at a time. Cloudflare named it in 2025; Anthropic ships it as programmatic tool calling, AWS as <code>run_script</code>, Snowflake as its Cortex code execution tool.</p>
+<p><code>@utcp/code-mode</code> is the implementation here. It takes the registered UTCP manual, generates a TypeScript signature per operation, and binds each one as a method on a <code>za</code> global inside an <a href="https://github.com/laverdet/isolated-vm"><code>isolated-vm</code></a> V8 isolate.</p>
+<p>When the model's code calls <code>za.exportDataView(...)</code>, that is <strong>not</strong> an HTTP request. It is a callback out of the isolate into the server process, which reads that operation's call template, substitutes the variables, and makes the real call. The isolate has no network of its own — see <a href="04-security.html#what-the-sandbox-cannot-do">Security</a>.</p>
+</section>
+<section id="where-the-accuracy-comes-from">
+<h2><span class="num">04</span>Where the accuracy comes from</h2>
+<p>Signatures tell a model <em>what it can call</em>. They do not tell it that criteria strings follow a particular SQL-like grammar, that <code>CONFIG</code> must be stringified and URL-encoded, or that a bulk export is three calls and a poll. Those are the things generated code gets wrong.</p>
+<p>So the <strong>OKF knowledge base</strong> ships with the server and is exposed as <code>get_analytics_guide</code>. Its source of truth is the published bundle at <strong><a href="https://github.com/zoho/analytics-okf">github.com/zoho/analytics-okf</a></strong> — <code>npm run build:knowledge</code> reads that repository's root <code>manifest.json</code> to resolve the current version, then its <code>llms.txt</code> link index, exactly as that repository instructs. It is not built from any local checkout:</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Content</th><th>Count</th><th>What it is for</th></tr></thead><tbody><tr><td class="col-narrow">Playbooks</td><td>8</td><td>Multi-step recipes: asynchronous export, large import, resolving identifiers, sharing with row filters, scheduling email, managing users, AutoML, multi-tenant embedding</td></tr><tr><td class="col-narrow">References</td><td>9</td><td>Criteria grammar, request conventions, job polling, identifiers, response envelope, export and import enums, HTTP statuses, rate limits</td></tr><tr><td class="col-narrow">Error codes</td><td>385</td><td>Every documented code, with its meaning, resolution and whether it is retryable</td></tr></tbody></table></div>
+<p>Two things happen automatically:</p>
+<ul><li><strong>Search points at the playbook.</strong> Ask for export-job operations and the result ends with <em>"Before writing code, consider reading: <code>get_analytics_guide("export-data-asynchronously")</code>"</em>.</li><li><strong>Failures are annotated.</strong> Any four-digit code in an error message gets its documented meaning and resolution attached, so the model can correct itself rather than guess.</li></ul>
+</section>
+<section id="the-ten-api-domains">
+<h2><span class="num">05</span>The ten API domains</h2>
+<p>The catalog is tagged by the domain each operation comes from, mirroring <code>v2.0/oas/&lt;domain&gt;-grouped-api.json</code>:</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Domain</th><th>Operations</th><th>Covers</th></tr></thead><tbody><tr><td class="col-narrow"><code>workspace-management</code></td><td>35</td><td>Workspaces, backups, linking, templates, variables</td></tr><tr><td class="col-narrow"><code>data-modeling-schema</code></td><td>33</td><td>Tables, columns, formulas, query tables, lookups</td></tr><tr><td class="col-narrow"><code>user-groups</code></td><td>26</td><td>Users, groups, roles, portals</td></tr><tr><td class="col-narrow"><code>views-management</code></td><td>26</td><td>Views, folders, tags, trash, copy and move</td></tr><tr><td class="col-narrow"><code>data-operations</code></td><td>20</td><td>Rows, imports, exports, bulk jobs, data sync</td></tr><tr><td class="col-narrow"><code>share-publish</code></td><td>20</td><td>Sharing, permissions, embed URLs, public links, slideshows</td></tr><tr><td class="col-narrow"><code>schedules-alerts</code></td><td>16</td><td>Email schedules and data alerts</td></tr><tr><td class="col-narrow"><code>dsml</code></td><td>11</td><td>AutoML analyses, training, predictions</td></tr><tr><td class="col-narrow"><code>org-management</code></td><td>10</td><td>Organizations, subscriptions, security controls</td></tr><tr><td class="col-narrow"><code>reports-dashboards</code></td><td>6</td><td>Charts, pivots, summaries, dashboards</td></tr></tbody></table></div>
+<p><code>ZA_DOMAINS</code> restricts a deployment to any subset, and <code>search_analytics_api</code> takes an optional <code>domain</code> argument. See <a href="02-install.html#choosing-what-to-expose">Choosing what to expose</a>.</p>
+</section>
+<section id="dependencies-and-why-they-are-contained">
+<h2><span class="num">06</span>Dependencies, and why they are contained</h2>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Package</th><th>Role</th></tr></thead><tbody><tr><td class="col-narrow"><code>@modelcontextprotocol/sdk</code></td><td>the MCP server, OAuth 2.1, HTTP transport</td></tr><tr><td class="col-narrow"><code>@utcp/code-mode</code></td><td>the sandbox and the tool bridge</td></tr><tr><td class="col-narrow"><code>@utcp/http</code></td><td>makes the real API calls from the call templates</td></tr><tr><td class="col-narrow"><code>@utcp/text</code></td><td>hands the manual over inline, so nothing is fetched</td></tr><tr><td class="col-narrow"><code>isolated-vm</code></td><td>the V8 isolate itself</td></tr><tr><td class="col-narrow"><code>express</code></td><td>the remote server's HTTP layer</td></tr></tbody></table></div>
+<p>Every <code>@utcp/*</code> import lives in a single file, <code>src/catalog.mjs</code>. That is deliberate: UTCP is a young project with a small user base, and confining it to one module means it can be replaced without touching anything else. The server uses exactly three of its functions.</p>
+<div class="note note--info"><div class="note__title">Search deliberately does not use UTCP</div><p>UTCP's own tool search is plain word matching, and it failed on the way people actually phrase things — <em>"how much revenue did we make"</em> returned unrelated operations. <code>search_analytics_api</code> uses its own index with synonym expansion and field weighting, folding UTCP's results in only as a ranking bonus. UTCP owns the calling, not the finding.</p></div>
+</section>
+<section id="what-running-it-against-a-real-organization-changed">
+<h2><span class="num">07</span>What running it against a real organization changed</h2>
+<p>Four things only a live API could reveal, each now covered by a test:</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Found</th><th>Why it mattered</th></tr></thead><tbody><tr><td class="col-narrow"><code>expires_in</code> is <strong>milliseconds</strong> (<code>3600000</code>) alongside <code>expires_in_sec</code> (<code>3600</code>)</td><td>Taking it at face value made a one-hour token look valid for 41 days, so it was never refreshed and every call failed with 8535 an hour in</td></tr><tr><td class="col-narrow">An 81-workspace name sweep trips <strong>error 6045</strong></td><td>The limit is a <em>rate over a window</em>, not a gap between calls — measured: 53/min ran clean, 105/min tripped after 27 calls, 188/min after 5. A fixed delay was the wrong shape; calls now go through a sliding window capped at 55/min, with 6 s / 15 s / 30 s backoff</td></tr><tr><td class="col-narrow">A rate-limited sweep cannot finish in time</td><td>Covering 25 of 81 workspaces and reporting "no such view" is a false negative. An unfinished search now says so instead of claiming absence</td></tr><tr><td class="col-narrow">Export returns rows as a <strong>flat array</strong> in <code>data</code></td><td><code>data.rows</code> is <code>undefined</code>, which <code>?? []</code> turns into a confident "no data" for a table with 755 rows</td></tr><tr><td class="col-narrow">Values are <strong>formatted strings</strong> (<code>"$1,682.39"</code>)</td><td><code>Number()</code> gives <code>NaN</code>, so sums silently come out as 0</td></tr></tbody></table></div>
+<p>The last two are the dangerous pair: neither raises an error, both produce a plausible wrong answer. They survived every mock-based test because the mock returned the shape the documentation <em>claimed</em>, not the shape the API <em>sends</em> — so <code>test/mock-analytics.mjs</code> was corrected to match the real responses, which is what makes those tests meaningful.</p>
+</section>
+<section id="where-the-catalog-comes-from">
+<h2><span class="num">08</span>Where the catalog comes from</h2>
+<pre><code class="lang-bash">npm run build:manual      # v2.0/oas/*.json -&gt; manual/analytics.utcp.json
+npm run build:knowledge   # github.com/zoho/analytics-okf -&gt; knowledge/knowledge.json
+npm run build             # both
+
+node tools/build-knowledge.mjs --local  ../v2.0/okf   # offline, from a checkout
+node tools/build-knowledge.mjs --verify ../v2.0/okf   # does a checkout match published?</code></pre>
+<p>The bundle records where it came from, and the server reports it at startup:</p>
+<pre><code class="lang-text">[za] knowledge — 17 guides, 385 error codes (OKF 2.0.0 v2.0, generated 2026-10-27, 14d old)</code></pre>
+<p>Past 90 days it warns. Documentation that is quietly out of date is worse than documentation that admits it, because every answer it gives still looks authoritative.</p>
+<p>Neither output is hand-edited. The manual build applies five corrections that a stock OpenAPI conversion gets wrong for Zoho — see <a href="06-operating.html#building-the-catalog-from-source">Operating</a> — two of which were found only by testing against an API mock that enforces organization scoping.</p>
+</section>
+    <nav class="pager" aria-label="Chapter">
+      <a href="07-remote-deployment.html"><span class="pager__side">Previous</span>&larr; Remote deployment</a>
+      
+    </nav>
+  </main>
+
+<aside class="toc" aria-label="On this page">
+  <nav>
+    <h2>On this page</h2>
+    <a href="#the-three-layers">The three layers</a>
+    <a href="#what-utcp-is">What UTCP is</a>
+    <a href="#what-code-mode-is">What code mode is</a>
+    <a href="#where-the-accuracy-comes-from">Where the accuracy comes from</a>
+    <a href="#the-ten-api-domains">The ten API domains</a>
+    <a href="#dependencies-and-why-they-are-contained">Dependencies, and why they are contained</a>
+    <a href="#what-running-it-against-a-real-organization-changed">What running it against a real organization changed</a>
+    <a href="#where-the-catalog-comes-from">Where the catalog comes from</a>
+  </nav>
+</aside>
+</div>
+
+<footer class="footer">
+  <div class="spine"><i></i><i></i><i></i><i></i></div>
+  <div class="footer__inner">
+    <div>
+      <h2>Guide</h2>
+      <a href="index.html">00 &nbsp;Start here</a>
+      <a href="01-what-it-is.html">01 &nbsp;What it is</a>
+      <a href="02-install.html">02 &nbsp;Install &amp; configure</a>
+      <a href="03-using-it.html">03 &nbsp;Using it</a>
+      <a href="04-security.html">04 &nbsp;Security &amp; governance</a>
+      <a href="05-troubleshooting.html">05 &nbsp;Troubleshooting &amp; FAQ</a>
+      <a href="06-operating.html">06 &nbsp;Operating &amp; updating</a>
+      <a href="07-remote-deployment.html">07 &nbsp;Remote deployment</a>
+      <a href="08-engine.html">08 &nbsp;How the engine works</a>
+    </div>
+    <div>
+      <h2>Reference</h2>
+      <a href="02-install.html#configuration-reference">Configuration reference</a>
+      <a href="05-troubleshooting.html#error-codes">Error codes</a>
+      <a href="04-security.html#what-the-sandbox-cannot-do">Sandbox boundary</a>
+      <a href="02-install.html#step-1-get-your-credentials">Get your credentials</a>
+    </div>
+    <div class="footer__meta">
+      <h2>About</h2>
+      <p>Setup and usage guide for Zoho Analytics Code Mode, the MCP server
+      that lets AI agents run sandboxed code against the Analytics v2 API,
+      powered by the UTCP code-mode engine.</p>
+      <p>Rendered from the Markdown in this folder by <code>build.py</code>.
+      Generated 2026-11-11.</p>
+      <p><strong>zoho-analytics-code-mode-mcp v2.0.0. Read-only by default.</strong></p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

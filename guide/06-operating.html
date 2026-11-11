@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Operating &amp; updating &mdash; Zoho Analytics Code Mode for AI agents</title>
+<meta name="description" content="Operating Zoho Analytics Code Mode — updates, API unit cost, running from source, rebuilding the operation catalog, and the tests.">
+<link rel="stylesheet" href="assets/migration.css">
+<script src="assets/migration.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <a class="wordmark" href="index.html">
+      <svg class="zoho-mark" role="img" aria-label="Zoho" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.66 6.897a1.299 1.299 0 0 0-1.205.765l-.642 1.44-.062-.385A1.291 1.291 0 0 0 5.27 7.648l-4.185.678A1.291 1.291 0 0 0 .016 9.807l.678 4.18a1.293 1.293 0 0 0 1.27 1.087c.074 0 .143-.01.216-.017l4.18-.678c.436-.07.784-.351.96-.723l2.933 1.307a1.304 1.304 0 0 0 .988.026c.321-.12.575-.365.716-.678l.28-.629.038.276a1.297 1.297 0 0 0 1.455 1.103l3.712-.501a1.29 1.29 0 0 0 1.03.514h4.236c.713 0 1.29-.58 1.291-1.291V9.545c0-.712-.58-1.291-1.291-1.291h-4.236c-.079 0-.155.008-.23.022a1.309 1.309 0 0 0-.275-.288c-.275-.21-.614-.3-.958-.253l-4.197.571c-.155.021-.3.07-.432.14L9.159 7.01a1.27 1.27 0 0 0-.499-.113zm-.025.705c.077 0 .159.013.24.052l2.971 1.324c-.128.238-.18.508-.142.782l.357 2.596h.002l-.745 1.672a.59.59 0 0 1-.777.296l-3.107-1.385-.004-.041-.41-2.526L8.1 7.95a.589.589 0 0 1 .536-.348zm-3.159.733c.125 0 .245.039.343.112.13.09.21.227.237.382l.234 1.446-.56 1.259a1.27 1.27 0 0 0-.026.987c.12.322.364.575.678.717l.295.131a.585.585 0 0 1-.428.314l-4.185.678a.59.59 0 0 1-.674-.485l-.678-4.18a.588.588 0 0 1 .485-.674l4.185-.678c.03-.004.064-.01.094-.01zm11.705.09a.59.59 0 0 1 .415.173 1.287 1.287 0 0 0-.416.947v4.237c0 .033.003.065.005.097l-3.55.482a.586.586 0 0 1-.66-.502l-.191-1.403.899-2.017a1.29 1.29 0 0 0-.333-1.5l3.754-.51c.026-.004.051-.004.077-.004zm1.3.532h4.227c.326 0 .588.266.588.588v4.237a.589.589 0 0 1-.588.588h-4.237a.564.564 0 0 1-.12-.013c.47-.246.758-.765.684-1.318zm-5.988.309.254.113c.296.133.43.48.296.777l-.432.97-.207-1.465a.58.58 0 0 1 .09-.395zm5.39.538.453 3.325a.583.583 0 0 1-.453.65zM6.496 11.545l.17 1.052a.588.588 0 0 1-.293-.776zm3.985 4.344a.588.588 0 0 0-.612.603c0 .358.244.61.601.61a.582.582 0 0 0 .607-.608c0-.35-.242-.605-.596-.605zm5.545 0a.588.588 0 0 0-.612.603c0 .358.245.61.602.61a.582.582 0 0 0 .606-.608c0-.35-.24-.605-.596-.605zm-8.537.018a.047.047 0 0 0-.048.047v.085c0 .026.021.047.048.047h.52l-.623.9a.052.052 0 0 0-.009.027v.027c0 .026.021.047.048.047h.815a.047.047 0 0 0 .047-.047v-.085a.047.047 0 0 0-.047-.047h-.55l.606-.9a.05.05 0 0 0 .008-.026v-.028a.047.047 0 0 0-.047-.047zm5.303 0a.047.047 0 0 0-.047.047v1.086c0 .026.02.047.047.047h.135a.047.047 0 0 0 .047-.047v-.454h.545v.454c0 .026.02.047.047.047h.134a.047.047 0 0 0 .047-.047v-1.086a.047.047 0 0 0-.047-.047h-.134a.047.047 0 0 0-.047.047v.453h-.545v-.453a.047.047 0 0 0-.047-.047zm-2.324.164c.25 0 .372.194.372.425 0 .219-.109.425-.358.426-.242 0-.375-.197-.375-.419 0-.235.108-.432.36-.432zm5.545 0c.25 0 .372.194.372.425 0 .219-.108.425-.358.426-.242 0-.374-.197-.374-.419 0-.235.108-.432.36-.432z" fill="currentColor"></path></svg>
+      Analytics Code Mode<span>&nbsp;/ UTCP for AI agents</span>
+    </a>
+    <span class="chip">Zoho Analytics API v2</span>
+    <nav class="topnav" aria-label="Guide chapters">
+      <a href="index.html">Start here</a>
+      <a href="01-what-it-is.html">What it is</a>
+      <a href="02-install.html">Install</a>
+      <a href="03-using-it.html">Using it</a>
+      <a href="04-security.html">Security</a>
+      <a href="05-troubleshooting.html">Troubleshooting</a>
+      <a href="06-operating.html" aria-current="page">Operating</a>
+      <a href="07-remote-deployment.html">Remote</a>
+      <a href="08-engine.html">Engine</a>
+    </nav>
+    <button class="icon-btn nav-toggle" id="nav-toggle" type="button"
+            aria-expanded="false" aria-controls="sidebar"
+            aria-label="Show chapter navigation">&#9776;</button>
+    <button class="icon-btn" id="theme-toggle" type="button"
+            aria-label="Switch colour theme">&#9680;</button>
+  </div>
+</header>
+
+<div class="deadline-bar">
+  <div class="deadline-bar__inner">
+    <span class="chip chip--sdk">zoho-analytics-code-mode-mcp</span>
+    <p>Install with <strong>npx&nbsp;zoho-analytics-code-mode-mcp</strong>, version&nbsp;2.0.0.
+    <a href="02-install.html">Setup in five minutes &rarr;</a></p>
+    <span class="chip chip--deadline">Read-only</span>
+    <p>Write operations are <strong>disabled by default</strong>. Enable them
+    deliberately. <a href="04-security.html">Security model &rarr;</a></p>
+  </div>
+</div>
+
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidenav" aria-label="Chapters">
+    <h2>Guide</h2>
+    <a href="index.html"><span class="n">00</span><span>Start here</span></a>
+    <a href="01-what-it-is.html"><span class="n">01</span><span>What it is</span></a>
+    <a href="02-install.html"><span class="n">02</span><span>Install &amp; configure</span></a>
+    <a href="03-using-it.html"><span class="n">03</span><span>Using it</span></a>
+    <a href="04-security.html"><span class="n">04</span><span>Security &amp; governance</span></a>
+    <a href="05-troubleshooting.html"><span class="n">05</span><span>Troubleshooting &amp; FAQ</span></a>
+    <a href="06-operating.html" aria-current="page"><span class="n">06</span><span>Operating &amp; updating</span></a>
+    <a href="07-remote-deployment.html"><span class="n">07</span><span>Remote deployment</span></a>
+    <a href="08-engine.html"><span class="n">08</span><span>How the engine works</span></a>
+    <h2>Source</h2>
+    <a href="06-operating.md"><span class="n">md</span><span>This page as Markdown</span></a>
+    <a href="README.md"><span class="n">&#8212;</span><span>Folder README</span></a>
+    </nav>
+  </aside>
+
+  <main class="doc" id="main">
+<header class="page-head">
+  <div class="spine"><i></i><i></i><i></i><i></i></div>
+  <p class="eyebrow">Code Mode &middot; <b>Chapter 06</b></p>
+  <h1>Operating &amp; updating</h1>
+  
+</header>
+<section id="updates">
+<h2><span class="num">01</span>Updates</h2>
+<p>With <code>npx -y zoho-analytics-code-mode-mcp</code>, the latest published version is fetched when your agent starts the server. To pin a version, name it:</p>
+<pre><code class="lang-json">"args": ["-y", "zoho-analytics-code-mode-mcp@1.0.0"]</code></pre>
+<p>New Analytics operations arrive with a new release of this package, because the catalog is generated from the published OpenAPI specifications and bundled at build time.</p>
+</section>
+<section id="what-it-costs">
+<h2><span class="num">02</span>What it costs</h2>
+<p>Two separate budgets, often confused.</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Budget</th><th>Who bills it</th><th>Effect of this tool</th></tr></thead><tbody><tr><td class="col-narrow"><strong>Analytics API units</strong></td><td>Zoho</td><td><strong>Unchanged.</strong> Same operations, same units</td></tr><tr><td class="col-narrow"><strong>Model tokens</strong></td><td>Your AI provider</td><td><strong>Substantially lower.</strong> Fewer turns, and intermediate data never enters context</td></tr></tbody></table></div>
+<p>In a measured multi-workspace export the same work took 19 model turns one call at a time versus 1 with a program — and 2,092 bytes of intermediate data became 101. Both paths made the same API calls.</p>
+<p><code>run_analytics_code</code> reports <code>apiCalls</code> on every execution, so you can see unit consumption directly.</p>
+<div class="note note--info"><div class="note__title">Keeping units down</div><p>Filter server-side. A <code>CONFIG</code> with <code>criteria</code> is applied by Analytics before rows are sent; filtering in the sandbox instead means paying for everything and discarding most of it.</p></div>
+</section>
+<section id="running-from-source">
+<h2><span class="num">03</span>Running from source</h2>
+<pre><code class="lang-bash">git clone &lt;this-repository&gt;
+cd code-execution-mcp
+npm install
+npm test</code></pre>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Command</th><th>What it does</th></tr></thead><tbody><tr><td class="col-narrow"><code>npm start</code></td><td>Run the server on stdio</td></tr><tr><td class="col-narrow"><code>npm test</code></td><td>The whole suite — search quality and end-to-end MCP</td></tr><tr><td class="col-narrow"><code>npm run build:manual</code></td><td>Regenerate the operation catalog from <code>v2.0/oas/</code></td></tr><tr><td class="col-narrow"><code>npm run build:knowledge</code></td><td>Regenerate the knowledge bundle from <code>v2.0/okf/</code></td></tr><tr><td class="col-narrow"><code>npm run build</code></td><td>Both</td></tr><tr><td class="col-narrow"><code>node test/mock-analytics.mjs 8788</code></td><td>Start the mock API by itself</td></tr></tbody></table></div>
+<div class="note note--warn"><div class="note__title">Install from the public registry</div><p>The <code>@utcp/*</code> packages are not mirrored on internal registries. <code>.npmrc</code> in this folder pins <code>registry=https://registry.npmjs.org</code> for exactly that reason.</p></div>
+<h3 id="pointing-it-at-the-mock">Pointing it at the mock</h3>
+<p>The test suite runs entirely offline against a mock Analytics API. To drive the real server against it by hand:</p>
+<pre><code class="lang-bash">node test/mock-analytics.mjs 8788 &amp;
+
+ANALYTICS_SERVER_URL=http://127.0.0.1:8788 \
+ANALYTICS_ACCESS_TOKEN=test-token \
+ANALYTICS_ORG_ID=2375824000000000001 \
+npm start</code></pre>
+</section>
+<section id="building-the-catalog-from-source">
+<h2><span class="num">04</span>Building the catalog from source</h2>
+<p><code>manual/analytics.utcp.json</code> is generated, never hand-edited:</p>
+<pre><code class="lang-bash">npm run build:manual          # reads ../v2.0/oas/*-grouped-api.json</code></pre>
+<p>It emits 203 operations, about 565 KB. Five transformations are applied that a stock OpenAPI conversion gets wrong for Zoho:</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Transformation</th><th>Why</th></tr></thead><tbody><tr><td class="col-narrow"><code>CONFIG</code> typed as <code>string</code></td><td>The specification types it as an object, but the API wants stringified, URL-encoded JSON</td></tr><tr><td class="col-narrow">Base URL becomes a variable</td><td>So one build serves all seven data centres</td></tr><tr><td class="col-narrow"><code>Authorization</code> header auth</td><td>Zoho accepts <code>Bearer</code>; the stock conversion emits an OAuth2 flow Zoho does not use</td></tr><tr><td class="col-narrow">Full descriptions kept</td><td>A stock conversion keeps only <code>summary</code> and drops the detail the model needs</td></tr><tr><td class="col-narrow"><code>${...}</code> in prose defused</td><td>One operation documents a <code>${variableName}</code> placeholder, which the templating engine would otherwise try to resolve</td></tr></tbody></table></div>
+</section>
+<section id="the-knowledge-bundle">
+<h2><span class="num">05</span>The knowledge bundle</h2>
+<p><code>knowledge/knowledge.json</code> is generated from the published OKF bundle at <a href="https://github.com/zoho/analytics-okf">github.com/zoho/analytics-okf</a> — around 12 MB across 600+ files, far too much to ship or to put in front of a model. The build resolves the current version from that repository's root <code>manifest.json</code> rather than hard-coding one. <code>tools/build-knowledge.mjs</code> selects the parts that change the code a model writes:</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Included</th><th>Why</th></tr></thead><tbody><tr><td class="col-narrow">All 8 workflow playbooks</td><td>Multi-step recipes are exactly what code mode is for</td></tr><tr><td class="col-narrow">9 foundations references</td><td>Criteria grammar, CONFIG conventions, job polling, identifiers, enums, limits</td></tr><tr><td class="col-narrow">385 error codes</td><td>The attribute table only; the per-operation "Raised by" tables are what make the source 922 KB</td></tr></tbody></table></div>
+<p>Deliberately excluded: the permission matrix, OAuth scopes, API-unit tables and glossary. They are reference material for humans, and none of them change the code that gets generated.</p>
+<pre><code class="lang-bash">npm run build:knowledge                               # from the published repository
+node tools/build-knowledge.mjs --local  ../v2.0/okf   # offline, from a checkout
+node tools/build-knowledge.mjs --verify ../v2.0/okf   # has a checkout drifted?</code></pre>
+<p>Each build records the OKF version and the date that bundle was generated, and the server reports both at startup — so a stale snapshot is visible rather than silently authoritative.</p>
+</section>
+<section id="the-test-suite">
+<h2><span class="num">06</span>The test suite</h2>
+<pre><code class="lang-text">test/search.test.mjs    search quality — API and user vocabulary
+test/agent.test.mjs     end-to-end over real MCP stdio against the mock</code></pre>
+<p><code>agent.test.mjs</code> asserts the properties that matter: exactly two tools, signatures stay small, a multi-step program returns only its answer, <code>ORG_ID</code> is present, <strong>the sandbox is sealed</strong>, write operations are hidden, and a failed program yields an actionable error.</p>
+<p>The sandbox-seal test is the one to keep green above all others — it asserts that <code>require</code>, <code>fetch</code>, <code>process</code>, <code>Buffer</code> and <code>XMLHttpRequest</code> are all unreachable from executing code.</p>
+</section>
+<section id="known-rough-edges">
+<h2><span class="num">07</span>Known rough edges</h2>
+<p>Honest notes for anyone maintaining this.</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Edge</th><th>Detail</th></tr></thead><tbody><tr><td class="col-narrow">The process does not exit cleanly</td><td><code>isolated-vm</code> worker threads outlive <code>process.exit()</code>. Tests force exit; agents kill the child on quit, so it does not matter in normal use</td></tr><tr><td class="col-narrow">No audit log</td><td>Programs are not persisted. <code>apiCalls</code> is reported per execution and that is all</td></tr><tr><td class="col-narrow">Search is lexical</td><td>Synonym expansion plus field-weighted scoring, no embeddings. It handles API vocabulary well and paraphrase adequately</td></tr><tr><td class="col-narrow">The knowledge bundle is a snapshot</td><td>Regenerated by <code>npm run build:knowledge</code>; it does not follow github.com/zoho/analytics-okf automatically. Its age is reported at startup and warned about past 90 days</td></tr><tr><td class="col-narrow">Write path is lightly tested</td><td><code>ZA_ALLOW_WRITES=true</code> exposes all 203 operations; only the read-only set is covered by tests</td></tr><tr><td class="col-narrow">UTCP is a thin dependency</td><td>All of it is fenced inside <code>src/catalog.mjs</code> precisely so it can be replaced without touching the rest</td></tr></tbody></table></div>
+</section>
+<section id="where-things-live">
+<h2><span class="num">08</span>Where things live</h2>
+<pre><code class="lang-text">code-execution-mcp/
+├── src/
+│   ├── server.mjs       the MCP server and its three tools
+│   ├── knowledge.mjs    the OKF knowledge base: lookup, search, hints
+│   ├── catalog.mjs      the operation catalog and sandbox — the only UTCP usage
+│   ├── search.mjs       query expansion and ranking
+│   ├── auth.mjs         refresh token -&gt; access token
+│   ├── config.mjs       environment parsing and validation
+│   └── quiet.mjs        stdout guard — must be imported first
+├── tools/
+│   ├── build-manual.mjs     OpenAPI specs -&gt; UTCP operation catalog
+│   └── build-knowledge.mjs  OKF docs -&gt; shipped knowledge bundle
+├── manual/analytics.utcp.json     generated; do not hand-edit
+├── knowledge/knowledge.json       generated; do not hand-edit
+├── test/                mock API, search tests, end-to-end tests
+└── guide/               this documentation</code></pre>
+</section>
+    <nav class="pager" aria-label="Chapter">
+      <a href="05-troubleshooting.html"><span class="pager__side">Previous</span>&larr; Troubleshooting &amp; FAQ</a>
+      <a href="07-remote-deployment.html" style="margin-left:auto;text-align:right"><span class="pager__side">Next</span>Remote deployment &rarr;</a>
+    </nav>
+  </main>
+
+<aside class="toc" aria-label="On this page">
+  <nav>
+    <h2>On this page</h2>
+    <a href="#updates">Updates</a>
+    <a href="#what-it-costs">What it costs</a>
+    <a href="#running-from-source">Running from source</a>
+    <a href="#building-the-catalog-from-source">Building the catalog from source</a>
+    <a href="#the-knowledge-bundle">The knowledge bundle</a>
+    <a href="#the-test-suite">The test suite</a>
+    <a href="#known-rough-edges">Known rough edges</a>
+    <a href="#where-things-live">Where things live</a>
+  </nav>
+</aside>
+</div>
+
+<footer class="footer">
+  <div class="spine"><i></i><i></i><i></i><i></i></div>
+  <div class="footer__inner">
+    <div>
+      <h2>Guide</h2>
+      <a href="index.html">00 &nbsp;Start here</a>
+      <a href="01-what-it-is.html">01 &nbsp;What it is</a>
+      <a href="02-install.html">02 &nbsp;Install &amp; configure</a>
+      <a href="03-using-it.html">03 &nbsp;Using it</a>
+      <a href="04-security.html">04 &nbsp;Security &amp; governance</a>
+      <a href="05-troubleshooting.html">05 &nbsp;Troubleshooting &amp; FAQ</a>
+      <a href="06-operating.html">06 &nbsp;Operating &amp; updating</a>
+      <a href="07-remote-deployment.html">07 &nbsp;Remote deployment</a>
+      <a href="08-engine.html">08 &nbsp;How the engine works</a>
+    </div>
+    <div>
+      <h2>Reference</h2>
+      <a href="02-install.html#configuration-reference">Configuration reference</a>
+      <a href="05-troubleshooting.html#error-codes">Error codes</a>
+      <a href="04-security.html#what-the-sandbox-cannot-do">Sandbox boundary</a>
+      <a href="02-install.html#step-1-get-your-credentials">Get your credentials</a>
+    </div>
+    <div class="footer__meta">
+      <h2>About</h2>
+      <p>Setup and usage guide for Zoho Analytics Code Mode, the MCP server
+      that lets AI agents run sandboxed code against the Analytics v2 API,
+      powered by the UTCP code-mode engine.</p>
+      <p>Rendered from the Markdown in this folder by <code>build.py</code>.
+      Generated 2026-11-11.</p>
+      <p><strong>zoho-analytics-code-mode-mcp v2.0.0. Read-only by default.</strong></p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

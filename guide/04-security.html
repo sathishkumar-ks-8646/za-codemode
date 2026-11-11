@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Security &amp; governance &mdash; Zoho Analytics Code Mode for AI agents</title>
+<meta name="description" content="The security model of Zoho Analytics Code Mode — the sandbox boundary, read-only defaults, credential handling, execution budgets, and what to tell your security team.">
+<link rel="stylesheet" href="assets/migration.css">
+<script src="assets/migration.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <a class="wordmark" href="index.html">
+      <svg class="zoho-mark" role="img" aria-label="Zoho" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.66 6.897a1.299 1.299 0 0 0-1.205.765l-.642 1.44-.062-.385A1.291 1.291 0 0 0 5.27 7.648l-4.185.678A1.291 1.291 0 0 0 .016 9.807l.678 4.18a1.293 1.293 0 0 0 1.27 1.087c.074 0 .143-.01.216-.017l4.18-.678c.436-.07.784-.351.96-.723l2.933 1.307a1.304 1.304 0 0 0 .988.026c.321-.12.575-.365.716-.678l.28-.629.038.276a1.297 1.297 0 0 0 1.455 1.103l3.712-.501a1.29 1.29 0 0 0 1.03.514h4.236c.713 0 1.29-.58 1.291-1.291V9.545c0-.712-.58-1.291-1.291-1.291h-4.236c-.079 0-.155.008-.23.022a1.309 1.309 0 0 0-.275-.288c-.275-.21-.614-.3-.958-.253l-4.197.571c-.155.021-.3.07-.432.14L9.159 7.01a1.27 1.27 0 0 0-.499-.113zm-.025.705c.077 0 .159.013.24.052l2.971 1.324c-.128.238-.18.508-.142.782l.357 2.596h.002l-.745 1.672a.59.59 0 0 1-.777.296l-3.107-1.385-.004-.041-.41-2.526L8.1 7.95a.589.589 0 0 1 .536-.348zm-3.159.733c.125 0 .245.039.343.112.13.09.21.227.237.382l.234 1.446-.56 1.259a1.27 1.27 0 0 0-.026.987c.12.322.364.575.678.717l.295.131a.585.585 0 0 1-.428.314l-4.185.678a.59.59 0 0 1-.674-.485l-.678-4.18a.588.588 0 0 1 .485-.674l4.185-.678c.03-.004.064-.01.094-.01zm11.705.09a.59.59 0 0 1 .415.173 1.287 1.287 0 0 0-.416.947v4.237c0 .033.003.065.005.097l-3.55.482a.586.586 0 0 1-.66-.502l-.191-1.403.899-2.017a1.29 1.29 0 0 0-.333-1.5l3.754-.51c.026-.004.051-.004.077-.004zm1.3.532h4.227c.326 0 .588.266.588.588v4.237a.589.589 0 0 1-.588.588h-4.237a.564.564 0 0 1-.12-.013c.47-.246.758-.765.684-1.318zm-5.988.309.254.113c.296.133.43.48.296.777l-.432.97-.207-1.465a.58.58 0 0 1 .09-.395zm5.39.538.453 3.325a.583.583 0 0 1-.453.65zM6.496 11.545l.17 1.052a.588.588 0 0 1-.293-.776zm3.985 4.344a.588.588 0 0 0-.612.603c0 .358.244.61.601.61a.582.582 0 0 0 .607-.608c0-.35-.242-.605-.596-.605zm5.545 0a.588.588 0 0 0-.612.603c0 .358.245.61.602.61a.582.582 0 0 0 .606-.608c0-.35-.24-.605-.596-.605zm-8.537.018a.047.047 0 0 0-.048.047v.085c0 .026.021.047.048.047h.52l-.623.9a.052.052 0 0 0-.009.027v.027c0 .026.021.047.048.047h.815a.047.047 0 0 0 .047-.047v-.085a.047.047 0 0 0-.047-.047h-.55l.606-.9a.05.05 0 0 0 .008-.026v-.028a.047.047 0 0 0-.047-.047zm5.303 0a.047.047 0 0 0-.047.047v1.086c0 .026.02.047.047.047h.135a.047.047 0 0 0 .047-.047v-.454h.545v.454c0 .026.02.047.047.047h.134a.047.047 0 0 0 .047-.047v-1.086a.047.047 0 0 0-.047-.047h-.134a.047.047 0 0 0-.047.047v.453h-.545v-.453a.047.047 0 0 0-.047-.047zm-2.324.164c.25 0 .372.194.372.425 0 .219-.109.425-.358.426-.242 0-.375-.197-.375-.419 0-.235.108-.432.36-.432zm5.545 0c.25 0 .372.194.372.425 0 .219-.108.425-.358.426-.242 0-.374-.197-.374-.419 0-.235.108-.432.36-.432z" fill="currentColor"></path></svg>
+      Analytics Code Mode<span>&nbsp;/ UTCP for AI agents</span>
+    </a>
+    <span class="chip">Zoho Analytics API v2</span>
+    <nav class="topnav" aria-label="Guide chapters">
+      <a href="index.html">Start here</a>
+      <a href="01-what-it-is.html">What it is</a>
+      <a href="02-install.html">Install</a>
+      <a href="03-using-it.html">Using it</a>
+      <a href="04-security.html" aria-current="page">Security</a>
+      <a href="05-troubleshooting.html">Troubleshooting</a>
+      <a href="06-operating.html">Operating</a>
+      <a href="07-remote-deployment.html">Remote</a>
+      <a href="08-engine.html">Engine</a>
+    </nav>
+    <button class="icon-btn nav-toggle" id="nav-toggle" type="button"
+            aria-expanded="false" aria-controls="sidebar"
+            aria-label="Show chapter navigation">&#9776;</button>
+    <button class="icon-btn" id="theme-toggle" type="button"
+            aria-label="Switch colour theme">&#9680;</button>
+  </div>
+</header>
+
+<div class="deadline-bar">
+  <div class="deadline-bar__inner">
+    <span class="chip chip--sdk">zoho-analytics-code-mode-mcp</span>
+    <p>Install with <strong>npx&nbsp;zoho-analytics-code-mode-mcp</strong>, version&nbsp;2.0.0.
+    <a href="02-install.html">Setup in five minutes &rarr;</a></p>
+    <span class="chip chip--deadline">Read-only</span>
+    <p>Write operations are <strong>disabled by default</strong>. Enable them
+    deliberately. <a href="04-security.html">Security model &rarr;</a></p>
+  </div>
+</div>
+
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidenav" aria-label="Chapters">
+    <h2>Guide</h2>
+    <a href="index.html"><span class="n">00</span><span>Start here</span></a>
+    <a href="01-what-it-is.html"><span class="n">01</span><span>What it is</span></a>
+    <a href="02-install.html"><span class="n">02</span><span>Install &amp; configure</span></a>
+    <a href="03-using-it.html"><span class="n">03</span><span>Using it</span></a>
+    <a href="04-security.html" aria-current="page"><span class="n">04</span><span>Security &amp; governance</span></a>
+    <a href="05-troubleshooting.html"><span class="n">05</span><span>Troubleshooting &amp; FAQ</span></a>
+    <a href="06-operating.html"><span class="n">06</span><span>Operating &amp; updating</span></a>
+    <a href="07-remote-deployment.html"><span class="n">07</span><span>Remote deployment</span></a>
+    <a href="08-engine.html"><span class="n">08</span><span>How the engine works</span></a>
+    <h2>Source</h2>
+    <a href="04-security.md"><span class="n">md</span><span>This page as Markdown</span></a>
+    <a href="README.md"><span class="n">&#8212;</span><span>Folder README</span></a>
+    </nav>
+  </aside>
+
+  <main class="doc" id="main">
+<header class="page-head">
+  <div class="spine"><i></i><i></i><i></i><i></i></div>
+  <p class="eyebrow">Code Mode &middot; <b>Chapter 04</b></p>
+  <h1>Security &amp; governance</h1>
+  <p class="lede">This tool executes code written by a language model against your data. That deserves a straight account of what is and is not contained.</p>
+</header>
+<section id="the-short-version">
+<h2><span class="num">01</span>The short version</h2>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Question</th><th>Answer</th></tr></thead><tbody><tr><td class="col-narrow">Does model-written code run on my machine?</td><td><strong>Yes</strong>, inside a V8 isolate</td></tr><tr><td class="col-narrow">Can it reach the network directly?</td><td><strong>No</strong> — only through the Analytics operations</td></tr><tr><td class="col-narrow">Can it read my files?</td><td><strong>No</strong> — no filesystem access of any kind</td></tr><tr><td class="col-narrow">Can it see my OAuth credentials?</td><td><strong>No</strong> — they stay in the host process</td></tr><tr><td class="col-narrow">Can it change my data?</td><td><strong>Not by default</strong> — writes are disabled</td></tr><tr><td class="col-narrow">Can it exceed my API quota?</td><td>Bounded by a per-program call budget</td></tr><tr><td class="col-narrow">Does my data reach my AI provider?</td><td><strong>Only what the program returns</strong></td></tr></tbody></table></div>
+</section>
+<section id="what-the-sandbox-cannot-do">
+<h2><span class="num">02</span>What the sandbox cannot do</h2>
+<p>The isolate is a separate V8 heap with no host bindings except the operation bridge. These are absent, not merely discouraged:</p>
+<pre><code class="lang-javascript">typeof require          // "undefined"
+typeof import           // "undefined"
+typeof fetch            // "undefined"
+typeof process          // "undefined"
+typeof Buffer           // "undefined"
+typeof XMLHttpRequest   // "undefined"</code></pre>
+<p>There is no filesystem, no child process, no socket, and no environment. The only reachable capability is <code>za</code>, carrying exactly the operations the server chose to expose.</p>
+<div class="note note--good"><div class="note__title">This is enforcement, not instruction</div><p>The boundary is the isolate itself. It is not a system-prompt rule the model could be argued out of, and it does not weaken if the model is jailbroken — a jailbroken model simply has the same 76 read-only operations.</p></div>
+</section>
+<section id="two-ways-to-narrow-the-surface">
+<h2><span class="num">03</span>Two ways to narrow the surface</h2>
+<p>Of 203 operations, <strong>76 are exposed by default</strong> — every <code>GET</code>. The other 127 create, update or delete, and they are not present in the sandbox at all. A program that tries one gets <code>not a function</code>.</p>
+<p><code>ZA_DOMAINS</code> narrows it further, to any subset of the ten API domains. A deployment for analysts need not expose user management at all:</p>
+<pre><code class="lang-bash">ZA_DOMAINS=data-operations,views-management,reports-dashboards   # 18 operations</code></pre>
+<p>Both filters are applied when the catalog is built, so an excluded operation does not exist inside the sandbox — this is not a check the model could talk its way past.</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Mode</th><th>Operations</th><th>Can it modify data?</th></tr></thead><tbody><tr><td class="col-narrow">Default</td><td>76</td><td>no</td></tr><tr><td class="col-narrow"><code>ZA_ALLOW_WRITES=true</code></td><td>203</td><td class="is-new">yes — including delete</td></tr></tbody></table></div>
+<h3 id="enabling-write-operations">Enabling write operations</h3>
+<div class="note note--danger"><div class="note__title">Think before you enable writes</div><p>With <code>ZA_ALLOW_WRITES=true</code>, a program can create, update and <strong>delete</strong> workspaces, views, rows and users. The sandbox stops code from escaping; it does not stop the model from being wrong. A misread prompt plus a loop can destroy a lot of data quickly, and there is no undo.</p></div>
+<p>If you need writes, reduce the blast radius first:</p>
+<ol><li><strong>Use a dedicated Self Client</strong> with only the scopes you actually need, so the OAuth grant — not the flag — is the real boundary.</li><li><strong>Point it at a non-production organization</strong> while you learn what your agent does.</li><li><strong>Use an Analytics user with limited permissions.</strong> The API can only do what that user can do.</li><li><strong>Keep the call budget low</strong> (<code>ZA_MAX_TOOL_CALLS=25</code>) so a runaway loop stops early.</li></ol>
+</section>
+<section id="where-credentials-live">
+<h2><span class="num">04</span>Where credentials live</h2>
+<p>Your client ID, secret and refresh token sit in your agent's configuration file, in plain text, on your machine. The server reads them at startup, exchanges the refresh token for an access token, and keeps that token in memory.</p>
+<p><strong>The access token is never passed into the sandbox.</strong> It is substituted into the request templates in the host process, after the sandbox has handed over the call. Code in the isolate cannot read it, log it, or return it.</p>
+<div class="note note--warn"><div class="note__title">Protect the configuration file</div><p>Do not commit it. Do not paste it into a chat. Use a Self Client created specifically for this tool so it can be revoked without affecting anything else.</p></div>
+</section>
+<section id="what-reaches-your-ai-provider">
+<h2><span class="num">05</span>What reaches your AI provider</h2>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Reaches the model</th><th>Stays local</th></tr></thead><tbody><tr><td class="col-narrow">Operation names and signatures it searched for</td><td>The full 203-operation catalog</td></tr><tr><td class="col-narrow">The code it wrote</td><td>Your credentials</td></tr><tr><td class="col-narrow">Whatever the program <code>return</code>s</td><td>Every row the program fetched but did not return</td></tr><tr><td class="col-narrow"><code>console.log</code> output</td><td>—</td></tr></tbody></table></div>
+<p>This is worth being deliberate about. A program that returns <code>{ total: 74100 }</code> discloses one number. A program that returns 10,000 rows discloses 10,000 rows. Prompting for summaries is a confidentiality control as well as a cost control — see <a href="03-using-it.html#what-makes-a-good-request">Using it</a>.</p>
+</section>
+<section id="execution-limits">
+<h2><span class="num">06</span>Execution limits</h2>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Limit</th><th>Default</th><th>Why it exists</th></tr></thead><tbody><tr><td class="col-narrow">API calls per program</td><td>200</td><td>A loop over thousands of views would otherwise burn API units unchecked</td></tr><tr><td class="col-narrow">Wall clock</td><td>60 s</td><td>Stops a runaway program holding the agent open</td></tr><tr><td class="col-narrow">Memory</td><td>256 MB</td><td>Caps a program that accumulates rows without bound</td></tr></tbody></table></div>
+<p>Each is a hard stop that ends the program with an explanatory error.</p>
+</section>
+<section id="for-your-security-review">
+<h2><span class="num">07</span>For your security review</h2>
+<p>Points a reviewer usually wants:</p>
+<ul><li><strong>Execution is local.</strong> The server runs on the user's machine under their account. No Zoho-hosted component is involved, and no data is routed through Zoho's agent infrastructure.</li><li><strong>Network egress from the sandbox is zero.</strong> The isolate has no networking primitives. All API traffic originates in the host process.</li><li><strong>Authorisation is the user's own.</strong> The tool can only reach what the configured OAuth grant and Analytics user permit. It adds no privilege.</li><li><strong>The credential boundary holds under a compromised model.</strong> The worst a malicious or manipulated program can do is call exposed operations — which is the same set the user could call themselves.</li><li><strong>There is no audit log today.</strong> This is the gap to flag. The server reports <code>apiCalls</code> per execution but does not persist a record of programs run.</li><li><strong>Centralised control is available.</strong> <a href="07-remote-deployment.html">Remote deployment</a> moves credentials off user machines, adds browser sign-in and an organization allowlist, and gives you one place to revoke access.</li></ul>
+</section>
+<section id="what-this-does-not-protect-against">
+<h2><span class="num">08</span>What this does not protect against</h2>
+<p>Stated plainly:</p>
+<ul><li><strong>A wrong answer.</strong> The sandbox guarantees safety, not correctness. A model can still filter on the wrong column or misread a date range. The one case that <em>is</em> guarded is substitution: a named variable, view, column or folder that cannot be resolved halts the run rather than being swapped for something else, and that is enforced outside the sandbox.</li><li><strong>Data disclosure through results.</strong> Anything returned goes to your AI provider.</li><li><strong>A compromised machine.</strong> The configuration file holds a refresh token; a local attacker who reads it has your API access until you revoke it.</li><li><strong>Prompt injection via data.</strong> If your data contains text crafted to influence a model, that text can reach the model through results. Returning aggregates rather than raw text columns reduces the exposure.</li></ul>
+</section>
+    <nav class="pager" aria-label="Chapter">
+      <a href="03-using-it.html"><span class="pager__side">Previous</span>&larr; Using it</a>
+      <a href="05-troubleshooting.html" style="margin-left:auto;text-align:right"><span class="pager__side">Next</span>Troubleshooting &amp; FAQ &rarr;</a>
+    </nav>
+  </main>
+
+<aside class="toc" aria-label="On this page">
+  <nav>
+    <h2>On this page</h2>
+    <a href="#the-short-version">The short version</a>
+    <a href="#what-the-sandbox-cannot-do">What the sandbox cannot do</a>
+    <a href="#two-ways-to-narrow-the-surface">Two ways to narrow the surface</a>
+    <a href="#where-credentials-live">Where credentials live</a>
+    <a href="#what-reaches-your-ai-provider">What reaches your AI provider</a>
+    <a href="#execution-limits">Execution limits</a>
+    <a href="#for-your-security-review">For your security review</a>
+    <a href="#what-this-does-not-protect-against">What this does not protect against</a>
+  </nav>
+</aside>
+</div>
+
+<footer class="footer">
+  <div class="spine"><i></i><i></i><i></i><i></i></div>
+  <div class="footer__inner">
+    <div>
+      <h2>Guide</h2>
+      <a href="index.html">00 &nbsp;Start here</a>
+      <a href="01-what-it-is.html">01 &nbsp;What it is</a>
+      <a href="02-install.html">02 &nbsp;Install &amp; configure</a>
+      <a href="03-using-it.html">03 &nbsp;Using it</a>
+      <a href="04-security.html">04 &nbsp;Security &amp; governance</a>
+      <a href="05-troubleshooting.html">05 &nbsp;Troubleshooting &amp; FAQ</a>
+      <a href="06-operating.html">06 &nbsp;Operating &amp; updating</a>
+      <a href="07-remote-deployment.html">07 &nbsp;Remote deployment</a>
+      <a href="08-engine.html">08 &nbsp;How the engine works</a>
+    </div>
+    <div>
+      <h2>Reference</h2>
+      <a href="02-install.html#configuration-reference">Configuration reference</a>
+      <a href="05-troubleshooting.html#error-codes">Error codes</a>
+      <a href="04-security.html#what-the-sandbox-cannot-do">Sandbox boundary</a>
+      <a href="02-install.html#step-1-get-your-credentials">Get your credentials</a>
+    </div>
+    <div class="footer__meta">
+      <h2>About</h2>
+      <p>Setup and usage guide for Zoho Analytics Code Mode, the MCP server
+      that lets AI agents run sandboxed code against the Analytics v2 API,
+      powered by the UTCP code-mode engine.</p>
+      <p>Rendered from the Markdown in this folder by <code>build.py</code>.
+      Generated 2026-11-11.</p>
+      <p><strong>zoho-analytics-code-mode-mcp v2.0.0. Read-only by default.</strong></p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

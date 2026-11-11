@@ -1,0 +1,28 @@
+# Reference deployment: the server plus Redis, so more than one replica can
+# share sessions. With STORAGE_BACKEND=memory a single instance is fine and
+# the redis service can be removed.
+services:
+  code-mode-mcp:
+    build: .
+    image: zoho-analytics-code-mode-mcp:remote
+    env_file: .env
+    environment:
+      STORAGE_BACKEND: redis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+    ports:
+      - "4000:4000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped

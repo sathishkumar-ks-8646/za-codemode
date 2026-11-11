@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Using it &mdash; Zoho Analytics Code Mode for AI agents</title>
+<meta name="description" content="How to get good results from Zoho Analytics Code Mode — worked examples, what makes a good prompt, and how the two tools work together.">
+<link rel="stylesheet" href="assets/migration.css">
+<script src="assets/migration.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <a class="wordmark" href="index.html">
+      <svg class="zoho-mark" role="img" aria-label="Zoho" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.66 6.897a1.299 1.299 0 0 0-1.205.765l-.642 1.44-.062-.385A1.291 1.291 0 0 0 5.27 7.648l-4.185.678A1.291 1.291 0 0 0 .016 9.807l.678 4.18a1.293 1.293 0 0 0 1.27 1.087c.074 0 .143-.01.216-.017l4.18-.678c.436-.07.784-.351.96-.723l2.933 1.307a1.304 1.304 0 0 0 .988.026c.321-.12.575-.365.716-.678l.28-.629.038.276a1.297 1.297 0 0 0 1.455 1.103l3.712-.501a1.29 1.29 0 0 0 1.03.514h4.236c.713 0 1.29-.58 1.291-1.291V9.545c0-.712-.58-1.291-1.291-1.291h-4.236c-.079 0-.155.008-.23.022a1.309 1.309 0 0 0-.275-.288c-.275-.21-.614-.3-.958-.253l-4.197.571c-.155.021-.3.07-.432.14L9.159 7.01a1.27 1.27 0 0 0-.499-.113zm-.025.705c.077 0 .159.013.24.052l2.971 1.324c-.128.238-.18.508-.142.782l.357 2.596h.002l-.745 1.672a.59.59 0 0 1-.777.296l-3.107-1.385-.004-.041-.41-2.526L8.1 7.95a.589.589 0 0 1 .536-.348zm-3.159.733c.125 0 .245.039.343.112.13.09.21.227.237.382l.234 1.446-.56 1.259a1.27 1.27 0 0 0-.026.987c.12.322.364.575.678.717l.295.131a.585.585 0 0 1-.428.314l-4.185.678a.59.59 0 0 1-.674-.485l-.678-4.18a.588.588 0 0 1 .485-.674l4.185-.678c.03-.004.064-.01.094-.01zm11.705.09a.59.59 0 0 1 .415.173 1.287 1.287 0 0 0-.416.947v4.237c0 .033.003.065.005.097l-3.55.482a.586.586 0 0 1-.66-.502l-.191-1.403.899-2.017a1.29 1.29 0 0 0-.333-1.5l3.754-.51c.026-.004.051-.004.077-.004zm1.3.532h4.227c.326 0 .588.266.588.588v4.237a.589.589 0 0 1-.588.588h-4.237a.564.564 0 0 1-.12-.013c.47-.246.758-.765.684-1.318zm-5.988.309.254.113c.296.133.43.48.296.777l-.432.97-.207-1.465a.58.58 0 0 1 .09-.395zm5.39.538.453 3.325a.583.583 0 0 1-.453.65zM6.496 11.545l.17 1.052a.588.588 0 0 1-.293-.776zm3.985 4.344a.588.588 0 0 0-.612.603c0 .358.244.61.601.61a.582.582 0 0 0 .607-.608c0-.35-.242-.605-.596-.605zm5.545 0a.588.588 0 0 0-.612.603c0 .358.245.61.602.61a.582.582 0 0 0 .606-.608c0-.35-.24-.605-.596-.605zm-8.537.018a.047.047 0 0 0-.048.047v.085c0 .026.021.047.048.047h.52l-.623.9a.052.052 0 0 0-.009.027v.027c0 .026.021.047.048.047h.815a.047.047 0 0 0 .047-.047v-.085a.047.047 0 0 0-.047-.047h-.55l.606-.9a.05.05 0 0 0 .008-.026v-.028a.047.047 0 0 0-.047-.047zm5.303 0a.047.047 0 0 0-.047.047v1.086c0 .026.02.047.047.047h.135a.047.047 0 0 0 .047-.047v-.454h.545v.454c0 .026.02.047.047.047h.134a.047.047 0 0 0 .047-.047v-1.086a.047.047 0 0 0-.047-.047h-.134a.047.047 0 0 0-.047.047v.453h-.545v-.453a.047.047 0 0 0-.047-.047zm-2.324.164c.25 0 .372.194.372.425 0 .219-.109.425-.358.426-.242 0-.375-.197-.375-.419 0-.235.108-.432.36-.432zm5.545 0c.25 0 .372.194.372.425 0 .219-.108.425-.358.426-.242 0-.374-.197-.374-.419 0-.235.108-.432.36-.432z" fill="currentColor"></path></svg>
+      Analytics Code Mode<span>&nbsp;/ UTCP for AI agents</span>
+    </a>
+    <span class="chip">Zoho Analytics API v2</span>
+    <nav class="topnav" aria-label="Guide chapters">
+      <a href="index.html">Start here</a>
+      <a href="01-what-it-is.html">What it is</a>
+      <a href="02-install.html">Install</a>
+      <a href="03-using-it.html" aria-current="page">Using it</a>
+      <a href="04-security.html">Security</a>
+      <a href="05-troubleshooting.html">Troubleshooting</a>
+      <a href="06-operating.html">Operating</a>
+      <a href="07-remote-deployment.html">Remote</a>
+      <a href="08-engine.html">Engine</a>
+    </nav>
+    <button class="icon-btn nav-toggle" id="nav-toggle" type="button"
+            aria-expanded="false" aria-controls="sidebar"
+            aria-label="Show chapter navigation">&#9776;</button>
+    <button class="icon-btn" id="theme-toggle" type="button"
+            aria-label="Switch colour theme">&#9680;</button>
+  </div>
+</header>
+
+<div class="deadline-bar">
+  <div class="deadline-bar__inner">
+    <span class="chip chip--sdk">zoho-analytics-code-mode-mcp</span>
+    <p>Install with <strong>npx&nbsp;zoho-analytics-code-mode-mcp</strong>, version&nbsp;2.0.0.
+    <a href="02-install.html">Setup in five minutes &rarr;</a></p>
+    <span class="chip chip--deadline">Read-only</span>
+    <p>Write operations are <strong>disabled by default</strong>. Enable them
+    deliberately. <a href="04-security.html">Security model &rarr;</a></p>
+  </div>
+</div>
+
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidenav" aria-label="Chapters">
+    <h2>Guide</h2>
+    <a href="index.html"><span class="n">00</span><span>Start here</span></a>
+    <a href="01-what-it-is.html"><span class="n">01</span><span>What it is</span></a>
+    <a href="02-install.html"><span class="n">02</span><span>Install &amp; configure</span></a>
+    <a href="03-using-it.html" aria-current="page"><span class="n">03</span><span>Using it</span></a>
+    <a href="04-security.html"><span class="n">04</span><span>Security &amp; governance</span></a>
+    <a href="05-troubleshooting.html"><span class="n">05</span><span>Troubleshooting &amp; FAQ</span></a>
+    <a href="06-operating.html"><span class="n">06</span><span>Operating &amp; updating</span></a>
+    <a href="07-remote-deployment.html"><span class="n">07</span><span>Remote deployment</span></a>
+    <a href="08-engine.html"><span class="n">08</span><span>How the engine works</span></a>
+    <h2>Source</h2>
+    <a href="03-using-it.md"><span class="n">md</span><span>This page as Markdown</span></a>
+    <a href="README.md"><span class="n">&#8212;</span><span>Folder README</span></a>
+    </nav>
+  </aside>
+
+  <main class="doc" id="main">
+<header class="page-head">
+  <div class="spine"><i></i><i></i><i></i><i></i></div>
+  <p class="eyebrow">Code Mode &middot; <b>Chapter 03</b></p>
+  <h1>Using it</h1>
+  <p class="lede">You do not call the tools yourself. You ask your agent a question, and it decides to use them. This chapter is about asking well.</p>
+</header>
+<section id="the-normal-flow">
+<h2><span class="num">01</span>The normal flow</h2>
+<p>Every task follows the same shape, and your agent does it on its own:</p>
+<ol><li><strong><code>find_analytics_objects</code></strong> — whenever you name a table, view or workspace, it resolves that name to a real ID first.</li><li><strong><code>search_analytics_api</code></strong> — it describes the operation it needs and gets back signatures.</li><li><strong><code>get_analytics_guide</code></strong> — <em>optional</em>, when it needs to know how something behaves.</li><li><strong><code>run_analytics_code</code></strong> — it writes a program and gets back the result.</li></ol>
+</section>
+<section id="finding-your-data">
+<h2><span class="num">02</span>Finding your data</h2>
+<p>This is the step people expect to be the fragile one, so it is worth seeing.</p>
+<p><strong>You name something that does not quite exist.</strong> You say <em>"analyse my profit table"</em>; the table is called <code>Sales_Profit_by_Country</code>. The name is resolved by fuzzy match, and because <code>Profit Margin Trend</code> also matches, both come back and your agent asks which you meant rather than picking one.</p>
+<p><strong>You name nothing at all.</strong> You say <em>"do sales analysis on my data"</em>. Your agent lists your workspaces, ranks views matching "sales", and analyses what it finds — reporting which workspaces it looked in:</p>
+<pre><code class="lang-json">{ "analysed": [
+    { "workspace": "Sales Data", "view": "Sales Q3", "rows": 5, "column": "Sales", "total": 50900 },
+    { "workspace": "Marketing",  "view": "Sales Funnel", "rows": 3, "column": "Sales", "total": 11100 } ],
+  "searched": "4/4" }</code></pre>
+<p><strong>You name something exactly.</strong> You say <em>"use the variable sum"</em> and the variable is <code>sum_of_cost</code>. It resolves — a prefix match is good enough.</p>
+<p><strong>Nothing matches, so it stops.</strong> This is the important one. If you name a variable, column, table or folder and nothing matches it, the operation <strong>halts</strong>. It does not fall back to whatever else is in the workspace:</p>
+<pre><code class="lang-text">STOPPED: no variable matching "headcount". Do not substitute another variable.
+Available variables: sum_of_cost, region_filter, fiscal_year_start.
+Report this to the user and ask which they meant.</code></pre>
+<p><strong>Two things match, so it also stops.</strong> If the workspace has both <code>sum_of_cost</code> and <code>sum_of_revenue</code>, <em>"the sum variable"</em> is ambiguous and you are asked which — rather than one being chosen for you.</p>
+<div class="note note--danger"><div class="note__title">Substitution is the failure this prevents</div><p>Analysing <code>sum_of_revenue</code> when you asked for <code>sum_of_cost</code> produces a confident, plausible, wrong number — the hardest kind of error to notice. So a name that cannot be resolved stops the run, and that is enforced by the server, not left to the model's judgement: a program that catches the refusal and carries on anyway still fails.</p></div>
+<div class="note note--good"><div class="note__title">Ask for the names back</div><p>For anything that matters, say "tell me which views you used". The resolver always knows, and a wrong table is the one error a sandbox cannot protect you from.</p></div>
+<div class="note note--info"><div class="note__title">Searching every workspace costs a call each</div><p>View search looks in the workspaces whose names best match first, up to fifteen by default, and tells you how many of your total it covered. Because calls are rate limited, a full sweep of a large organization takes real time — about 90 seconds for 81 workspaces.</p>
+<p>If a sweep runs out of time it says so rather than reporting that your data does not exist:</p>
+<pre><code class="lang-text">STOPPED: could not finish searching for "widget forecast". Covered 25 of 81
+workspaces before the time budget ran out, so absence cannot be confirmed.
+Ask the user which workspace it is in, then search that one directly.</code></pre>
+<p>Naming the workspace — <em>"the profit table in ZIA Agent"</em> — makes it exact, fast and cheap.</p></div>
+<p>If your agent skips step 1 and writes code from memory, the call will usually fail with <em>"not a function"</em>, and the error tells it to search first. That self-correction normally works; if it loops, say <strong>"search the API first"</strong> explicitly.</p>
+</section>
+<section id="reading-results-without-getting-a-wrong-number">
+<h2><span class="num">03</span>Reading results without getting a wrong number</h2>
+<p>Two things about Analytics responses will silently produce a wrong answer if a program gets them wrong. Both were found running against a real organization, and the sandbox provides <code>rows</code> to handle both.</p>
+<p><strong>Export returns a flat array.</strong> The rows are in <code>data</code> directly, <em>not</em> <code>data.rows</code>:</p>
+<pre><code class="lang-javascript">const list = rows.of(out);        // right — handles every response shape
+const list = out.data.rows ?? []; // wrong — undefined, so "no data"</code></pre>
+<p><strong>Values come back formatted.</strong> <code>"$1,682.39"</code>, <code>"45%"</code>, <code>"14 February, 2022"</code> — all strings. <code>Number("$1,682.39")</code> is <code>NaN</code>:</p>
+<pre><code class="lang-javascript">rows.num('$1,682.39')                       // 1682.39
+rows.sum(list, 'Sales')                     // { total, counted, skipped }
+rows.groupSum(list, 'Region', 'Sales')      // { West: {...}, East: {...} }</code></pre>
+<p><code>sum</code> and <code>groupSum</code> skip blanks and tell you how many they skipped, so an empty column is visible rather than silently counted as zero.</p>
+<div class="note note--danger"><div class="note__title">This is the failure mode to care about</div><p>On a real table of 755 rows, the correct code returns <strong>$1,299,947 across three regions</strong>. The same program written the obvious way returns <strong><code>{ rowCount: 0, naiveSum: 0 }</code></strong> — not an error, just a confident report that you have no sales data. Nothing in the API signatures warns you.</p></div>
+</section>
+<section id="worked-example-a-total-across-workspaces">
+<h2><span class="num">04</span>Worked example — a total across workspaces</h2>
+<p>&gt; <strong>You:</strong> What were our East-region sales from July onwards, across every workspace?</p>
+<p>The agent searches, then writes something like:</p>
+<pre><code class="lang-javascript">const CRITERIA = `"Sales"."Region"='East' and "Sales"."Date"&gt;='2026-07-01'`;
+const ws = await za.getOrgWorkspaces({ 'ZANALYTICS-ORGID': ORG_ID });
+const totals = {};
+
+for (const w of ws.data.workspaces) {
+  const views = await za.getViews({
+    'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': w.workspaceId, CONFIG: '{}',
+  });
+  for (const v of views.data.views.filter((v) =&gt; v.viewName.includes('Sales'))) {
+    const out = await za.exportDataView({
+      'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': w.workspaceId, 'view-id': v.viewId,
+      CONFIG: JSON.stringify({ responseFormat: 'json', criteria: CRITERIA }),
+    });
+    const list = rows.of(out);          // flat array, not out.data.rows
+    if (list.length) {
+      totals[w.workspaceName] =
+        (totals[w.workspaceName] ?? 0) + rows.sum(list, 'Sales').total;
+    }
+  }
+}
+
+return { totals, grandTotal: Object.values(totals).reduce((a, b) =&gt; a + b, 0) };</code></pre>
+<p>One tool call. The response is a handful of numbers; no row ever reaches the model.</p>
+</section>
+<section id="worked-example-an-export-that-has-to-be-polled">
+<h2><span class="num">05</span>Worked example — an export that has to be polled</h2>
+<p>Large exports are asynchronous: start a job, poll until it finishes, then download. That is three operations and an unknown number of polls — painful one call per turn, trivial in a loop.</p>
+<pre><code class="lang-javascript">const job = await za.createExportJobViewId({
+  'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': wsId, 'view-id': viewId,
+  CONFIG: JSON.stringify({ responseFormat: 'json' }),
+});
+
+let status;
+do {
+  status = await za.getExportJobDetails({
+    'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': wsId, 'job-id': job.data.jobId,
+  });
+} while (status.data.jobStatus !== 'JOB COMPLETED');
+
+const out = await za.downloadExportedData({
+  'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': wsId, 'job-id': job.data.jobId,
+});
+
+return { rowCount: rows.of(out).length };</code></pre>
+</section>
+<section id="what-makes-a-good-request">
+<h2><span class="num">06</span>What makes a good request</h2>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Ask like this</th><th>Rather than</th></tr></thead><tbody><tr><td class="col-narrow">"Total sales by region for Q3, across all workspaces"</td><td>"Show me the sales table"</td></tr><tr><td class="col-narrow">"How many views has each workspace got?"</td><td>"List everything"</td></tr><tr><td class="col-narrow">"Export East-region rows since July and give me the sum"</td><td>"Export the Sales view" and then adding it up yourself</td></tr></tbody></table></div>
+<p>The pattern: <strong>ask for the answer, not the data.</strong> This tool is at its best when the model can filter and aggregate in the sandbox. Asking it to dump rows works, but forfeits most of the benefit and fills your context.</p>
+<div class="note note--good"><div class="note__title">Say the filter out loud</div><p>Criteria are applied server-side by Analytics. "Since July" and "East region only" become part of the <code>CONFIG</code>, so fewer rows move at every stage.</p></div>
+</section>
+<section id="when-to-send-it-to-the-documentation">
+<h2><span class="num">07</span>When to send it to the documentation</h2>
+<p>The guide tool is there for the things signatures cannot express. Useful nudges:</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Say this</th><th>It will read</th></tr></thead><tbody><tr><td class="col-narrow">"Check the criteria syntax first"</td><td><code>filter-criteria-syntax</code></td></tr><tr><td class="col-narrow">"Read the async export playbook"</td><td><code>export-data-asynchronously</code></td></tr><tr><td class="col-narrow">"Look up error 8080"</td><td>the error catalog entry</td></tr><tr><td class="col-narrow">"How should I resolve these IDs?"</td><td><code>bootstrap-identifiers</code>, <code>identifiers</code></td></tr></tbody></table></div>
+<p>Most of the time you will not need to: the search results already point at the relevant playbook, and failures carry their own explanation.</p>
+</section>
+<section id="things-worth-telling-your-agent">
+<h2><span class="num">08</span>Things worth telling your agent</h2>
+<ul><li><strong>"Find the table first"</strong> — if it is guessing at a view name instead of resolving it.</li><li><strong>"Which variable did you use?"</strong> — for anything where the wrong one would look right.</li><li><strong>"Search the API first"</strong> — if it is guessing at operation names.</li><li><strong>"Return a summary, not the rows"</strong> — if it dumps data into the conversation.</li><li><strong>"Use the bulk export job"</strong> — for anything large; a single blocking export can time out.</li><li><strong>"Only workspace X"</strong> — scoping saves API units and time.</li></ul>
+</section>
+<section id="what-comes-back">
+<h2><span class="num">09</span>What comes back</h2>
+<p><code>run_analytics_code</code> returns three things:</p>
+<pre><code class="lang-json">{
+  "result":   { "totals": { "Sales Data": 64200 }, "grandTotal": 74100 },
+  "logs":     ["skipped Regions: no matching rows"],
+  "apiCalls": 7
+}</code></pre>
+<p><code>result</code> is whatever the program returned, <code>logs</code> are its <code>console.log</code> lines, and <code>apiCalls</code> is how many Analytics operations it used — handy for keeping an eye on API-unit consumption.</p>
+</section>
+<section id="limits-you-will-meet">
+<h2><span class="num">10</span>Limits you will meet</h2>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Limit</th><th>Default</th><th>What happens</th><th>Change it with</th></tr></thead><tbody><tr><td class="col-narrow">API calls per program</td><td>200</td><td>Program stops with a budget error</td><td><code>ZA_MAX_TOOL_CALLS</code></td></tr><tr><td class="col-narrow">Program runtime</td><td>60 s</td><td>Timed out; use an async export job</td><td><code>ZA_EXEC_TIMEOUT_MS</code></td></tr><tr><td class="col-narrow">Sandbox memory</td><td>256 MB</td><td>Out of memory; aggregate in chunks</td><td><code>ZA_EXEC_MEMORY_MB</code></td></tr><tr><td class="col-narrow">Write operations</td><td>hidden</td><td><code>not a function</code></td><td><code>ZA_ALLOW_WRITES</code> — read <a href="04-security.html">Security</a> first</td></tr><tr><td class="col-narrow">API call rate</td><td>55 per minute</td><td>loops are paced; no 6045</td><td><code>ZA_MAX_CALLS_PER_MINUTE</code></td></tr><tr><td class="col-narrow">API domains</td><td>all ten</td><td><code>not a function</code></td><td><code>ZA_DOMAINS</code> — see <a href="02-install.html#choosing-what-to-expose">Choosing what to expose</a></td></tr></tbody></table></div>
+</section>
+<section id="a-caution-about-numbers">
+<h2><span class="num">11</span>A caution about numbers</h2>
+<p>Your agent's model writes the code, and this tool runs it. A more capable model writes better code; a weaker one makes mistakes that look like confident answers.</p>
+<div class="note note--warn"><div class="note__title">Spot-check figures that matter</div><p>If a number is going into a report or a decision, ask the agent to show the code it ran, and sanity-check the filter and the date range. The sandbox guarantees the code is <em>safe</em>, not that it is <em>correct</em>.</p></div>
+</section>
+    <nav class="pager" aria-label="Chapter">
+      <a href="02-install.html"><span class="pager__side">Previous</span>&larr; Install &amp; configure</a>
+      <a href="04-security.html" style="margin-left:auto;text-align:right"><span class="pager__side">Next</span>Security &amp; governance &rarr;</a>
+    </nav>
+  </main>
+
+<aside class="toc" aria-label="On this page">
+  <nav>
+    <h2>On this page</h2>
+    <a href="#the-normal-flow">The normal flow</a>
+    <a href="#finding-your-data">Finding your data</a>
+    <a href="#reading-results-without-getting-a-wrong-number">Reading results without getting a wrong number</a>
+    <a href="#worked-example-a-total-across-workspaces">Worked example — a total across workspaces</a>
+    <a href="#worked-example-an-export-that-has-to-be-polled">Worked example — an export that has to be polled</a>
+    <a href="#what-makes-a-good-request">What makes a good request</a>
+    <a href="#when-to-send-it-to-the-documentation">When to send it to the documentation</a>
+    <a href="#things-worth-telling-your-agent">Things worth telling your agent</a>
+    <a href="#what-comes-back">What comes back</a>
+    <a href="#limits-you-will-meet">Limits you will meet</a>
+    <a href="#a-caution-about-numbers">A caution about numbers</a>
+  </nav>
+</aside>
+</div>
+
+<footer class="footer">
+  <div class="spine"><i></i><i></i><i></i><i></i></div>
+  <div class="footer__inner">
+    <div>
+      <h2>Guide</h2>
+      <a href="index.html">00 &nbsp;Start here</a>
+      <a href="01-what-it-is.html">01 &nbsp;What it is</a>
+      <a href="02-install.html">02 &nbsp;Install &amp; configure</a>
+      <a href="03-using-it.html">03 &nbsp;Using it</a>
+      <a href="04-security.html">04 &nbsp;Security &amp; governance</a>
+      <a href="05-troubleshooting.html">05 &nbsp;Troubleshooting &amp; FAQ</a>
+      <a href="06-operating.html">06 &nbsp;Operating &amp; updating</a>
+      <a href="07-remote-deployment.html">07 &nbsp;Remote deployment</a>
+      <a href="08-engine.html">08 &nbsp;How the engine works</a>
+    </div>
+    <div>
+      <h2>Reference</h2>
+      <a href="02-install.html#configuration-reference">Configuration reference</a>
+      <a href="05-troubleshooting.html#error-codes">Error codes</a>
+      <a href="04-security.html#what-the-sandbox-cannot-do">Sandbox boundary</a>
+      <a href="02-install.html#step-1-get-your-credentials">Get your credentials</a>
+    </div>
+    <div class="footer__meta">
+      <h2>About</h2>
+      <p>Setup and usage guide for Zoho Analytics Code Mode, the MCP server
+      that lets AI agents run sandboxed code against the Analytics v2 API,
+      powered by the UTCP code-mode engine.</p>
+      <p>Rendered from the Markdown in this folder by <code>build.py</code>.
+      Generated 2026-11-11.</p>
+      <p><strong>zoho-analytics-code-mode-mcp v2.0.0. Read-only by default.</strong></p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
