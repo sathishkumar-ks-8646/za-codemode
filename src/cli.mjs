@@ -13,6 +13,7 @@ import {
   deleteFromKeychain, resolveCredentials,
 } from './credentials.mjs';
 import { DOMAINS } from './catalog.mjs';
+import { clearCachedToken } from './token-cache.mjs';
 
 const CTRL_C = '\u0003';
 const BACKSPACE = /^[\u0008\u007f]$/;
@@ -304,6 +305,7 @@ async function logout(args) {
   const profile = flag(args, '--profile') || 'default';
   try {
     const removed = await deleteFromKeychain(profile);
+    await clearCachedToken(profile);     // the cached access token goes too
     console.log(removed
       ? `Removed profile "${profile}" from the ${keychainName()}.`
       : `No stored credentials for profile "${profile}".`);

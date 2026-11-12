@@ -7,6 +7,8 @@
  * refresh token, mints access tokens, and the catalog re-registers whenever
  * one rotates. The user never handles a token and neither does the sandbox.
  */
+import { loadCachedToken, saveCachedToken } from './token-cache.mjs';
+
 /**
  * Seconds of validity from a Zoho token response.
  *
@@ -29,6 +31,7 @@ export class TokenSource {
   #token = null;
   #expiresAt = 0;
   #inflight = null;
+  #checkedCache = false;
 
   constructor(config) {
     this.#config = config;
@@ -45,6 +48,23 @@ export class TokenSource {
 
     // 120s of headroom: a program that starts at T-30s must not expire mid-run.
     if (this.#token && Date.now() < this.#expiresAt - 120_000) return this.#token;
+
+    // Once per process, before minting anything, see whether a previous run
+    // left a token with useful life in it. This is what turns an agent restart
+    // from a token exchange into a keychain read.
+    if (!this.#checkedCache) {
+      this.#checkedCache = true;
+      const cached = await loadCachedToken({
+        profile: this.#config.profile,
+        clientId: this.#config.clientId,
+        analyticsUrl: this.#config.analyticsUrl,
+      });
+      if (cached) {
+        this.#token = cached.accessToken;
+        this.#expiresAt = Date.now() + cached.secondsLeft * 1000;
+        return this.#token;
+      }
+    }
 
     // Collapse concurrent refreshes into one request.
     this.#inflight ??= this.#refresh().finally(() => { this.#inflight = null; });
@@ -84,8 +104,20 @@ export class TokenSource {
         + (hint ? ` — ${hint}` : ''));
     }
 
+    const lifetime = expiresInSeconds(json);
     this.#token = json.access_token;
-    this.#expiresAt = Date.now() + expiresInSeconds(json) * 1000;
+    this.#expiresAt = Date.now() + lifetime * 1000;
+
+    // Best effort: a cache that cannot be written costs one extra exchange
+    // next time, which beats failing the exchange that just succeeded.
+    await saveCachedToken({
+      profile: this.#config.profile,
+      clientId: this.#config.clientId,
+      analyticsUrl: this.#config.analyticsUrl,
+      accessToken: this.#token,
+      expiresInSeconds: lifetime,
+    });
+
     return this.#token;
   }
 }

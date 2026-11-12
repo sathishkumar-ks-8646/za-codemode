@@ -45,6 +45,12 @@ keychain. A profile is a scope, not just a credential, so a sandbox profile can
 be read-write while production stays read-only with no environment juggling.
 Every answer also has a flag, so a setup script need not be interactive.
 
+Access tokens are cached in the keychain too, beside the profile, so restarting
+an agent reuses a valid token rather than minting a new one — the same rules as
+za-cli's TokenCache (version envelope, bound to client ID and data centre, 120 s
+expiry skew, lifetime clamped at 24 h). Measured live: a warm start skips the
+token exchange.
+
 After that an agent's config holds no secrets — just `command` and `args`.
 Resolution order is environment variables, then `ZA_CREDENTIAL_COMMAND` (for
 1Password / Vault), then the OS keychain by profile; the startup log reports
@@ -102,6 +108,7 @@ v2-code-execution-mcp/
 │   ├── auth.mjs             refresh token -> access token, cached
 │   ├── credentials.mjs      resolution: env -> credential command -> keychain
 │   ├── cli.mjs              login / status / logout
+│   ├── token-cache.mjs      access-token reuse across process restarts
 │   ├── bin.mjs              entry point: no args -> server, args -> CLI
 │   ├── config.mjs           environment parsing and startup validation
 │   ├── quiet.mjs            stdout guard — MUST be the first import
@@ -124,7 +131,7 @@ v2-code-execution-mcp/
 
 ```bash
 npm install                  # public registry, pinned in .npmrc
-npm test                     # 78 tests, fully offline
+npm test                     # 86 tests, fully offline
 npm run build                # rebuild both artifacts from the published repos
 npm start                    # local mode, stdio
 npm run start:remote         # remote mode, HTTP
@@ -199,7 +206,7 @@ documented pattern returned `{ rowCount: 0 }`.
 
 ## Status
 
-78 tests pass offline: search quality and domain filtering, name resolution
+86 tests pass offline: search quality and domain filtering, name resolution
 (fuzzy matching, ambiguity, misses, columns, variables, enforced refusal),
 result reading, call pacing, local stdio end-to-end, the knowledge tool, the
 full remote OAuth flow (dynamic registration, PKCE, browser redirect through a

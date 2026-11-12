@@ -267,7 +267,35 @@ Either spelling of the keys works:
   "ANALYTICS_REFRESH_TOKEN": "...", "ANALYTICS_ORG_ID": "..." }
 ```
 
-## 10. Why not an encrypted file
+## 10. Access tokens
+
+You never handle these. The refresh token you stored is long-lived; the access
+token actually used on each call lasts **one hour** and the server manages it.
+
+| ^ | |
+|---|---|
+| Minted from | your stored refresh token |
+| Lifetime | one hour, read from the response rather than assumed |
+| Cached in | the OS keychain, beside the profile, as `<profile>.token` |
+| Reused by | later runs of the same profile, until it nears expiry |
+| Refreshed | automatically, two minutes before it expires |
+
+Caching matters because a token would otherwise be minted afresh every time the
+process starts — and that happens more than you might think: restarting your
+agent, running `status`, or having two agent hosts configured. Measured on a
+real organization, a warm start reuses the cached token and skips the exchange
+entirely.
+
+A cached token is only reused when it was minted by the **same client ID**
+against the **same data centre**, and has more than two minutes left. Change
+either and the cache is simply ignored rather than producing a confusing 8535.
+`logout` removes it along with the credential.
+
+This mirrors what the Zoho Analytics CLI does — the same version envelope,
+credential binding, expiry skew and lifetime clamp — storing it in the keychain
+rather than an encrypted file, because the keychain is already there.
+
+## 11. Why not an encrypted file
 
 It is the obvious suggestion, and it cannot work here. The MCP server is **spawned by your agent with no terminal**, so it can never prompt for a passphrase. That leaves two possibilities, and neither improves on the keychain:
 
@@ -276,7 +304,7 @@ It is the obvious suggestion, and it cannot work here. The MCP server is **spawn
 
 Hence the keychain itself.
 
-## 11. What this protects, and what it does not
+## 12. What this protects, and what it does not
 
 **Protects against:** a config file read by another process or person, a screenshot, an accidental commit, a synced backup, a copied dotfiles archive.
 
@@ -284,9 +312,10 @@ Hence the keychain itself.
 
 - **Malware running as you.** It can ask the keychain for the same entry your agent does. No user-session keystore defends against code already running as that user.
 - **Results leaving the sandbox.** Credentials never enter it, but whatever a program returns reaches your AI provider. See [Security](04-security.md#what-reaches-your-ai-provider).
+- **A leaked access token.** It is a bearer credential for up to an hour. It is kept in the keychain, not a file, but anything that can read the keychain can read it.
 - **A leaked refresh token.** Zoho refresh tokens do not expire. If one escapes, revoke it in the [Developer Console](https://api-console.zoho.com) — `logout` removes only the local copy.
 
-## 12. Troubleshooting
+## 13. Troubleshooting
 
 | ^Symptom | Cause | Fix |
 |---|---|---|
