@@ -103,7 +103,7 @@ npx -y zoho-analytics-code-mode-mcp</code></pre>
 <div class="table-wrap"><table><thead><tr><th class="col-narrow">Code</th><th>Meaning</th><th>Fix</th></tr></thead><tbody><tr><td class="col-narrow"><strong>8535</strong></td><td>Access token rejected</td><td>Check the three OAuth values, and that <code>ACCOUNTS_SERVER_URL</code> and <code>ANALYTICS_SERVER_URL</code> name the <strong>same</strong> data centre</td></tr><tr><td class="col-narrow"><strong>8080</strong></td><td><code>CONFIG</code> is not valid</td><td>It must be a <code>JSON.stringify()</code>'d string, not an object literal</td></tr><tr><td class="col-narrow"><strong>7103</strong></td><td>Organization, workspace, view or job not found</td><td>It does not exist, was deleted, or is not visible to this user. Resolve IDs by name first</td></tr><tr><td class="col-narrow"><strong>7301</strong></td><td>Authenticated, but not permitted</td><td>The Analytics user lacks the role or view permission this operation needs</td></tr><tr><td class="col-narrow"><strong>7390</strong></td><td>Workspace is in a different organization</td><td>The workspace does not belong to the organization in <code>ZANALYTICS-ORGID</code></td></tr><tr><td class="col-narrow"><strong>8084</strong></td><td>No such organization</td><td><code>ANALYTICS_ORG_ID</code> names an organization that does not exist</td></tr><tr><td class="col-narrow"><strong>6045</strong></td><td>API frequency limit exceeded</td><td>Too many calls inside one window. Calls are capped at 55/min and retried with backoff; if it persists, narrow the task to one workspace or lower <code>ZA_MAX_CALLS_PER_MINUTE</code></td></tr><tr><td class="col-narrow"><strong>HTTP 401</strong></td><td>Same as 8535</td><td>As above</td></tr></tbody></table></div>
 <p>The server annotates these automatically from the OKF error catalog — all <strong>385 documented codes</strong>, not just the ones above — so the agent usually corrects itself on the next attempt. Your agent can also look one up directly with <code>get_analytics_guide("8080")</code>.</p>
 <h3 id="data-centre-mismatch">Data centre mismatch</h3>
-<p>The single most common setup error: a token minted at <code>accounts.zoho.com</code> but spent at <code>analyticsapi.zoho.eu</code>. The server detects the mismatch at startup and refuses to run rather than letting you debug 8535 in the dark. Both URLs must be the same row of <a href="02-install.html#step-3-pick-your-data-centre">the data centre table</a>.</p>
+<p>The single most common setup error: a token minted at <code>accounts.zoho.com</code> but spent at <code>analyticsapi.zoho.eu</code>. The server detects the mismatch at startup and refuses to run rather than letting you debug 8535 in the dark. Both URLs must be the same row of <a href="09-credentials.html#what-it-asks">the data centre table</a>.</p>
 </section>
 <section id="operation-not-found">
 <h2><span class="num">04</span>Operation not found</h2>
@@ -192,7 +192,7 @@ npx -y zoho-analytics-code-mode-mcp</code></pre>
       <a href="02-install.html#configuration-reference">Configuration reference</a>
       <a href="05-troubleshooting.html#error-codes">Error codes</a>
       <a href="04-security.html#what-the-sandbox-cannot-do">Sandbox boundary</a>
-      <a href="02-install.html#step-1-get-your-credentials">Get your credentials</a>
+      <a href="09-credentials.html">Credentials &amp; profiles</a>
     </div>
     <div class="footer__meta">
       <h2>About</h2>

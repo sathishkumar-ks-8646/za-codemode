@@ -48,11 +48,15 @@ Behind them sit **203 operations** across ten API domains, generated from the pu
 
 ## 4. Install it
 
+Two steps. First, in a terminal:
+
 ```bash
 npx zoho-analytics-code-mode-mcp login
 ```
 
-That stores your credentials in your operating system's keychain, and prints a config block with **no secrets in it**:
+It asks for your Zoho credentials, which groups of tools this profile may use, and whether writes are allowed — then stores the lot in your operating system's keychain.
+
+Second, paste the block it prints into your agent's configuration. It holds no secrets:
 
 ```json
 {
@@ -65,28 +69,8 @@ That stores your credentials in your operating system's keychain, and prints a c
 }
 ```
 
-The environment-variable form still works and is right for containers:
+Restart your agent and ask it something. The full walkthrough is in [Install & configure](02-install.md); credentials in detail are in [Credentials & profiles](09-credentials.md).
 
-```json
-{
-  "mcpServers": {
-    "zoho-analytics-code-mode": {
-      "command": "npx",
-      "args": ["-y", "zoho-analytics-code-mode-mcp"],
-      "env": {
-        "ANALYTICS_CLIENT_ID": "1000.XXXXXXXXXXXX",
-        "ANALYTICS_CLIENT_SECRET": "your-client-secret",
-        "ANALYTICS_REFRESH_TOKEN": "1000.xxxxxxxxxxxx",
-        "ANALYTICS_ORG_ID": "2375824000000000001",
-        "ACCOUNTS_SERVER_URL": "https://accounts.zoho.com",
-        "ANALYTICS_SERVER_URL": "https://analyticsapi.zoho.com"
-      }
-    }
-  }
-}
-```
-
-Restart your agent and ask it something. The full walkthrough, including how to obtain each value, is in [Install & configure](02-install.md).
 
 :::info Rolling this out to a team?
 Deploy it once and let everyone sign in through their browser — no per-user credentials and no installation. See [Remote deployment](07-remote-deployment.md).
@@ -104,7 +88,7 @@ Deploy it once and let everyone sign in through their browser — no per-user cr
 | [06 Operating & updating](06-operating.md) | Updates, API-unit cost, and running it from source |
 | [07 Remote deployment](07-remote-deployment.md) | Running one shared instance for a team, with browser sign-in |
 | [08 How the engine works](08-engine.md) | UTCP, code mode, the isolate and the knowledge base |
-| [09 Credentials & secrets](09-credentials.md) | Keeping credentials out of your config file, on all three platforms |
+| [09 Credentials & profiles](09-credentials.md) | The login command, tool-group scoping, and where secrets are stored |
 
 ## 6. The three things to know before you start
 

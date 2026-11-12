@@ -612,7 +612,7 @@ def shell(stem: str, r: Renderer, body: str, meta: dict) -> str:
       <a href="02-install.html#configuration-reference">Configuration reference</a>
       <a href="05-troubleshooting.html#error-codes">Error codes</a>
       <a href="04-security.html#what-the-sandbox-cannot-do">Sandbox boundary</a>
-      <a href="02-install.html#step-1-get-your-credentials">Get your credentials</a>
+      <a href="09-credentials.html">Credentials &amp; profiles</a>
     </div>
     <div class="footer__meta">
       <h2>About</h2>

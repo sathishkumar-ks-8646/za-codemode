@@ -88,3 +88,78 @@ test('an unusable keychain is reported as such, not as "no credentials"', async 
   // With no bus address in the passed env, the reason must name the real cause.
   assert.match(r.problems[0], /keychain|DBUS_SESSION_BUS_ADDRESS/);
 });
+
+// ---------------------------------------------------------------------------
+// A profile is a scope as well as a credential.
+// ---------------------------------------------------------------------------
+
+test('a profile carries its own tool groups and write permission', async () => {
+  if (process.platform === 'linux' && !process.env.DBUS_SESSION_BUS_ADDRESS) return;
+  const { saveToKeychain, readFromKeychain, deleteFromKeychain } =
+    await import('../src/credentials.mjs');
+
+  const profile = 'test-scope-profile';
+  await saveToKeychain(profile, {
+    clientId: 'c', clientSecret: 's', refreshToken: 'r', orgId: '1',
+    analyticsUrl: 'https://analyticsapi.zoho.com',
+    accountsUrl: 'https://accounts.zoho.com',
+    domains: ['data-operations', 'views-management'], allowWrites: false,
+  });
+
+  try {
+    const stored = await readFromKeychain(profile);
+    assert.deepEqual(stored.domains, ['data-operations', 'views-management']);
+    assert.equal(stored.allowWrites, false);
+
+    // A spawned server inherits the session bus; the resolver checks the env
+    // it is given, so the test must supply it too.
+    const r = await resolveCredentials({
+      ZA_PROFILE: profile,
+      DBUS_SESSION_BUS_ADDRESS: process.env.DBUS_SESSION_BUS_ADDRESS,
+    });
+    assert.equal(r.source, `keychain:${profile}`);
+    assert.deepEqual(r.values.domains, ['data-operations', 'views-management']);
+  } finally {
+    await deleteFromKeychain(profile);
+  }
+});
+
+test('the environment can still narrow a profile without rewriting it', async () => {
+  if (process.platform === 'linux' && !process.env.DBUS_SESSION_BUS_ADDRESS) return;
+  const { saveToKeychain, deleteFromKeychain } = await import('../src/credentials.mjs');
+
+  const profile = 'test-override-profile';
+  await saveToKeychain(profile, {
+    clientId: 'c', clientSecret: 's', refreshToken: 'r', orgId: '1',
+    domains: [], allowWrites: true,
+  });
+
+  try {
+    const r = await resolveCredentials({
+      ZA_PROFILE: profile, ZA_DOMAINS: 'dsml', ZA_ALLOW_WRITES: 'false',
+      DBUS_SESSION_BUS_ADDRESS: process.env.DBUS_SESSION_BUS_ADDRESS,
+    });
+    assert.deepEqual(r.values.domains, ['dsml'], 'ZA_DOMAINS must override the profile');
+    assert.equal(r.values.allowWrites, false, 'ZA_ALLOW_WRITES must override the profile');
+  } finally {
+    await deleteFromKeychain(profile);
+  }
+});
+
+test('the scope reaches the server config', async () => {
+  const { loadConfig } = await import('../src/config.mjs');
+  const cfg = await loadConfig({
+    ...ENV_CREDS, ZA_DOMAINS: 'data-operations,dsml', ZA_ALLOW_WRITES: 'true',
+  });
+  assert.deepEqual(cfg.domains, ['data-operations', 'dsml']);
+  assert.equal(cfg.allowWrites, true);
+  assert.deepEqual(cfg.problems, []);
+});
+
+test('an unknown tool group is rejected with the valid list', async () => {
+  const { loadConfig } = await import('../src/config.mjs');
+  const cfg = await loadConfig({ ...ENV_CREDS, ZA_DOMAINS: 'data-operations,nonsense' });
+  assert.equal(cfg.problems.length, 1);
+  assert.match(cfg.problems[0], /Unknown API domain nonsense/);
+  assert.match(cfg.problems[0], /views-management/);
+});

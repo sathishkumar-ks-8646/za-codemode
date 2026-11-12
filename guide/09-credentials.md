@@ -1,21 +1,129 @@
 ---
-description: How to keep Zoho Analytics credentials out of your MCP client's configuration file — the OS keychain on macOS, Windows and Linux, credential helpers for 1Password and Vault, and environment variables for containers.
+description: Setting up credentials for Zoho Analytics Code Mode — the login command, where to run it, what it asks, choosing which tool groups a profile may use, and how credentials are stored on macOS, Windows and Linux.
 ---
 
-# Credentials
+# Credentials & profiles
 
-Your agent's configuration file is plain text. It gets pasted into chat threads, captured in screenshots, synced to cloud drives and occasionally committed. A Zoho refresh token does not expire — so one sitting in `claude_desktop_config.json` is a standing credential in a file nobody treats as a secret.
+Credentials live in your operating system's keychain, not in a file. You put them there once with `login`, and your agent's configuration refers to them by profile name.
 
-This chapter is about not doing that.
+## 1. Run this, in a terminal
 
-:::good The short version
 ```bash
 npx zoho-analytics-code-mode-mcp login
 ```
-Answer four questions in a terminal. Your credentials go into your operating system's keychain, and your agent's config ends up containing **no secrets at all**.
+
+**In a terminal** matters. This is an interactive command — it asks you questions and you type the answers. Your AI agent cannot run it for you, because the server your agent spawns has no terminal attached and so can never prompt for anything. That is the whole reason credentials are set up separately, once, by hand.
+
+| ^Where | What |
+|---|---|
+| **macOS** | Terminal, iTerm |
+| **Windows** | PowerShell, Windows Terminal, Command Prompt |
+| **Linux** | Any terminal emulator in your desktop session — see [§6](#linux-the-session-bus) |
+
+## 2. What it asks
+
+Six things. Secret answers are not echoed as you type.
+
+```text
+$ npx zoho-analytics-code-mode-mcp login
+
+Zoho Analytics Code Mode — store credentials
+
+Profile: default
+Stored in this machine's Keychain, never in a file.
+
+Data centre:
+  1. United States
+  2. Europe
+  3. India
+  4. Australia
+  5. Japan
+  6. Canada
+  7. Saudi Arabia
+  8. Other — enter the URLs yourself
+Choose [1]: 2
+  -> https://analyticsapi.zoho.eu
+
+From a Self Client at https://api-console.zoho.com :
+  Client ID: 1000.ABCDEFGHIJKLMNOP
+  Client Secret:
+  Organization ID: 2375824000000000001
+
+  Paste a refresh token if you have one, or leave blank to
+  exchange a Generate Code grant for one.
+  Refresh Token (blank to exchange):
+```
+
+Then the part that is specific to this tool:
+
+```text
+Which groups of tools may this profile use?
+
+   1. data-modeling-schema   Tables, columns, formulas, query tables, lookups
+   2. data-operations        Rows, imports, exports, bulk jobs, data sync
+   3. dsml                   AutoML analyses, training and predictions
+   4. org-management         Organizations, subscriptions, security controls
+   5. reports-dashboards     Charts, pivots, summaries, dashboards
+   6. schedules-alerts       Email schedules and data alerts
+   7. share-publish          Sharing, permissions, embed URLs, public links, slideshows
+   8. user-groups            Users, groups, roles and portals
+   9. views-management       Views, folders, tags, trash, copy and move
+  10. workspace-management   Workspaces, backups, linking, templates, variables
+
+  Enter numbers separated by commas (for example 2,9,5),
+  or press Enter for all of them.
+
+  Groups [all]: 2,9,5
+  -> data-operations, views-management, reports-dashboards
+
+May this profile CHANGE data — create, update and delete?
+  Read-only is strongly recommended. A sandbox executes code written
+  by a language model; read-only means a misread prompt cannot destroy
+  a workspace.
+
+  Allow writes? [y/N]: n
+  -> read-only
+
+Verifying... the credential works.
+
+Stored under "zoho-analytics-code-mode-mcp" / "default" in the Keychain.
+  tool groups   data-operations, views-management, reports-dashboards
+  data access   read-only
+```
+
+:::good It checks before it stores
+The credential is exchanged against Zoho once, for real, before anything is written. A wrong secret or the wrong data centre fails here — in a terminal, with Zoho's own error message — instead of three days later as "server failed to start" inside your agent.
 :::
 
-## 1. What you end up with
+## 3. Choosing tool groups
+
+A profile is a **scope**, not just a credential. The 203 operations are grouped into ten domains, and a profile reaches only the groups you pick.
+
+Pick the smallest set that answers your questions. An agent for reading reports has no business being able to administer users, and there is a practical benefit too: a smaller surface means `search_analytics_api` has less to confuse itself with, so the model picks the right operation more often.
+
+| ^If you want to… | Choose |
+|---|---|
+| Read and analyse data | `data-operations`, `views-management`, `reports-dashboards` |
+| Build tables and formulas | add `data-modeling-schema` |
+| Manage sharing and embeds | add `share-publish` |
+| Administer users | add `user-groups` |
+| Everything | press Enter |
+
+The server reports the result at startup, so you can always see what a profile can reach:
+
+```text
+[za] ready — 18/203 operations (read-only), org 2375824000000000001
+[za] credentials — keychain:default
+[za] domains — data-operations:8 reports-dashboards:2 views-management:8
+```
+
+:::danger Writes are a separate decision
+Answering yes to writes exposes create, update and **delete** across every group you picked. The sandbox stops code escaping; it does not stop the model being wrong. Keep read-only unless you specifically need otherwise, and prefer a non-production organization while you learn what your agent does. See [Security](04-security.md#two-ways-to-narrow-the-surface).
+:::
+
+## 4. Then tell your agent
+
+`login` prints the exact block to paste. It contains no secrets:
 
 ```json
 {
@@ -28,18 +136,64 @@ Answer four questions in a terminal. Your credentials go into your operating sys
 }
 ```
 
-That is the whole thing. No client ID, no secret, no refresh token. Compare it with what it replaces:
+Config file locations are in [Install & configure](02-install.md#step-3-add-it-to-your-agent).
 
-| ^ | Before | After |
-|---|---|---|
-| Secrets in the config file | ~~client ID, secret, refresh token~~ | ++none++ |
-| Protected at rest | ~~no — plain text~~ | ++yes — OS keystore++ |
-| Safe to paste in a chat | ~~no~~ | ++yes++ |
-| Safe to commit | ~~no~~ | ++yes++ |
+## 5. Several profiles
 
-## 2. Where it is stored, per platform
+One organization read-only, another sandbox read-write, a third for schema work:
 
-Each operating system already has an encrypted store that unlocks with your login session. That is the one store a background process can read without prompting, which is exactly what a spawned MCP server needs.
+```bash
+npx zoho-analytics-code-mode-mcp login --profile eu-reporting
+npx zoho-analytics-code-mode-mcp login --profile sandbox
+```
+
+Name the profile in each server entry — still the only thing in `env`:
+
+```json
+{
+  "mcpServers": {
+    "analytics-reporting": {
+      "command": "npx", "args": ["-y", "zoho-analytics-code-mode-mcp"],
+      "env": { "ZA_PROFILE": "eu-reporting" }
+    },
+    "analytics-sandbox": {
+      "command": "npx", "args": ["-y", "zoho-analytics-code-mode-mcp"],
+      "env": { "ZA_PROFILE": "sandbox" }
+    }
+  }
+}
+```
+
+```bash
+npx zoho-analytics-code-mode-mcp status --profile sandbox   # what is stored
+npx zoho-analytics-code-mode-mcp logout --profile sandbox   # remove it
+```
+
+## 6. Scripting it
+
+Every answer has a flag, so a setup script need not be interactive. Anything you do not supply is still asked for, and secrets can be piped on stdin.
+
+```bash
+npx zoho-analytics-code-mode-mcp login \
+  --profile ci \
+  --analytics-url https://analyticsapi.zoho.eu \
+  --accounts-url  https://accounts.zoho.eu \
+  --domains data-operations,views-management \
+  --read-only \
+  --refresh-token "$ZOHO_REFRESH_TOKEN"
+```
+
+| ^Flag | Replaces |
+|---|---|
+| `--profile <name>` | the profile, default `default` |
+| `--analytics-url <u>` / `--accounts-url <u>` | the data centre question |
+| `--refresh-token <t>` | the refresh token prompt |
+| `--domains <a,b,c>` | the tool group question |
+| `--read-only` / `--allow-writes` | the writes question |
+
+## 7. Where it is stored, per platform
+
+Each operating system has an encrypted store that unlocks with your login session. That is the one store a background process can read without prompting — which is exactly what a spawned MCP server needs.
 
 | ^Platform | Store | Inspect it with |
 |---|---|---|
@@ -47,99 +201,12 @@ Each operating system already has an encrypted store that unlocks with your logi
 | **Windows** | Credential Manager | `rundll32 keymgr.dll,KRShowKeyMgr`, or `cmdkey /list` |
 | **Linux** | Secret Service (gnome-keyring / KWallet) | Seahorse ("Passwords and Keys"), or `secret-tool search service zoho-analytics-code-mode-mcp` |
 
-The entry is stored under service `zoho-analytics-code-mode-mcp` and an account equal to the **profile name** — `default` unless you chose otherwise.
+The entry's service is `zoho-analytics-code-mode-mcp` and its account is the profile name.
 
-## 3. Logging in
+## 8. Linux: the session bus
 
-```bash
-npx zoho-analytics-code-mode-mcp login
-```
-
-It asks for your data centre, Client ID, Client Secret and Organization ID, with the secret fields not echoed. Then either paste a refresh token, or leave it blank and paste a **Generate Code** grant — it will do the token exchange for you, so there is no `curl` step.
-
-Before storing anything it exchanges the credential once against Zoho to prove it works:
-
-```text
-Verifying... the credential works.
-
-Stored under "zoho-analytics-code-mode-mcp" / "default" in the Keychain.
-```
-
-A typo therefore fails here, in a terminal, with Zoho's own error — rather than three days later as "server failed to start" inside your agent.
-
-```bash
-npx zoho-analytics-code-mode-mcp status    # which credential is in use
-npx zoho-analytics-code-mode-mcp logout    # remove it
-```
-
-## 4. Several organizations
-
-Profiles keep them apart:
-
-```bash
-npx zoho-analytics-code-mode-mcp login --profile eu-prod
-npx zoho-analytics-code-mode-mcp login --profile sandbox
-```
-
-Then name the profile in each server entry — still the only thing in `env`:
-
-```json
-{
-  "mcpServers": {
-    "analytics-eu":      { "command": "npx", "args": ["-y", "zoho-analytics-code-mode-mcp"],
-                           "env": { "ZA_PROFILE": "eu-prod" } },
-    "analytics-sandbox": { "command": "npx", "args": ["-y", "zoho-analytics-code-mode-mcp"],
-                           "env": { "ZA_PROFILE": "sandbox" } }
-  }
-}
-```
-
-## 5. Where credentials come from, in order
-
-The first source that answers wins, and `status` always reports which one did.
-
-| ^Order | Source | For |
-|---|---|---|
-| 1 | `ANALYTICS_*` environment variables | containers, CI, the Docker image |
-| 2 | `ZA_CREDENTIAL_COMMAND` | 1Password, Vault, Zoho Vault, anything scriptable |
-| 3 | OS keychain, by profile | normal desktop use |
-
-Explicit environment beats everything deliberately: a container has no keychain, and an operator who sets a variable means it.
-
-### Using a secret manager
-
-Point `ZA_CREDENTIAL_COMMAND` at anything that prints a JSON object on stdout:
-
-```json
-"env": {
-  "ZA_CREDENTIAL_COMMAND": "op read op://Engineering/zoho-analytics/credentials"
-}
-```
-
-```bash
-# vault
-ZA_CREDENTIAL_COMMAND='vault kv get -format=json -field=data secret/zoho-analytics'
-
-# any script
-ZA_CREDENTIAL_COMMAND='/usr/local/bin/zoho-creds.sh'
-```
-
-Either spelling of the keys is accepted:
-
-```json
-{ "clientId": "...", "clientSecret": "...", "refreshToken": "...",
-  "orgId": "...", "analyticsUrl": "...", "accountsUrl": "..." }
-```
-
-```json
-{ "ANALYTICS_CLIENT_ID": "...", "ANALYTICS_CLIENT_SECRET": "...",
-  "ANALYTICS_REFRESH_TOKEN": "...", "ANALYTICS_ORG_ID": "..." }
-```
-
-## 6. Linux: the one real caveat
-
-:::warn The Secret Service lives on the session bus
-On Linux the keychain is reachable only when `DBUS_SESSION_BUS_ADDRESS` is set. Without it, **a write appears to succeed and is then invisible** — measured, not theoretical. `login` therefore refuses to run rather than storing nothing:
+:::warn On Linux the keychain needs `DBUS_SESSION_BUS_ADDRESS`
+The Secret Service lives on the session bus. Without that variable, a write **appears to succeed and is then invisible** — measured, not theoretical. `login` therefore refuses to run rather than storing nothing:
 
 ```text
 Cannot store credentials: no usable OS keychain.
@@ -149,49 +216,83 @@ Cannot store credentials: no usable OS keychain.
 ```
 :::
 
-An agent launched from your desktop session inherits the variable and works normally. These do not:
+A terminal inside your desktop session has the variable and works normally. These do not:
 
-| ^Situation | What to do |
+| ^Situation | What to do instead |
 |---|---|
-| Over SSH, or a bare `systemd` unit | Use `ANALYTICS_*` environment variables, or `ZA_CREDENTIAL_COMMAND` |
+| Over SSH, or a bare `systemd` unit | `ANALYTICS_*` environment variables, or `ZA_CREDENTIAL_COMMAND` |
 | Docker, Kubernetes | Environment variables — see [Remote deployment](07-remote-deployment.md) |
-| WSL without a keyring | `sudo apt install gnome-keyring`, or use environment variables |
+| WSL with no keyring | `sudo apt install gnome-keyring`, or environment variables |
 | Headless server | `ZA_CREDENTIAL_COMMAND` pointing at your secret manager |
 
-macOS and Windows have no equivalent dependency: both keystores are tied to the login session directly.
+macOS and Windows have no equivalent dependency.
 
-## 7. Why not an encrypted file
+## 9. Other sources
 
-It is the obvious suggestion and it does not work here. The MCP server is **spawned by your agent with no terminal**, so it can never prompt for a passphrase. That leaves two options, and neither is better than the keychain:
+The server takes the first source that answers, and reports which one did.
 
-- **Key stored next to the ciphertext** — anyone who can read one can read the other. Encryption in name only.
-- **Key stored in the OS keychain** — then the keychain is already doing the work, and the encrypted file is an extra moving part protecting nothing further.
+| ^Order | Source | For |
+|---|---|---|
+| 1 | `ANALYTICS_*` environment variables | containers, CI, the Docker image |
+| 2 | `ZA_CREDENTIAL_COMMAND` | 1Password, Vault, Zoho Vault, any script |
+| 3 | OS keychain, by profile | normal desktop use |
 
-Which is why the keychain is the mechanism, not a file.
+Environment beats the keychain deliberately: a container has no keychain, and an operator who sets a variable means it. `ZA_DOMAINS` and `ZA_ALLOW_WRITES` likewise override a profile's stored scope, so a profile can be narrowed for one session without being rewritten.
 
-## 8. What this does and does not protect against
+### A secret manager
 
-**Does:** a config file read by another process or person, a screenshot, an accidental commit, a synced backup, a stolen dotfiles archive.
+`ZA_CREDENTIAL_COMMAND` is any command that prints a JSON object on stdout:
 
-**Does not:**
+```json
+"env": {
+  "ZA_CREDENTIAL_COMMAND": "op read op://Engineering/zoho-analytics/credentials"
+}
+```
+
+```bash
+ZA_CREDENTIAL_COMMAND='vault kv get -format=json -field=data secret/zoho-analytics'
+ZA_CREDENTIAL_COMMAND='/usr/local/bin/zoho-creds.sh'
+```
+
+Either spelling of the keys works:
+
+```json
+{ "clientId": "...", "clientSecret": "...", "refreshToken": "...",
+  "orgId": "...", "analyticsUrl": "...", "accountsUrl": "...",
+  "domains": ["data-operations"], "allowWrites": false }
+```
+
+```json
+{ "ANALYTICS_CLIENT_ID": "...", "ANALYTICS_CLIENT_SECRET": "...",
+  "ANALYTICS_REFRESH_TOKEN": "...", "ANALYTICS_ORG_ID": "..." }
+```
+
+## 10. Why not an encrypted file
+
+It is the obvious suggestion, and it cannot work here. The MCP server is **spawned by your agent with no terminal**, so it can never prompt for a passphrase. That leaves two possibilities, and neither improves on the keychain:
+
+- **The key sits next to the ciphertext.** Anyone who can read one can read the other — encryption in name only.
+- **The key sits in the OS keychain.** Then the keychain is already doing the work and the file is an extra moving part protecting nothing further.
+
+Hence the keychain itself.
+
+## 11. What this protects, and what it does not
+
+**Protects against:** a config file read by another process or person, a screenshot, an accidental commit, a synced backup, a copied dotfiles archive.
+
+**Does not protect against:**
 
 - **Malware running as you.** It can ask the keychain for the same entry your agent does. No user-session keystore defends against code already running as that user.
-- **An agent that exfiltrates results.** Credentials stay out of the sandbox, but whatever a program returns reaches your AI provider. See [Security](04-security.md#what-reaches-your-ai-provider).
-- **A leaked refresh token.** Zoho refresh tokens do not expire. If one escapes, revoke it in the [Developer Console](https://api-console.zoho.com) — `logout` only removes the local copy.
+- **Results leaving the sandbox.** Credentials never enter it, but whatever a program returns reaches your AI provider. See [Security](04-security.md#what-reaches-your-ai-provider).
+- **A leaked refresh token.** Zoho refresh tokens do not expire. If one escapes, revoke it in the [Developer Console](https://api-console.zoho.com) — `logout` removes only the local copy.
 
-## 9. Troubleshooting
+## 12. Troubleshooting
 
 | ^Symptom | Cause | Fix |
 |---|---|---|
-| `No usable OS keychain` on Linux | No session bus | See [§6](#linux-the-one-real-caveat) |
+| `No usable OS keychain` on Linux | No session bus | [§8](#linux-the-session-bus) |
 | `login` stored it but `status` says `none` | Different profile | Pass the same `--profile` to both |
 | `status` says `environment` when you expected the keychain | A stale `ANALYTICS_*` variable is shadowing it | `unset` it, or remove it from the agent config |
 | Verification fails at login | Wrong data centre, or a reused grant code | Grant codes are single-use and expire in minutes |
-| Works in a terminal, not in the agent | The agent's environment differs | `status` from the same context, and check `[za] credentials —` in the server log |
-
-The server reports its credential source at startup, so there is never any doubt:
-
-```text
-[za] ready — 76/203 operations (read-only), org 55511666, https://analyticsapi.zoho.com
-[za] credentials — keychain:default
-```
+| Fewer tools than expected | The profile's groups | `status` shows them; `login` again to change them |
+| Works in a terminal, not in the agent | The agent's environment differs | Check the `[za] credentials —` line in the server log |

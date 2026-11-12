@@ -68,7 +68,7 @@ The server annotates these automatically from the OKF error catalog — all **38
 
 ### Data centre mismatch
 
-The single most common setup error: a token minted at `accounts.zoho.com` but spent at `analyticsapi.zoho.eu`. The server detects the mismatch at startup and refuses to run rather than letting you debug 8535 in the dark. Both URLs must be the same row of [the data centre table](02-install.md#step-3-pick-your-data-centre).
+The single most common setup error: a token minted at `accounts.zoho.com` but spent at `analyticsapi.zoho.eu`. The server detects the mismatch at startup and refuses to run rather than letting you debug 8535 in the dark. Both URLs must be the same row of [the data centre table](09-credentials.md#what-it-asks).
 
 ## 4. Operation not found
 

@@ -80,35 +80,33 @@
 </header>
 <section id="prerequisites">
 <h2><span class="num">01</span>Prerequisites</h2>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Requirement</th><th>Check</th></tr></thead><tbody><tr><td class="col-narrow">Node.js 20+</td><td><code>node --version</code></td></tr><tr><td class="col-narrow">An MCP-capable agent</td><td>Claude Desktop, Claude Code, Cursor, VS Code, Windsurf</td></tr><tr><td class="col-narrow">A Zoho Analytics organization</td><td>You need its Organization ID — see <a href="#step-2-find-your-organization-id">step 2</a></td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Requirement</th><th>Check</th></tr></thead><tbody><tr><td class="col-narrow">Node.js 20+</td><td><code>node --version</code></td></tr><tr><td class="col-narrow">An MCP-capable agent</td><td>Claude Desktop, Claude Code, Cursor, VS Code, Windsurf</td></tr><tr><td class="col-narrow">A terminal</td><td><code>login</code> is interactive; your agent cannot run it for you</td></tr><tr><td class="col-narrow">A Zoho Analytics organization</td><td>You need its Organization ID — see <a href="#step-1-create-a-self-client">step 2</a></td></tr></tbody></table></div>
 <div class="note note--info"><div class="note__title">Why Node</div><p>The sandbox is a V8 isolate provided by a native module, which installs automatically on first run. There is nothing to compile by hand.</p></div>
 </section>
-<section id="step-1-get-your-credentials">
-<h2><span class="num">02</span>Step 1 — Get your credentials</h2>
-<p>You need three OAuth values. Create a <strong>Self Client</strong> in the Zoho Developer Console:</p>
-<ol><li>Go to <a href="https://api-console.zoho.com">api-console.zoho.com</a> and sign in with the account that owns the data.</li><li>Choose <strong>Add Client → Self Client → Create</strong>.</li><li>Copy the <strong>Client ID</strong> and <strong>Client Secret</strong>.</li><li>Open the <strong>Generate Code</strong> tab, and enter this scope: ``<code>text ZohoAnalytics.data.all,ZohoAnalytics.metadata.read,ZohoAnalytics.modeling.read </code>``</li><li>Pick a validity of 10 minutes, provide a description, and click <strong>Create</strong>. Copy the code immediately — it is shown once.</li><li>Exchange the code for a refresh token:</li></ol>
-<pre><code class="lang-bash">curl -X POST "https://accounts.zoho.com/oauth/v2/token" \
-  -d "grant_type=authorization_code" \
-  -d "client_id=YOUR_CLIENT_ID" \
-  -d "client_secret=YOUR_CLIENT_SECRET" \
-  -d "code=THE_CODE_YOU_JUST_COPIED"</code></pre>
-<p>The response contains <code>refresh_token</code>. That value does not expire — store it like a password.</p>
-<div class="note note--warn"><div class="note__title">Scopes decide what the agent can reach</div><p>The scopes above are read-oriented. If you later enable write operations you will need the matching write scopes, and you should think carefully before granting them. See <a href="04-security.html#enabling-write-operations">Security</a>.</p></div>
+<section id="step-1-create-a-self-client">
+<h2><span class="num">02</span>Step 1 — Create a Self Client</h2>
+<p>You need three OAuth values from Zoho. Create a <strong>Self Client</strong> in the Developer Console:</p>
+<ol><li>Go to <a href="https://api-console.zoho.com">api-console.zoho.com</a> and sign in with the account that owns the data.</li><li>Choose <strong>Add Client → Self Client → Create</strong>.</li><li>Copy the <strong>Client ID</strong> and <strong>Client Secret</strong>.</li><li>Open the <strong>Generate Code</strong> tab and enter this scope: ``<code>text ZohoAnalytics.data.all,ZohoAnalytics.metadata.read,ZohoAnalytics.modeling.read </code>``</li><li>Pick a validity of 10 minutes, give it a description, and click <strong>Create</strong>. Copy the code immediately — it is shown once.</li></ol>
+<p>You also need your <strong>Organization ID</strong>: in Zoho Analytics, go to <strong>Settings → Organization</strong>.</p>
+<div class="note note--warn"><div class="note__title">Scopes decide what the agent can reach</div><p>The scopes above are read-oriented. If you later allow write operations you will need the matching write scopes, and that is worth thinking about before you grant them. See <a href="04-security.html#enabling-write-operations">Security</a>.</p></div>
 </section>
-<section id="step-2-find-your-organization-id">
-<h2><span class="num">03</span>Step 2 — Find your Organization ID</h2>
-<p>Every Analytics v2 request names one organization.</p>
-<ul><li><strong>From the UI:</strong> open Zoho Analytics, go to <strong>Settings → Organization</strong>, and copy the Org ID.</li><li><strong>From the API:</strong> <code>GET /restapi/v2/orgs/workspaces</code> returns it alongside your workspaces.</li></ul>
+<section id="step-2-store-them">
+<h2><span class="num">03</span>Step 2 — Store them</h2>
+<p>Run this <strong>in a terminal</strong> — not through your agent. It is interactive, and the server your agent spawns has no terminal to prompt from:</p>
+<pre><code class="lang-bash">npx zoho-analytics-code-mode-mcp login</code></pre>
+<p>It asks for your data centre, the Client ID and Secret, your Organization ID, and a refresh token — or paste the Generate Code grant from step 1 and it will do the exchange for you.</p>
+<p>It then asks <strong>which groups of tools this profile may use</strong> and whether writes are allowed. Pick the smallest set that answers your questions; read-only is the default and the recommendation.</p>
+<p>Finally it verifies the credential against Zoho before storing anything, so a typo fails here rather than inside your agent days later:</p>
+<pre><code class="lang-text">Verifying... the credential works.
+
+Stored under "zoho-analytics-code-mode-mcp" / "default" in the Keychain.
+  tool groups   data-operations, views-management, reports-dashboards
+  data access   read-only</code></pre>
+<p>Credentials go into your operating system's keychain — macOS Keychain, Windows Credential Manager, Linux Secret Service. <a href="09-credentials.html">Credentials &amp; profiles</a> covers the whole command, scripting it, multiple profiles, and the one Linux caveat.</p>
 </section>
-<section id="step-3-pick-your-data-centre">
-<h2><span class="num">04</span>Step 3 — Pick your data centre</h2>
-<p>Both URLs must name the <strong>same</strong> data centre. Mismatching them is the most common setup error, and the only symptom is a confusing authentication failure on the first call — so the server checks this at startup and refuses to run.</p>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Data centre</th><th><code>ANALYTICS_SERVER_URL</code></th><th><code>ACCOUNTS_SERVER_URL</code></th></tr></thead><tbody><tr><td class="col-narrow">United States</td><td><code>https://analyticsapi.zoho.com</code></td><td><code>https://accounts.zoho.com</code></td></tr><tr><td class="col-narrow">Europe</td><td><code>https://analyticsapi.zoho.eu</code></td><td><code>https://accounts.zoho.eu</code></td></tr><tr><td class="col-narrow">India</td><td><code>https://analyticsapi.zoho.in</code></td><td><code>https://accounts.zoho.in</code></td></tr><tr><td class="col-narrow">Australia</td><td><code>https://analyticsapi.zoho.com.au</code></td><td><code>https://accounts.zoho.com.au</code></td></tr><tr><td class="col-narrow">Japan</td><td><code>https://analyticsapi.zoho.jp</code></td><td><code>https://accounts.zoho.jp</code></td></tr><tr><td class="col-narrow">Canada</td><td><code>https://analyticsapi.zohocloud.ca</code></td><td><code>https://accounts.zohocloud.ca</code></td></tr><tr><td class="col-narrow">Saudi Arabia</td><td><code>https://analyticsapi.zoho.sa</code></td><td><code>https://accounts.zoho.sa</code></td></tr></tbody></table></div>
-</section>
-<section id="step-4-add-it-to-your-agent">
-<h2><span class="num">05</span>Step 4 — Add it to your agent</h2>
-<h3 id="claude-desktop">Claude Desktop</h3>
-<div class="note note--good"><div class="note__title">Prefer the keychain</div><p>Run <code>npx zoho-analytics-code-mode-mcp login</code> once and your config needs <strong>no secrets at all</strong> — just the two lines below. The credential goes into your OS keychain instead. See <a href="09-credentials.html">Credentials &amp; secrets</a>.</p>
+<section id="step-3-add-it-to-your-agent">
+<h2><span class="num">04</span>Step 3 — Add it to your agent</h2>
+<p><code>login</code> prints this block. Note that it holds no credentials:</p>
 <pre><code class="lang-json">{
   "mcpServers": {
     "zoho-analytics-code-mode": {
@@ -116,68 +114,55 @@
       "args": ["-y", "zoho-analytics-code-mode-mcp"]
     }
   }
-}</code></pre></div>
-<p>The environment-variable form below still works, and is the right choice for containers and CI. On a desktop it puts a non-expiring refresh token in a plain-text file.</p>
+}</code></pre>
+<h3 id="claude-desktop">Claude Desktop</h3>
 <p>Edit <code>claude_desktop_config.json</code>:</p>
 <ul><li><strong>macOS</strong> <code>~/Library/Application Support/Claude/claude_desktop_config.json</code></li><li><strong>Windows</strong> <code>%APPDATA%\Claude\claude_desktop_config.json</code></li><li><strong>Linux</strong> <code>~/.config/Claude/claude_desktop_config.json</code></li></ul>
-<pre><code class="lang-json">{
-  "mcpServers": {
-    "zoho-analytics-code-mode": {
-      "command": "npx",
-      "args": ["-y", "zoho-analytics-code-mode-mcp"],
-      "env": {
-        "ANALYTICS_CLIENT_ID": "1000.XXXXXXXXXXXX",
-        "ANALYTICS_CLIENT_SECRET": "your-client-secret",
-        "ANALYTICS_REFRESH_TOKEN": "1000.xxxxxxxxxxxx",
-        "ANALYTICS_ORG_ID": "2375824000000000001",
-        "ACCOUNTS_SERVER_URL": "https://accounts.zoho.com",
-        "ANALYTICS_SERVER_URL": "https://analyticsapi.zoho.com"
-      }
-    }
-  }
-}</code></pre>
-<p>Quit Claude Desktop completely and reopen it. The two tools appear in the tools menu.</p>
+<p>Quit Claude Desktop completely and reopen it. The tools appear in the tools menu.</p>
 <h3 id="claude-code">Claude Code</h3>
-<pre><code class="lang-bash">claude mcp add zoho-analytics-code \
-  --env ANALYTICS_CLIENT_ID=1000.XXXXXXXXXXXX \
-  --env ANALYTICS_CLIENT_SECRET=your-client-secret \
-  --env ANALYTICS_REFRESH_TOKEN=1000.xxxxxxxxxxxx \
-  --env ANALYTICS_ORG_ID=2375824000000000001 \
-  -- npx -y zoho-analytics-code-mode-mcp</code></pre>
+<pre><code class="lang-bash">claude mcp add zoho-analytics-code-mode -- npx -y zoho-analytics-code-mode-mcp</code></pre>
 <h3 id="cursor">Cursor</h3>
-<p>Edit <code>~/.cursor/mcp.json</code> (global) or <code>.cursor/mcp.json</code> (per project), using the same <code>mcpServers</code> block as Claude Desktop.</p>
+<p>Edit <code>~/.cursor/mcp.json</code> (global) or <code>.cursor/mcp.json</code> (per project), using the same <code>mcpServers</code> block.</p>
 <h3 id="vs-code">VS Code</h3>
 <p>Add the same block under <code>"mcp": { "servers": { … } }</code> in your user or workspace <code>settings.json</code>.</p>
+<h3 id="using-a-profile">Using a profile</h3>
+<p>If you created a named profile, that is the only thing <code>env</code> needs:</p>
+<pre><code class="lang-json">"env": { "ZA_PROFILE": "eu-reporting" }</code></pre>
 </section>
-<section id="step-5-check-it-works">
-<h2><span class="num">06</span>Step 5 — Check it works</h2>
+<section id="step-4-check-it-works">
+<h2><span class="num">05</span>Step 4 — Check it works</h2>
 <p>Ask your agent:</p>
 <p>&gt; Search the Analytics API for how to list workspaces, then run code to count how many I have.</p>
 <p>A healthy run calls <code>search_analytics_api</code>, then <code>run_analytics_code</code>, and answers with a number. If nothing happens, go to <a href="05-troubleshooting.html">Troubleshooting</a>.</p>
 </section>
 <section id="choosing-what-to-expose">
-<h2><span class="num">07</span>Choosing what to expose</h2>
-<p>Two independent switches decide which of the 203 operations the sandbox can reach.</p>
-<p><strong>By API domain</strong> — <code>ZA_DOMAINS</code> takes a comma-separated list. Unset means all ten:</p>
+<h2><span class="num">06</span>Choosing what to expose</h2>
+<p><code>login</code> asks this, and stores the answer with the profile. Two independent choices decide which of the 203 operations the sandbox can reach.</p>
+<p><strong>Which tool groups</strong> — the ten API domains. Press Enter at the prompt for all of them:</p>
 <div class="table-wrap"><table><thead><tr><th class="col-narrow">Domain</th><th>Ops</th><th>Covers</th></tr></thead><tbody><tr><td class="col-narrow"><code>workspace-management</code></td><td>35</td><td>Workspaces, backups, linking, templates, variables</td></tr><tr><td class="col-narrow"><code>data-modeling-schema</code></td><td>33</td><td>Tables, columns, formulas, query tables, lookups</td></tr><tr><td class="col-narrow"><code>user-groups</code></td><td>26</td><td>Users, groups, roles, portals</td></tr><tr><td class="col-narrow"><code>views-management</code></td><td>26</td><td>Views, folders, tags, trash, copy and move</td></tr><tr><td class="col-narrow"><code>data-operations</code></td><td>20</td><td>Rows, imports, exports, bulk jobs, data sync</td></tr><tr><td class="col-narrow"><code>share-publish</code></td><td>20</td><td>Sharing, permissions, embed URLs, public links, slideshows</td></tr><tr><td class="col-narrow"><code>schedules-alerts</code></td><td>16</td><td>Email schedules and data alerts</td></tr><tr><td class="col-narrow"><code>dsml</code></td><td>11</td><td>AutoML analyses, training, predictions</td></tr><tr><td class="col-narrow"><code>org-management</code></td><td>10</td><td>Organizations, subscriptions, security controls</td></tr><tr><td class="col-narrow"><code>reports-dashboards</code></td><td>6</td><td>Charts, pivots, summaries, dashboards</td></tr></tbody></table></div>
-<p><strong>By read or write</strong> — <code>ZA_ALLOW_WRITES</code> is <code>false</code> by default, leaving only the <code>GET</code> operations.</p>
-<pre><code class="lang-bash"># An analyst's agent: read-only, and only the parts that answer questions.
-ZA_DOMAINS=data-operations,views-management,reports-dashboards
+<p><strong>Read or write</strong> — read-only by default, leaving only the <code>GET</code> operations.</p>
+<pre><code class="lang-text">  Groups [all]: 2,9,5
+  -&gt; data-operations, views-management, reports-dashboards
+  Allow writes? [y/N]: n
+  -&gt; read-only
 
-# -&gt; 18 operations instead of 203</code></pre>
+  18 operations instead of 203</code></pre>
+<p>To change them later, run <code>login</code> again for that profile. To override them for one session without rewriting the profile, set <code>ZA_DOMAINS</code> or <code>ZA_ALLOW_WRITES</code>.</p>
 <div class="note note--good"><div class="note__title">A smaller surface is a better surface</div><p>It is not only safer. Fewer operations means <code>search_analytics_api</code> has less to confuse itself with, so the model picks the right one more often. Expose what the users of that deployment actually need.</p></div>
 <p>The server prints the breakdown at startup:</p>
 <pre><code class="lang-text">[za] ready — 18/203 operations (read-only), org 2375824000000000001, https://analyticsapi.zoho.com
-[za] domains — data-operations:8 views-management:8 reports-dashboards:2
-[za] knowledge — 17 guides, 385 error codes</code></pre>
+[za] credentials — keychain:default
+[za] domains — data-operations:8 reports-dashboards:2 views-management:8
+[za] knowledge — 17 guides, 385 error codes (OKF 2.0.0, generated 2026-10-27, 15d old)</code></pre>
 </section>
 <section id="configuration-reference">
-<h2><span class="num">08</span>Configuration reference</h2>
+<h2><span class="num">07</span>Configuration reference</h2>
+<p>Most people need none of these — <code>login</code> covers the credentials and the tool scope. They exist for containers, CI, and for overriding a stored profile.</p>
+<div class="note note--info"><div class="note__title">Environment beats the keychain</div><p>If an <code>ANALYTICS_*</code> variable is set, it wins. That is deliberate — a container has no keychain — but it also means a stale variable can silently shadow a stored profile. <code>npx zoho-analytics-code-mode-mcp status</code> reports which source actually answered.</p></div>
 <p>Every variable the server reads.</p>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Variable</th><th>Required</th><th>Default</th><th>Purpose</th></tr></thead><tbody><tr><td class="col-narrow"><code>ANALYTICS_CLIENT_ID</code></td><td>yes¹</td><td>—</td><td>OAuth client ID</td></tr><tr><td class="col-narrow"><code>ANALYTICS_CLIENT_SECRET</code></td><td>yes¹</td><td>—</td><td>OAuth client secret</td></tr><tr><td class="col-narrow"><code>ANALYTICS_REFRESH_TOKEN</code></td><td>yes¹</td><td>—</td><td>Used to mint access tokens automatically</td></tr><tr><td class="col-narrow"><code>ANALYTICS_ORG_ID</code></td><td><strong>yes</strong></td><td>—</td><td>Organization every call is scoped to</td></tr><tr><td class="col-narrow"><code>ANALYTICS_SERVER_URL</code></td><td>no</td><td><code>https://analyticsapi.zoho.com</code></td><td>Your data centre's API host</td></tr><tr><td class="col-narrow"><code>ACCOUNTS_SERVER_URL</code></td><td>no</td><td><code>https://accounts.zoho.com</code></td><td>Your data centre's accounts host</td></tr><tr><td class="col-narrow"><code>ANALYTICS_ACCESS_TOKEN</code></td><td>no</td><td>—</td><td>A static token, for a short test instead of OAuth¹</td></tr><tr><td class="col-narrow"><code>ZA_ALLOW_WRITES</code></td><td>no</td><td><code>false</code></td><td><code>true</code> exposes write operations as well as reads</td></tr><tr><td class="col-narrow"><code>ZA_DOMAINS</code></td><td>no</td><td>all ten</td><td>Comma-separated API domains to expose — see <a href="#choosing-what-to-expose">above</a></td></tr><tr><td class="col-narrow"><code>ZA_MAX_TOOL_CALLS</code></td><td>no</td><td><code>200</code></td><td>API calls allowed in one program</td></tr><tr><td class="col-narrow"><code>ZA_MAX_CALLS_PER_MINUTE</code></td><td>no</td><td><code>55</code></td><td>Sliding-window rate cap, so a loop cannot trip the API frequency limit</td></tr><tr><td class="col-narrow"><code>ZA_MIN_CALL_INTERVAL_MS</code></td><td>no</td><td><code>50</code></td><td>Minimum gap between calls, against microbursts</td></tr><tr><td class="col-narrow"><code>ZA_THROTTLE_RETRIES</code></td><td>no</td><td><code>3</code></td><td>Retries with backoff (6 s, 15 s, 30 s) when the API returns 6045</td></tr><tr><td class="col-narrow"><code>ZA_EXEC_TIMEOUT_MS</code></td><td>no</td><td><code>60000</code></td><td>Wall-clock limit for one program</td></tr><tr><td class="col-narrow"><code>ZA_EXEC_MEMORY_MB</code></td><td>no</td><td><code>256</code></td><td>Memory limit for the sandbox</td></tr><tr><td class="col-narrow"><code>ZA_MANUAL_PATH</code></td><td>no</td><td>bundled</td><td>An alternative operation catalog</td></tr><tr><td class="col-narrow"><code>ZA_KNOWLEDGE_PATH</code></td><td>no</td><td>bundled</td><td>An alternative knowledge bundle</td></tr></tbody></table></div>
-<p>¹ Supply either the three OAuth values <strong>or</strong> <code>ANALYTICS_ACCESS_TOKEN</code>, which expires after an hour and will not be renewed. Better still, store them with <code>login</code> and set none of these — see <a href="09-credentials.html">Credentials &amp; secrets</a>.</p>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Variable</th><th>Required</th><th>Default</th><th>Purpose</th></tr></thead><tbody><tr><td class="col-narrow"><code>ZA_PROFILE</code></td><td>no</td><td><code>default</code></td><td>Which stored credential to use</td></tr><tr><td class="col-narrow"><code>ZA_CREDENTIAL_COMMAND</code></td><td>no</td><td>—</td><td>A command printing credentials as JSON, for 1Password / Vault</td></tr></tbody></table></div>
-<div class="note note--warn"><div class="note__title">Only if you use the environment-variable form</div><p><code>claude_desktop_config.json</code> is plain text on your machine. If you put credentials there, treat the file as a secret: do not commit it, and use a dedicated Self Client so it can be revoked independently. <a href="09-credentials.html"><code>login</code></a> avoids the problem entirely.</p></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Variable</th><th>Required</th><th>Default</th><th>Purpose</th></tr></thead><tbody><tr><td class="col-narrow"><code>ZA_PROFILE</code></td><td>no</td><td><code>default</code></td><td>Which stored credential and scope to use</td></tr><tr><td class="col-narrow"><code>ZA_CREDENTIAL_COMMAND</code></td><td>no</td><td>—</td><td>A command printing credentials as JSON, for 1Password / Vault</td></tr><tr><td class="col-narrow"><code>ANALYTICS_CLIENT_ID</code></td><td>no¹</td><td>—</td><td>OAuth client ID</td></tr><tr><td class="col-narrow"><code>ANALYTICS_CLIENT_SECRET</code></td><td>no¹</td><td>—</td><td>OAuth client secret</td></tr><tr><td class="col-narrow"><code>ANALYTICS_REFRESH_TOKEN</code></td><td>no¹</td><td>—</td><td>Used to mint access tokens automatically</td></tr><tr><td class="col-narrow"><code>ANALYTICS_ORG_ID</code></td><td>no¹</td><td>—</td><td>Organization every call is scoped to</td></tr><tr><td class="col-narrow"><code>ANALYTICS_SERVER_URL</code></td><td>no</td><td><code>https://analyticsapi.zoho.com</code></td><td>Your data centre's API host</td></tr><tr><td class="col-narrow"><code>ACCOUNTS_SERVER_URL</code></td><td>no</td><td><code>https://accounts.zoho.com</code></td><td>Your data centre's accounts host</td></tr><tr><td class="col-narrow"><code>ANALYTICS_ACCESS_TOKEN</code></td><td>no</td><td>—</td><td>A static token, for a short test instead of OAuth¹</td></tr><tr><td class="col-narrow"><code>ZA_ALLOW_WRITES</code></td><td>no</td><td>from the profile</td><td>Overrides the profile's write permission</td></tr><tr><td class="col-narrow"><code>ZA_DOMAINS</code></td><td>no</td><td>from the profile</td><td>Overrides the profile's tool groups — see <a href="#choosing-what-to-expose">above</a></td></tr><tr><td class="col-narrow"><code>ZA_MAX_TOOL_CALLS</code></td><td>no</td><td><code>200</code></td><td>API calls allowed in one program</td></tr><tr><td class="col-narrow"><code>ZA_MAX_CALLS_PER_MINUTE</code></td><td>no</td><td><code>55</code></td><td>Sliding-window rate cap, so a loop cannot trip the API frequency limit</td></tr><tr><td class="col-narrow"><code>ZA_MIN_CALL_INTERVAL_MS</code></td><td>no</td><td><code>50</code></td><td>Minimum gap between calls, against microbursts</td></tr><tr><td class="col-narrow"><code>ZA_THROTTLE_RETRIES</code></td><td>no</td><td><code>3</code></td><td>Retries with backoff (6 s, 15 s, 30 s) when the API returns 6045</td></tr><tr><td class="col-narrow"><code>ZA_EXEC_TIMEOUT_MS</code></td><td>no</td><td><code>60000</code></td><td>Wall-clock limit for one program</td></tr><tr><td class="col-narrow"><code>ZA_EXEC_MEMORY_MB</code></td><td>no</td><td><code>256</code></td><td>Memory limit for the sandbox</td></tr><tr><td class="col-narrow"><code>ZA_MANUAL_PATH</code></td><td>no</td><td>bundled</td><td>An alternative operation catalog</td></tr><tr><td class="col-narrow"><code>ZA_KNOWLEDGE_PATH</code></td><td>no</td><td>bundled</td><td>An alternative knowledge bundle</td></tr></tbody></table></div>
+<p>¹ Not required if you used <code>login</code>. Otherwise supply the three OAuth values, or <code>ANALYTICS_ACCESS_TOKEN</code> for a short test — that one expires after an hour and is not renewed.</p>
+<div class="note note--warn"><div class="note__title">Only if you set credentials by environment</div><p>A config file is plain text on your machine, and a Zoho refresh token does not expire. If you put credentials in one, treat the file as a secret: do not commit it, and use a dedicated Self Client so it can be revoked on its own. <code>login</code> avoids the question entirely.</p></div>
 </section>
     <nav class="pager" aria-label="Chapter">
       <a href="01-what-it-is.html"><span class="pager__side">Previous</span>&larr; What it is</a>
@@ -189,11 +174,10 @@ ZA_DOMAINS=data-operations,views-management,reports-dashboards
   <nav>
     <h2>On this page</h2>
     <a href="#prerequisites">Prerequisites</a>
-    <a href="#step-1-get-your-credentials">Step 1 — Get your credentials</a>
-    <a href="#step-2-find-your-organization-id">Step 2 — Find your Organization ID</a>
-    <a href="#step-3-pick-your-data-centre">Step 3 — Pick your data centre</a>
-    <a href="#step-4-add-it-to-your-agent">Step 4 — Add it to your agent</a>
-    <a href="#step-5-check-it-works">Step 5 — Check it works</a>
+    <a href="#step-1-create-a-self-client">Step 1 — Create a Self Client</a>
+    <a href="#step-2-store-them">Step 2 — Store them</a>
+    <a href="#step-3-add-it-to-your-agent">Step 3 — Add it to your agent</a>
+    <a href="#step-4-check-it-works">Step 4 — Check it works</a>
     <a href="#choosing-what-to-expose">Choosing what to expose</a>
     <a href="#configuration-reference">Configuration reference</a>
   </nav>
@@ -221,7 +205,7 @@ ZA_DOMAINS=data-operations,views-management,reports-dashboards
       <a href="02-install.html#configuration-reference">Configuration reference</a>
       <a href="05-troubleshooting.html#error-codes">Error codes</a>
       <a href="04-security.html#what-the-sandbox-cannot-do">Sandbox boundary</a>
-      <a href="02-install.html#step-1-get-your-credentials">Get your credentials</a>
+      <a href="09-credentials.html">Credentials &amp; profiles</a>
     </div>
     <div class="footer__meta">
       <h2>About</h2>

@@ -31,10 +31,20 @@ import { promisify } from 'node:util';
 const run = promisify(execFile);
 
 export const KEYCHAIN_SERVICE = 'zoho-analytics-code-mode-mcp';
+export { SCOPE_FIELDS };
 
 /** The fields a complete credential set carries. */
 const FIELDS = ['clientId', 'clientSecret', 'refreshToken', 'orgId',
   'analyticsUrl', 'accountsUrl'];
+
+/**
+ * A profile also carries its own tool scope — which API domains it may reach
+ * and whether writes are permitted. Keeping that with the credential rather
+ * than in the agent's config means a "sandbox" profile can be read-write
+ * while "production" stays read-only, without anyone having to remember which
+ * environment variables to set where.
+ */
+const SCOPE_FIELDS = ['domains', 'allowWrites'];
 
 /**
  * The keyring binding is an optional dependency: there is no backend on a
@@ -147,6 +157,17 @@ async function fromCommand(command) {
   };
 }
 
+function scopeFromEnv(env) {
+  const scope = {};
+  if (env.ZA_DOMAINS !== undefined) {
+    scope.domains = env.ZA_DOMAINS.split(',').map((d) => d.trim()).filter(Boolean);
+  }
+  if (env.ZA_ALLOW_WRITES !== undefined) {
+    scope.allowWrites = ['true', '1', 'yes'].includes(env.ZA_ALLOW_WRITES);
+  }
+  return scope;
+}
+
 function fromEnv(env) {
   return {
     clientId: env.ANALYTICS_CLIENT_ID,
@@ -156,6 +177,7 @@ function fromEnv(env) {
     analyticsUrl: env.ANALYTICS_SERVER_URL,
     accountsUrl: env.ACCOUNTS_SERVER_URL,
     accessToken: env.ANALYTICS_ACCESS_TOKEN,
+    ...scopeFromEnv(env),
   };
 }
 
@@ -219,6 +241,9 @@ export async function resolveCredentials(env = process.env) {
     if (stored && complete(stored)) {
       // Environment still overrides individual non-secret fields, so one
       // stored credential can serve several organizations.
+      // The stored profile supplies the defaults; the environment may still
+      // override any single field, so one credential can serve several
+      // organizations or be temporarily narrowed without being rewritten.
       return {
         source: `keychain:${profile}`,
         profile,
@@ -227,6 +252,7 @@ export async function resolveCredentials(env = process.env) {
           orgId: env.ANALYTICS_ORG_ID ?? stored.orgId,
           analyticsUrl: env.ANALYTICS_SERVER_URL ?? stored.analyticsUrl,
           accountsUrl: env.ACCOUNTS_SERVER_URL ?? stored.accountsUrl,
+          ...scopeFromEnv(env),
         },
         problems: [],
       };

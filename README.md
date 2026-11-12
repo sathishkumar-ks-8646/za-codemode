@@ -35,9 +35,15 @@ are exposed by default; `ZA_DOMAINS` narrows further.
 ## Credentials stay out of the config file
 
 ```bash
-npx zoho-analytics-code-mode-mcp login     # stores in the OS keychain
-npx zoho-analytics-code-mode-mcp status    # shows which credential is in use
+npx zoho-analytics-code-mode-mcp login     # interactive; run it in a terminal
+npx zoho-analytics-code-mode-mcp status    # which credential and scope are in use
 ```
+
+`login` asks for the credential, **which of the ten tool groups the profile may
+use**, and whether writes are allowed — then stores all of it in the OS
+keychain. A profile is a scope, not just a credential, so a sandbox profile can
+be read-write while production stays read-only with no environment juggling.
+Every answer also has a flag, so a setup script need not be interactive.
 
 After that an agent's config holds no secrets — just `command` and `args`.
 Resolution order is environment variables, then `ZA_CREDENTIAL_COMMAND` (for
@@ -118,7 +124,7 @@ v2-code-execution-mcp/
 
 ```bash
 npm install                  # public registry, pinned in .npmrc
-npm test                     # 74 tests, fully offline
+npm test                     # 78 tests, fully offline
 npm run build                # rebuild both artifacts from the published repos
 npm start                    # local mode, stdio
 npm run start:remote         # remote mode, HTTP
@@ -193,7 +199,7 @@ documented pattern returned `{ rowCount: 0 }`.
 
 ## Status
 
-74 tests pass offline: search quality and domain filtering, name resolution
+78 tests pass offline: search quality and domain filtering, name resolution
 (fuzzy matching, ambiguity, misses, columns, variables, enforced refusal),
 result reading, call pacing, local stdio end-to-end, the knowledge tool, the
 full remote OAuth flow (dynamic registration, PKCE, browser redirect through a

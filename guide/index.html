@@ -117,8 +117,10 @@
 </section>
 <section id="install-it">
 <h2><span class="num">04</span>Install it</h2>
+<p>Two steps. First, in a terminal:</p>
 <pre><code class="lang-bash">npx zoho-analytics-code-mode-mcp login</code></pre>
-<p>That stores your credentials in your operating system's keychain, and prints a config block with <strong>no secrets in it</strong>:</p>
+<p>It asks for your Zoho credentials, which groups of tools this profile may use, and whether writes are allowed — then stores the lot in your operating system's keychain.</p>
+<p>Second, paste the block it prints into your agent's configuration. It holds no secrets:</p>
 <pre><code class="lang-json">{
   "mcpServers": {
     "zoho-analytics-code-mode": {
@@ -127,29 +129,12 @@
     }
   }
 }</code></pre>
-<p>The environment-variable form still works and is right for containers:</p>
-<pre><code class="lang-json">{
-  "mcpServers": {
-    "zoho-analytics-code-mode": {
-      "command": "npx",
-      "args": ["-y", "zoho-analytics-code-mode-mcp"],
-      "env": {
-        "ANALYTICS_CLIENT_ID": "1000.XXXXXXXXXXXX",
-        "ANALYTICS_CLIENT_SECRET": "your-client-secret",
-        "ANALYTICS_REFRESH_TOKEN": "1000.xxxxxxxxxxxx",
-        "ANALYTICS_ORG_ID": "2375824000000000001",
-        "ACCOUNTS_SERVER_URL": "https://accounts.zoho.com",
-        "ANALYTICS_SERVER_URL": "https://analyticsapi.zoho.com"
-      }
-    }
-  }
-}</code></pre>
-<p>Restart your agent and ask it something. The full walkthrough, including how to obtain each value, is in <a href="02-install.html">Install &amp; configure</a>.</p>
+<p>Restart your agent and ask it something. The full walkthrough is in <a href="02-install.html">Install &amp; configure</a>; credentials in detail are in <a href="09-credentials.html">Credentials &amp; profiles</a>.</p>
 <div class="note note--info"><div class="note__title">Rolling this out to a team?</div><p>Deploy it once and let everyone sign in through their browser — no per-user credentials and no installation. See <a href="07-remote-deployment.html">Remote deployment</a>.</p></div>
 </section>
 <section id="read-the-guide-in-order">
 <h2><span class="num">05</span>Read the guide in order</h2>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Chapter</th><th>What it covers</th></tr></thead><tbody><tr><td class="col-narrow"><a href="01-what-it-is.html">01 What it is</a></td><td>How the sandbox works, where your code runs, and how this relates to the MCP Server</td></tr><tr><td class="col-narrow"><a href="02-install.html">02 Install &amp; configure</a></td><td>Credentials, every environment variable, and per-host setup</td></tr><tr><td class="col-narrow"><a href="03-using-it.html">03 Using it</a></td><td>What good prompts look like, worked examples, and what to expect</td></tr><tr><td class="col-narrow"><a href="04-security.html">04 Security &amp; governance</a></td><td>The sandbox boundary, read-only mode, budgets, and what to tell your security team</td></tr><tr><td class="col-narrow"><a href="05-troubleshooting.html">05 Troubleshooting &amp; FAQ</a></td><td>Symptoms, error codes, and answers</td></tr><tr><td class="col-narrow"><a href="06-operating.html">06 Operating &amp; updating</a></td><td>Updates, API-unit cost, and running it from source</td></tr><tr><td class="col-narrow"><a href="07-remote-deployment.html">07 Remote deployment</a></td><td>Running one shared instance for a team, with browser sign-in</td></tr><tr><td class="col-narrow"><a href="08-engine.html">08 How the engine works</a></td><td>UTCP, code mode, the isolate and the knowledge base</td></tr><tr><td class="col-narrow"><a href="09-credentials.html">09 Credentials &amp; secrets</a></td><td>Keeping credentials out of your config file, on all three platforms</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Chapter</th><th>What it covers</th></tr></thead><tbody><tr><td class="col-narrow"><a href="01-what-it-is.html">01 What it is</a></td><td>How the sandbox works, where your code runs, and how this relates to the MCP Server</td></tr><tr><td class="col-narrow"><a href="02-install.html">02 Install &amp; configure</a></td><td>Credentials, every environment variable, and per-host setup</td></tr><tr><td class="col-narrow"><a href="03-using-it.html">03 Using it</a></td><td>What good prompts look like, worked examples, and what to expect</td></tr><tr><td class="col-narrow"><a href="04-security.html">04 Security &amp; governance</a></td><td>The sandbox boundary, read-only mode, budgets, and what to tell your security team</td></tr><tr><td class="col-narrow"><a href="05-troubleshooting.html">05 Troubleshooting &amp; FAQ</a></td><td>Symptoms, error codes, and answers</td></tr><tr><td class="col-narrow"><a href="06-operating.html">06 Operating &amp; updating</a></td><td>Updates, API-unit cost, and running it from source</td></tr><tr><td class="col-narrow"><a href="07-remote-deployment.html">07 Remote deployment</a></td><td>Running one shared instance for a team, with browser sign-in</td></tr><tr><td class="col-narrow"><a href="08-engine.html">08 How the engine works</a></td><td>UTCP, code mode, the isolate and the knowledge base</td></tr><tr><td class="col-narrow"><a href="09-credentials.html">09 Credentials &amp; profiles</a></td><td>The login command, tool-group scoping, and where secrets are stored</td></tr></tbody></table></div>
 </section>
 <section id="the-three-things-to-know-before-you-start">
 <h2><span class="num">06</span>The three things to know before you start</h2>
@@ -200,7 +185,7 @@
       <a href="02-install.html#configuration-reference">Configuration reference</a>
       <a href="05-troubleshooting.html#error-codes">Error codes</a>
       <a href="04-security.html#what-the-sandbox-cannot-do">Sandbox boundary</a>
-      <a href="02-install.html#step-1-get-your-credentials">Get your credentials</a>
+      <a href="09-credentials.html">Credentials &amp; profiles</a>
     </div>
     <div class="footer__meta">
       <h2>About</h2>

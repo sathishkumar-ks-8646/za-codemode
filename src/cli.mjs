@@ -12,6 +12,7 @@ import {
   KEYCHAIN_SERVICE, keychainAvailable, keychainUnavailableReason, saveToKeychain,
   deleteFromKeychain, resolveCredentials,
 } from './credentials.mjs';
+import { DOMAINS } from './catalog.mjs';
 
 const CTRL_C = '\u0003';
 const BACKSPACE = /^[\u0008\u007f]$/;
@@ -38,34 +39,116 @@ const flag = (args, name) => {
   return i === -1 ? null : args[i + 1];
 };
 
-/** Prompt without echoing, so a secret never lands in the scrollback. */
-async function secretPrompt(label) {
-  stdout.write(label);
+const has = (args, name) => args.includes(name);
 
-  if (!stdin.isTTY) {
-    // Piped input: read one line. There is no echo to suppress.
-    const rl = createInterface({ input: stdin });
-    for await (const line of rl) { rl.close(); stdout.write('\n'); return line.trim(); }
-    return '';
+const DOMAIN_IDS = Object.keys(DOMAINS);
+
+/**
+ * Ask which API domains this profile may reach.
+ *
+ * A profile is not only a credential: it is also a scope. Most people want an
+ * agent that can read reports, not one that can also administer users — and
+ * narrowing the surface measurably improves which operation the model picks,
+ * because search has less to confuse itself with.
+ */
+async function chooseDomains(prompt) {
+  console.log('\nWhich groups of tools may this profile use?\n');
+  DOMAIN_IDS.forEach((id, i) => {
+    console.log(`  ${String(i + 1).padStart(2)}. ${id.padEnd(22)} ${DOMAINS[id]}`);
+  });
+  console.log('\n  Enter numbers separated by commas (for example 2,9,5),');
+  console.log('  or press Enter for all of them.');
+
+  const answer = await prompt.ask('\n  Groups [all]: ');
+  if (!answer || answer.toLowerCase() === 'all') {
+    console.log('  -> all 10 groups');
+    return [];
   }
 
-  stdin.setRawMode(true);
-  stdin.resume();
-  let value = '';
-  try {
-    for await (const chunk of stdin) {
-      const text = chunk.toString('utf8');
-      if (text === CTRL_C) { stdout.write('\n'); process.exit(130); }
-      if (/[\r\n]/.test(text)) break;
-      if (BACKSPACE.test(text)) { value = value.slice(0, -1); continue; }
-      value += text.replace(/[\r\n]/g, '');
+  const picked = [...new Set(answer.split(/[,\s]+/).filter(Boolean).map(Number))]
+    .filter((n) => Number.isInteger(n) && n >= 1 && n <= DOMAIN_IDS.length)
+    .map((n) => DOMAIN_IDS[n - 1]);
+
+  if (!picked.length) {
+    console.log('  Nothing recognised in that answer — defaulting to all 10 groups.');
+    return [];
+  }
+  console.log(`  -> ${picked.join(', ')}`);
+  return picked;
+}
+
+/** Ask whether this profile may change data. Default no, deliberately. */
+async function chooseWrites(prompt) {
+  console.log('\nMay this profile CHANGE data — create, update and delete?');
+  console.log('  Read-only is strongly recommended. A sandbox executes code written');
+  console.log('  by a language model; read-only means a misread prompt cannot destroy');
+  console.log('  a workspace.');
+  const answer = (await prompt.ask('\n  Allow writes? [y/N]: ')).toLowerCase();
+  const allow = answer === 'y' || answer === 'yes';
+  console.log(allow ? '  -> READ-WRITE (be careful)' : '  -> read-only');
+  return allow;
+}
+
+/**
+ * Asking questions, whether a human or a script is answering.
+ *
+ * Two modes, because readline cannot serve both. On a terminal it prompts and
+ * suppresses the echo for secrets. For piped input it reads stdin to the end
+ * up front and serves answers from that list — sequential `question()` calls
+ * against a pipe lose lines, because readline emits them all before the next
+ * call has registered, and the script then hangs forever on a closed stream.
+ */
+class Prompter {
+  #rl = null;
+  #lines = null;
+
+  async open() {
+    if (stdin.isTTY) {
+      this.#rl = createInterface({ input: stdin, output: stdout });
+    } else {
+      let data = '';
+      for await (const chunk of stdin) data += chunk;
+      this.#lines = data.split(/\r?\n/);
     }
-  } finally {
-    stdin.setRawMode(false);
-    stdin.pause();
   }
-  stdout.write('\n');
-  return value.trim();
+
+  close() { this.#rl?.close(); }
+
+  /** A visible question. */
+  async ask(label) {
+    if (this.#rl) return (await this.#rl.question(label)).trim();
+    const value = (this.#lines.shift() ?? '').trim();
+    stdout.write(`${label}${value}\n`);
+    return value;
+  }
+
+  /** A question whose answer must not reach the scrollback. */
+  async secret(label) {
+    if (!this.#rl) {
+      const value = (this.#lines.shift() ?? '').trim();
+      stdout.write(`${label}${value ? '(from stdin)' : ''}\n`);
+      return value;
+    }
+
+    stdout.write(label);
+    stdin.setRawMode(true);
+    stdin.resume();
+    let value = '';
+    try {
+      for await (const chunk of stdin) {
+        const text = chunk.toString('utf8');
+        if (text === CTRL_C) { stdout.write('\n'); process.exit(130); }
+        if (/[\r\n]/.test(text)) break;
+        if (BACKSPACE.test(text)) { value = value.slice(0, -1); continue; }
+        value += text.replace(/[\r\n]/g, '');
+      }
+    } finally {
+      stdin.setRawMode(false);
+      stdin.pause();
+    }
+    stdout.write('\n');
+    return value.trim();
+  }
 }
 
 /** Exchange a credential at the token endpoint; returns the parsed body. */
@@ -91,23 +174,42 @@ async function login(args) {
   console.log(`Profile: ${profile}`);
   console.log(`Stored in this machine's ${keychainName()}, never in a file.\n`);
 
-  const rl = createInterface({ input: stdin, output: stdout });
+  const prompt = new Prompter();
+  await prompt.open();
   try {
-    console.log('Data centre:');
-    DATA_CENTRES.forEach(([name], i) => console.log(`  ${i + 1}. ${name}`));
-    const pick = Number((await rl.question('Choose [1]: ')) || '1');
-    const index = Number.isInteger(pick) && pick >= 1 && pick <= DATA_CENTRES.length
-      ? pick - 1 : 0;
-    const [, analyticsUrl, accountsUrl] = DATA_CENTRES[index];
+    // Flags win, so a scripted setup need not answer this at all. The last
+    // option exists for internal and dedicated deployments, whose hosts are
+    // none of the seven public data centres.
+    let analyticsUrl = flag(args, '--analytics-url');
+    let accountsUrl = flag(args, '--accounts-url');
+
+    if (!analyticsUrl) {
+      console.log('Data centre:');
+      DATA_CENTRES.forEach(([name], i) => console.log(`  ${i + 1}. ${name}`));
+      console.log(`  ${DATA_CENTRES.length + 1}. Other — enter the URLs yourself`);
+
+      const pick = Number((await prompt.ask(`Choose [1]: `)) || '1');
+      if (pick === DATA_CENTRES.length + 1) {
+        analyticsUrl = (await prompt.ask('  Analytics API URL: ')).replace(/\/+$/, '');
+        accountsUrl = (await prompt.ask('  Accounts URL: ')).replace(/\/+$/, '');
+        if (!/^https?:\/\//.test(analyticsUrl) || !/^https?:\/\//.test(accountsUrl)) {
+          console.error('\n  Both must be full URLs, for example '
+            + 'https://analyticsapi.example.com\n');
+          return 1;
+        }
+      } else {
+        const index = Number.isInteger(pick) && pick >= 1 && pick <= DATA_CENTRES.length
+          ? pick - 1 : 0;
+        [, analyticsUrl, accountsUrl] = DATA_CENTRES[index];
+      }
+    }
+    accountsUrl = accountsUrl ?? 'https://accounts.zoho.com';
     console.log(`  -> ${analyticsUrl}\n`);
 
     console.log('From a Self Client at https://api-console.zoho.com :');
-    const clientId = (await rl.question('  Client ID: ')).trim();
-    rl.pause();
-    const clientSecret = await secretPrompt('  Client Secret: ');
-    rl.resume();
-    const orgId = (await rl.question('  Organization ID: ')).trim();
-    rl.pause();
+    const clientId = await prompt.ask('  Client ID: ');
+    const clientSecret = await prompt.secret('  Client Secret: ');
+    const orgId = await prompt.ask('  Organization ID: ');
 
     // A refresh token if they already have one; otherwise exchange a grant
     // code here, so nobody has to hand-roll a curl call to get started.
@@ -115,11 +217,11 @@ async function login(args) {
     if (!refreshToken) {
       console.log('\n  Paste a refresh token if you have one, or leave blank to');
       console.log('  exchange a Generate Code grant for one.');
-      refreshToken = await secretPrompt('  Refresh Token (blank to exchange): ');
+      refreshToken = await prompt.secret('  Refresh Token (blank to exchange): ');
     }
 
     if (!refreshToken) {
-      const code = await secretPrompt('  Generate Code grant: ');
+      const code = await prompt.secret('  Generate Code grant: ');
       if (!code) { console.error('\nNothing to exchange. Aborted.\n'); return 1; }
       stdout.write('  exchanging... ');
       const json = await token(accountsUrl, {
@@ -143,6 +245,20 @@ async function login(args) {
       return 1;
     }
 
+    const domains = flag(args, '--domains') !== null
+      ? flag(args, '--domains').split(',').map((d) => d.trim()).filter(Boolean)
+      : await chooseDomains(prompt);
+    const allowWrites = has(args, '--allow-writes')
+      ? true
+      : (has(args, '--read-only') ? false : await chooseWrites(prompt));
+
+    const unknown = domains.filter((d) => !DOMAIN_IDS.includes(d));
+    if (unknown.length) {
+      console.error(`\nUnknown tool group(s): ${unknown.join(', ')}.`);
+      console.error(`Valid groups: ${DOMAIN_IDS.join(', ')}\n`);
+      return 1;
+    }
+
     // Prove it works before storing, so a typo surfaces now rather than as an
     // opaque "server failed to start" inside the agent days later.
     stdout.write('\nVerifying... ');
@@ -160,10 +276,13 @@ async function login(args) {
 
     await saveToKeychain(profile, {
       clientId, clientSecret, refreshToken, orgId, analyticsUrl, accountsUrl,
+      domains, allowWrites,
     });
 
     console.log(`\nStored under "${KEYCHAIN_SERVICE}" / "${profile}" in the `
       + `${keychainName()}.`);
+    console.log(`  tool groups   ${domains.length ? domains.join(', ') : 'all 10'}`);
+    console.log(`  data access   ${allowWrites ? 'read and write' : 'read-only'}`);
     console.log('\nAdd this to your MCP client. Note that it contains no secrets:\n');
     console.log(JSON.stringify({
       mcpServers: {
@@ -177,7 +296,7 @@ async function login(args) {
     console.log();
     return 0;
   } finally {
-    rl.close();
+    prompt.close();
   }
 }
 
@@ -210,6 +329,8 @@ async function status(args) {
   console.log(`  refresh token   ${mask(v.refreshToken)}`);
   console.log(`  organization    ${v.orgId ?? '(unset)'}`);
   console.log(`  analytics url   ${v.analyticsUrl ?? '(default)'}`);
+  console.log(`  tool groups     ${v.domains?.length ? v.domains.join(', ') : 'all 10'}`);
+  console.log(`  data access     ${v.allowWrites ? 'read and write' : 'read-only'}`);
 
   if (resolved.problems.length) {
     console.log('\n  problems:');
@@ -231,6 +352,17 @@ Zoho Analytics Code Mode — MCP server for AI agents
 Options
   --profile <name>      keep several organizations side by side (default "default")
   --refresh-token <t>   supply a refresh token instead of being prompted
+  --domains <a,b,c>     tool groups this profile may use (default: all)
+  --analytics-url <u>   API host, for an internal or dedicated deployment
+  --accounts-url <u>    accounts host to match it
+  --read-only           data access is read-only (the default)
+  --allow-writes        permit create, update and delete
+
+Tool groups
+  data-modeling-schema   data-operations        dsml
+  org-management         reports-dashboards     schedules-alerts
+  share-publish          user-groups            views-management
+  workspace-management
 
 Credentials resolve in this order: ANALYTICS_* environment variables, then
 ZA_CREDENTIAL_COMMAND, then the OS keychain. "status" reports which answered.

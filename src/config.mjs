@@ -18,13 +18,24 @@ const DC_HINTS = [
   ['https://analyticsapi.zoho.sa', 'https://accounts.zoho.sa', 'SA'],
 ];
 
-/** Parse and validate a comma-separated domain list against the known set. */
+/**
+ * Parse a comma-separated domain list from the environment.
+ *
+ * Remote mode is configured entirely by environment, so it needs the string
+ * form; local mode takes the list from the stored profile and only validates.
+ */
 function parseDomains(raw, problems) {
   if (!raw) return [];
-  const names = raw.split(',').map((s) => s.trim()).filter(Boolean);
+  return validateDomains(
+    raw.split(',').map((d) => d.trim()).filter(Boolean), problems);
+}
+
+/** Check a domain list against the known set. An empty list means all of them. */
+function validateDomains(names, problems) {
+  if (!names?.length) return [];
   const unknown = names.filter((n) => !(n in DOMAINS));
   if (unknown.length) {
-    problems.push(`ZA_DOMAINS contains unknown ${unknown.length === 1 ? 'domain' : 'domains'} `
+    problems.push(`Unknown API ${unknown.length === 1 ? 'domain' : 'domains'} `
       + `${unknown.join(', ')}. Valid: ${Object.keys(DOMAINS).join(', ')}.`);
   }
   return names.filter((n) => n in DOMAINS);
@@ -84,8 +95,9 @@ export async function loadConfig(env = process.env) {
     clientSecret: cred.clientSecret,
     refreshToken: cred.refreshToken,
     staticToken: cred.accessToken,
-    allowWrites: bool(env.ZA_ALLOW_WRITES, false),
-    domains: parseDomains(env.ZA_DOMAINS, problems),
+    // Scope comes from the profile unless the environment overrides it.
+    allowWrites: cred.allowWrites ?? false,
+    domains: validateDomains(cred.domains ?? [], problems),
     maxToolCalls,
     // Pacing, so a loop in generated code does not trip the API frequency
     // limit. Measured need: an 81-workspace sweep trips it unspaced.
