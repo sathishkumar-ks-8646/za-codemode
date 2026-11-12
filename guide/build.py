@@ -54,6 +54,7 @@ PAGES = [
     ("06-operating",       "06", "Operating & updating",       "Operating"),
     ("07-remote-deployment","07", "Remote deployment",         "Remote"),
     ("08-engine",          "08", "How the engine works",      "Engine"),
+    ("09-credentials",     "09", "Credentials & secrets",     "Credentials"),
 ]
 
 TOOL_VERSION = "2.0.0"

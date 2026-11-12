@@ -71,6 +71,23 @@ Both URLs must name the **same** data centre. Mismatching them is the most commo
 
 ### Claude Desktop
 
+:::good Prefer the keychain
+Run `npx zoho-analytics-code-mode-mcp login` once and your config needs **no secrets at all** — just the two lines below. The credential goes into your OS keychain instead. See [Credentials & secrets](09-credentials.md).
+
+```json
+{
+  "mcpServers": {
+    "zoho-analytics-code-mode": {
+      "command": "npx",
+      "args": ["-y", "zoho-analytics-code-mode-mcp"]
+    }
+  }
+}
+```
+:::
+
+The environment-variable form below still works, and is the right choice for containers and CI. On a desktop it puts a non-expiring refresh token in a plain-text file.
+
 Edit `claude_desktop_config.json`:
 
 - **macOS** `~/Library/Application Support/Claude/claude_desktop_config.json`
@@ -189,8 +206,13 @@ Every variable the server reads.
 | `ZA_MANUAL_PATH` | no | bundled | An alternative operation catalog |
 | `ZA_KNOWLEDGE_PATH` | no | bundled | An alternative knowledge bundle |
 
-¹ Supply either the three OAuth values (recommended — tokens refresh automatically) **or** `ANALYTICS_ACCESS_TOKEN`, which expires after an hour and will not be renewed.
+¹ Supply either the three OAuth values **or** `ANALYTICS_ACCESS_TOKEN`, which expires after an hour and will not be renewed. Better still, store them with `login` and set none of these — see [Credentials & secrets](09-credentials.md).
 
-:::warn Your credentials sit in a configuration file
-`claude_desktop_config.json` is plain text on your machine. Treat it as a secret: do not commit it, and prefer a dedicated Self Client for this tool so you can revoke it independently.
+| ^Variable | Required | Default | Purpose |
+|---|---|---|---|
+| `ZA_PROFILE` | no | `default` | Which stored credential to use |
+| `ZA_CREDENTIAL_COMMAND` | no | — | A command printing credentials as JSON, for 1Password / Vault |
+
+:::warn Only if you use the environment-variable form
+`claude_desktop_config.json` is plain text on your machine. If you put credentials there, treat the file as a secret: do not commit it, and use a dedicated Self Client so it can be revoked independently. [`login`](09-credentials.md) avoids the problem entirely.
 :::

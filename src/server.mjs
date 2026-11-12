@@ -33,12 +33,13 @@ const MANUAL_PATH = process.env.ZA_MANUAL_PATH
 const KNOWLEDGE_PATH = process.env.ZA_KNOWLEDGE_PATH
   ?? join(HERE, '..', 'knowledge', 'knowledge.json');
 
-const config = loadConfig();
+const config = await loadConfig();
 
 if (config.problems.length) {
   console.error('\nZoho Analytics Code Execution — cannot start:\n');
   for (const p of config.problems) console.error(`  • ${p}`);
-  console.error('\nSee the setup guide: guide/02-install.html\n');
+  console.error('\nRun `npx zoho-analytics-code-mode-mcp status` to see what was found,');
+  console.error('or `login` to store credentials in this machine\'s keychain.\n');
   process.exit(78);                   // EX_CONFIG
 }
 
@@ -72,6 +73,7 @@ console.error(
   `[za] ready — ${catalog.exposedOperations}/${catalog.totalOperations} operations`
   + ` (${config.allowWrites ? 'READ-WRITE' : 'read-only'}), org ${config.orgId},`
   + ` ${config.analyticsUrl}`);
+console.error(`[za] credentials — ${config.credentialSource}`);
 console.error(`[za] domains — ${breakdown}`);
 if (knowledge) {
   const p = knowledge.provenance;

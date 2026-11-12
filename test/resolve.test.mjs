@@ -250,7 +250,7 @@ test('the sliding window caps the rate, not just the gap', async () => {
   // at ~53/min; 400 ms apart tripped after 27 calls at ~105/min. A fixed gap
   // alone therefore cannot keep a burst inside the limit.
   const { loadConfig } = await import('../src/config.mjs');
-  const cfg = loadConfig({ ANALYTICS_ORG_ID: '1', ANALYTICS_ACCESS_TOKEN: 't' });
+  const cfg = await loadConfig({ ANALYTICS_ORG_ID: '1', ANALYTICS_ACCESS_TOKEN: 't' });
   assert.ok(cfg.maxCallsPerMinute <= 60,
     `default ${cfg.maxCallsPerMinute}/min must stay under the measured safe rate`);
   assert.ok(cfg.minCallIntervalMs > 0);

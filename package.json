@@ -16,10 +16,10 @@
     "code-execution"
   ],
   "bin": {
-    "zoho-analytics-code-mode-mcp": "src/server.mjs",
+    "zoho-analytics-code-mode-mcp": "src/bin.mjs",
     "zoho-analytics-code-mode-mcp-remote": "src/remote.mjs"
   },
-  "main": "src/server.mjs",
+  "main": "src/bin.mjs",
   "files": [
     "src/",
     "manual/",
@@ -35,7 +35,9 @@
     "start:remote": "node src/remote.mjs",
     "build:knowledge": "node tools/build-knowledge.mjs",
     "build": "npm run build:manual && npm run build:knowledge",
-    "verify:knowledge": "node tools/build-knowledge.mjs --verify"
+    "verify:knowledge": "node tools/build-knowledge.mjs --verify",
+    "login": "node src/bin.mjs login",
+    "status": "node src/bin.mjs status"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -50,7 +52,8 @@
     "zod": "^4.6.7"
   },
   "optionalDependencies": {
-    "redis": "^6.3.1"
+    "redis": "^6.3.1",
+    "@napi-rs/keyring": "^2.1.2"
   },
   "repository": {
     "type": "git",

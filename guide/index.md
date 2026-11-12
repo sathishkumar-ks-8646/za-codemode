@@ -48,6 +48,25 @@ Behind them sit **203 operations** across ten API domains, generated from the pu
 
 ## 4. Install it
 
+```bash
+npx zoho-analytics-code-mode-mcp login
+```
+
+That stores your credentials in your operating system's keychain, and prints a config block with **no secrets in it**:
+
+```json
+{
+  "mcpServers": {
+    "zoho-analytics-code-mode": {
+      "command": "npx",
+      "args": ["-y", "zoho-analytics-code-mode-mcp"]
+    }
+  }
+}
+```
+
+The environment-variable form still works and is right for containers:
+
 ```json
 {
   "mcpServers": {
@@ -85,6 +104,7 @@ Deploy it once and let everyone sign in through their browser — no per-user cr
 | [06 Operating & updating](06-operating.md) | Updates, API-unit cost, and running it from source |
 | [07 Remote deployment](07-remote-deployment.md) | Running one shared instance for a team, with browser sign-in |
 | [08 How the engine works](08-engine.md) | UTCP, code mode, the isolate and the knowledge base |
+| [09 Credentials & secrets](09-credentials.md) | Keeping credentials out of your config file, on all three platforms |
 
 ## 6. The three things to know before you start
 

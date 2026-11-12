@@ -29,6 +29,7 @@
       <a href="06-operating.html">Operating</a>
       <a href="07-remote-deployment.html">Remote</a>
       <a href="08-engine.html">Engine</a>
+      <a href="09-credentials.html">Credentials</a>
     </nav>
     <button class="icon-btn nav-toggle" id="nav-toggle" type="button"
             aria-expanded="false" aria-controls="sidebar"
@@ -63,6 +64,7 @@
     <a href="06-operating.html"><span class="n">06</span><span>Operating &amp; updating</span></a>
     <a href="07-remote-deployment.html"><span class="n">07</span><span>Remote deployment</span></a>
     <a href="08-engine.html"><span class="n">08</span><span>How the engine works</span></a>
+    <a href="09-credentials.html"><span class="n">09</span><span>Credentials &amp; secrets</span></a>
     <h2>Source</h2>
     <a href="02-install.md"><span class="n">md</span><span>This page as Markdown</span></a>
     <a href="README.md"><span class="n">&#8212;</span><span>Folder README</span></a>
@@ -106,6 +108,16 @@
 <section id="step-4-add-it-to-your-agent">
 <h2><span class="num">05</span>Step 4 — Add it to your agent</h2>
 <h3 id="claude-desktop">Claude Desktop</h3>
+<div class="note note--good"><div class="note__title">Prefer the keychain</div><p>Run <code>npx zoho-analytics-code-mode-mcp login</code> once and your config needs <strong>no secrets at all</strong> — just the two lines below. The credential goes into your OS keychain instead. See <a href="09-credentials.html">Credentials &amp; secrets</a>.</p>
+<pre><code class="lang-json">{
+  "mcpServers": {
+    "zoho-analytics-code-mode": {
+      "command": "npx",
+      "args": ["-y", "zoho-analytics-code-mode-mcp"]
+    }
+  }
+}</code></pre></div>
+<p>The environment-variable form below still works, and is the right choice for containers and CI. On a desktop it puts a non-expiring refresh token in a plain-text file.</p>
 <p>Edit <code>claude_desktop_config.json</code>:</p>
 <ul><li><strong>macOS</strong> <code>~/Library/Application Support/Claude/claude_desktop_config.json</code></li><li><strong>Windows</strong> <code>%APPDATA%\Claude\claude_desktop_config.json</code></li><li><strong>Linux</strong> <code>~/.config/Claude/claude_desktop_config.json</code></li></ul>
 <pre><code class="lang-json">{
@@ -163,8 +175,9 @@ ZA_DOMAINS=data-operations,views-management,reports-dashboards
 <h2><span class="num">08</span>Configuration reference</h2>
 <p>Every variable the server reads.</p>
 <div class="table-wrap"><table><thead><tr><th class="col-narrow">Variable</th><th>Required</th><th>Default</th><th>Purpose</th></tr></thead><tbody><tr><td class="col-narrow"><code>ANALYTICS_CLIENT_ID</code></td><td>yes¹</td><td>—</td><td>OAuth client ID</td></tr><tr><td class="col-narrow"><code>ANALYTICS_CLIENT_SECRET</code></td><td>yes¹</td><td>—</td><td>OAuth client secret</td></tr><tr><td class="col-narrow"><code>ANALYTICS_REFRESH_TOKEN</code></td><td>yes¹</td><td>—</td><td>Used to mint access tokens automatically</td></tr><tr><td class="col-narrow"><code>ANALYTICS_ORG_ID</code></td><td><strong>yes</strong></td><td>—</td><td>Organization every call is scoped to</td></tr><tr><td class="col-narrow"><code>ANALYTICS_SERVER_URL</code></td><td>no</td><td><code>https://analyticsapi.zoho.com</code></td><td>Your data centre's API host</td></tr><tr><td class="col-narrow"><code>ACCOUNTS_SERVER_URL</code></td><td>no</td><td><code>https://accounts.zoho.com</code></td><td>Your data centre's accounts host</td></tr><tr><td class="col-narrow"><code>ANALYTICS_ACCESS_TOKEN</code></td><td>no</td><td>—</td><td>A static token, for a short test instead of OAuth¹</td></tr><tr><td class="col-narrow"><code>ZA_ALLOW_WRITES</code></td><td>no</td><td><code>false</code></td><td><code>true</code> exposes write operations as well as reads</td></tr><tr><td class="col-narrow"><code>ZA_DOMAINS</code></td><td>no</td><td>all ten</td><td>Comma-separated API domains to expose — see <a href="#choosing-what-to-expose">above</a></td></tr><tr><td class="col-narrow"><code>ZA_MAX_TOOL_CALLS</code></td><td>no</td><td><code>200</code></td><td>API calls allowed in one program</td></tr><tr><td class="col-narrow"><code>ZA_MAX_CALLS_PER_MINUTE</code></td><td>no</td><td><code>55</code></td><td>Sliding-window rate cap, so a loop cannot trip the API frequency limit</td></tr><tr><td class="col-narrow"><code>ZA_MIN_CALL_INTERVAL_MS</code></td><td>no</td><td><code>50</code></td><td>Minimum gap between calls, against microbursts</td></tr><tr><td class="col-narrow"><code>ZA_THROTTLE_RETRIES</code></td><td>no</td><td><code>3</code></td><td>Retries with backoff (6 s, 15 s, 30 s) when the API returns 6045</td></tr><tr><td class="col-narrow"><code>ZA_EXEC_TIMEOUT_MS</code></td><td>no</td><td><code>60000</code></td><td>Wall-clock limit for one program</td></tr><tr><td class="col-narrow"><code>ZA_EXEC_MEMORY_MB</code></td><td>no</td><td><code>256</code></td><td>Memory limit for the sandbox</td></tr><tr><td class="col-narrow"><code>ZA_MANUAL_PATH</code></td><td>no</td><td>bundled</td><td>An alternative operation catalog</td></tr><tr><td class="col-narrow"><code>ZA_KNOWLEDGE_PATH</code></td><td>no</td><td>bundled</td><td>An alternative knowledge bundle</td></tr></tbody></table></div>
-<p>¹ Supply either the three OAuth values (recommended — tokens refresh automatically) <strong>or</strong> <code>ANALYTICS_ACCESS_TOKEN</code>, which expires after an hour and will not be renewed.</p>
-<div class="note note--warn"><div class="note__title">Your credentials sit in a configuration file</div><p><code>claude_desktop_config.json</code> is plain text on your machine. Treat it as a secret: do not commit it, and prefer a dedicated Self Client for this tool so you can revoke it independently.</p></div>
+<p>¹ Supply either the three OAuth values <strong>or</strong> <code>ANALYTICS_ACCESS_TOKEN</code>, which expires after an hour and will not be renewed. Better still, store them with <code>login</code> and set none of these — see <a href="09-credentials.html">Credentials &amp; secrets</a>.</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Variable</th><th>Required</th><th>Default</th><th>Purpose</th></tr></thead><tbody><tr><td class="col-narrow"><code>ZA_PROFILE</code></td><td>no</td><td><code>default</code></td><td>Which stored credential to use</td></tr><tr><td class="col-narrow"><code>ZA_CREDENTIAL_COMMAND</code></td><td>no</td><td>—</td><td>A command printing credentials as JSON, for 1Password / Vault</td></tr></tbody></table></div>
+<div class="note note--warn"><div class="note__title">Only if you use the environment-variable form</div><p><code>claude_desktop_config.json</code> is plain text on your machine. If you put credentials there, treat the file as a secret: do not commit it, and use a dedicated Self Client so it can be revoked independently. <a href="09-credentials.html"><code>login</code></a> avoids the problem entirely.</p></div>
 </section>
     <nav class="pager" aria-label="Chapter">
       <a href="01-what-it-is.html"><span class="pager__side">Previous</span>&larr; What it is</a>
@@ -201,6 +214,7 @@ ZA_DOMAINS=data-operations,views-management,reports-dashboards
       <a href="06-operating.html">06 &nbsp;Operating &amp; updating</a>
       <a href="07-remote-deployment.html">07 &nbsp;Remote deployment</a>
       <a href="08-engine.html">08 &nbsp;How the engine works</a>
+      <a href="09-credentials.html">09 &nbsp;Credentials &amp; secrets</a>
     </div>
     <div>
       <h2>Reference</h2>
@@ -215,7 +229,7 @@ ZA_DOMAINS=data-operations,views-management,reports-dashboards
       that lets AI agents run sandboxed code against the Analytics v2 API,
       powered by the UTCP code-mode engine.</p>
       <p>Rendered from the Markdown in this folder by <code>build.py</code>.
-      Generated 2026-11-11.</p>
+      Generated 2026-11-12.</p>
       <p><strong>zoho-analytics-code-mode-mcp v2.0.0. Read-only by default.</strong></p>
     </div>
   </div>

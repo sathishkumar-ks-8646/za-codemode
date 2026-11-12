@@ -32,6 +32,29 @@ The agent sees **four tools**:
 **203 operations** across ten API domains, as a UTCP manual. 76 read-only ones
 are exposed by default; `ZA_DOMAINS` narrows further.
 
+## Credentials stay out of the config file
+
+```bash
+npx zoho-analytics-code-mode-mcp login     # stores in the OS keychain
+npx zoho-analytics-code-mode-mcp status    # shows which credential is in use
+```
+
+After that an agent's config holds no secrets — just `command` and `args`.
+Resolution order is environment variables, then `ZA_CREDENTIAL_COMMAND` (for
+1Password / Vault), then the OS keychain by profile; the startup log reports
+which answered. macOS Keychain, Windows Credential Manager, Linux Secret
+Service, via the optional `@napi-rs/keyring` binding.
+
+An encrypted file is deliberately **not** offered: the server is spawned by the
+agent host with no terminal, so it can never prompt for a passphrase, and a key
+kept beside the ciphertext protects nothing. See `guide/09-credentials.md`.
+
+**Linux caveat, measured not assumed:** without `DBUS_SESSION_BUS_ADDRESS` a
+keychain write appears to succeed, reads back in-process, and is invisible
+everywhere else. `keychainAvailable()` therefore checks that prerequisite
+rather than probing the library, and `login` refuses rather than storing
+nothing.
+
 ## Self-contained
 
 This repository depends on no sibling checkout. Both generated artifacts are
@@ -71,6 +94,9 @@ v2-code-execution-mcp/
 │   ├── search.mjs           query expansion, field-weighted ranking, signatures
 │   ├── knowledge.mjs        OKF lookup, search, hints and provenance
 │   ├── auth.mjs             refresh token -> access token, cached
+│   ├── credentials.mjs      resolution: env -> credential command -> keychain
+│   ├── cli.mjs              login / status / logout
+│   ├── bin.mjs              entry point: no args -> server, args -> CLI
 │   ├── config.mjs           environment parsing and startup validation
 │   ├── quiet.mjs            stdout guard — MUST be the first import
 │   └── remote/
@@ -92,7 +118,7 @@ v2-code-execution-mcp/
 
 ```bash
 npm install                  # public registry, pinned in .npmrc
-npm test                     # 65 tests, fully offline
+npm test                     # 74 tests, fully offline
 npm run build                # rebuild both artifacts from the published repos
 npm start                    # local mode, stdio
 npm run start:remote         # remote mode, HTTP
@@ -167,7 +193,7 @@ documented pattern returned `{ rowCount: 0 }`.
 
 ## Status
 
-65 tests pass offline: search quality and domain filtering, name resolution
+74 tests pass offline: search quality and domain filtering, name resolution
 (fuzzy matching, ambiguity, misses, columns, variables, enforced refusal),
 result reading, call pacing, local stdio end-to-end, the knowledge tool, the
 full remote OAuth flow (dynamic registration, PKCE, browser redirect through a

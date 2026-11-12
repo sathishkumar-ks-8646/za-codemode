@@ -6,6 +6,7 @@
  * here, in full, before anything else runs.
  */
 import { DOMAINS } from './catalog.mjs';
+import { resolveCredentials } from './credentials.mjs';
 
 const DC_HINTS = [
   ['https://analyticsapi.zoho.com', 'https://accounts.zoho.com', 'US'],
@@ -34,12 +35,22 @@ function bool(value, fallback) {
   return value === 'true' || value === '1' || value === 'yes';
 }
 
-/** Config for the local stdio server: one user, credentials from the agent config. */
-export function loadConfig(env = process.env) {
+/**
+ * Config for the local stdio server.
+ *
+ * Credentials come from the resolver — environment, credential command, or the
+ * OS keychain — so the agent's config file need not hold any secret. See
+ * credentials.mjs for why an encrypted file is not an option here.
+ */
+export async function loadConfig(env = process.env) {
   const problems = [];
 
-  const analyticsUrl = env.ANALYTICS_SERVER_URL ?? 'https://analyticsapi.zoho.com';
-  const accountsUrl = env.ACCOUNTS_SERVER_URL ?? 'https://accounts.zoho.com';
+  const credentials = await resolveCredentials(env);
+  problems.push(...credentials.problems);
+  const cred = credentials.values ?? {};
+
+  const analyticsUrl = cred.analyticsUrl ?? 'https://analyticsapi.zoho.com';
+  const accountsUrl = cred.accountsUrl ?? 'https://accounts.zoho.com';
 
   // A mismatched pair is the single most common setup mistake: the token is
   // minted in one data centre and spent in another, and the only symptom is a
@@ -52,21 +63,10 @@ export function loadConfig(env = process.env) {
       + `looks like ${cDc}. Both must name the same one.`);
   }
 
-  const hasOAuth = Boolean(env.ANALYTICS_CLIENT_ID && env.ANALYTICS_CLIENT_SECRET
-    && env.ANALYTICS_REFRESH_TOKEN);
-  const hasStaticToken = Boolean(env.ANALYTICS_ACCESS_TOKEN);
-
-  if (!hasOAuth && !hasStaticToken) {
-    const missing = ['ANALYTICS_CLIENT_ID', 'ANALYTICS_CLIENT_SECRET', 'ANALYTICS_REFRESH_TOKEN']
-      .filter((k) => !env[k]);
-    problems.push(
-      `No credentials. Set ${missing.join(', ')} (recommended), or `
-      + 'ANALYTICS_ACCESS_TOKEN for a short-lived test.');
-  }
-
-  if (!env.ANALYTICS_ORG_ID) {
-    problems.push('ANALYTICS_ORG_ID is not set. Every Analytics v2 request must name '
-      + 'an organization; find the ID in the Analytics UI under Settings > Organization.');
+  if (!cred.orgId) {
+    problems.push('No organization ID. Run `npx zoho-analytics-code-mode-mcp login`, '
+      + 'or set ANALYTICS_ORG_ID. Find the ID in the Analytics UI under '
+      + 'Settings > Organization.');
   }
 
   const maxToolCalls = Number(env.ZA_MAX_TOOL_CALLS ?? 200);
@@ -77,11 +77,13 @@ export function loadConfig(env = process.env) {
   return {
     analyticsUrl,
     accountsUrl,
-    orgId: env.ANALYTICS_ORG_ID ?? '',
-    clientId: env.ANALYTICS_CLIENT_ID,
-    clientSecret: env.ANALYTICS_CLIENT_SECRET,
-    refreshToken: env.ANALYTICS_REFRESH_TOKEN,
-    staticToken: env.ANALYTICS_ACCESS_TOKEN,
+    credentialSource: credentials.source,
+    profile: credentials.profile,
+    orgId: cred.orgId ?? '',
+    clientId: cred.clientId,
+    clientSecret: cred.clientSecret,
+    refreshToken: cred.refreshToken,
+    staticToken: cred.accessToken,
     allowWrites: bool(env.ZA_ALLOW_WRITES, false),
     domains: parseDomains(env.ZA_DOMAINS, problems),
     maxToolCalls,
