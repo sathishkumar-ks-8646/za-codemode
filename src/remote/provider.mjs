@@ -80,7 +80,10 @@ export class ZohoAnalyticsOAuthProvider {
       codeChallenge: params.codeChallenge,
       clientState: params.state ?? null,
       scopes: params.scopes ?? [],
-      resource: params.resource?.toString() ?? null,
+      // Tokens are bound to the resource the client asked for, defaulting to
+      // this server's canonical identifier. verifyAccessToken reports it and
+      // the resource server refuses anything else.
+      resource: (params.resource ?? this.#config.resourceUrl)?.toString() ?? null,
     }, PENDING_TTL);
 
     res.redirect(this.#zoho.authorizeUrl(state));
@@ -105,6 +108,9 @@ export class ZohoAnalyticsOAuthProvider {
       const url = new URL(pending.redirectUri);
       for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
       if (pending.clientState) url.searchParams.set('state', pending.clientState);
+      // RFC 9207: name the issuer on every authorization response, success or
+      // error, so a client can detect having been sent to the wrong server.
+      url.searchParams.set('iss', this.#config.publicUrl);
       return url.toString();
     };
 

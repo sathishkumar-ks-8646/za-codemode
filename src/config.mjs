@@ -176,6 +176,8 @@ export function loadRemoteConfig(env = process.env) {
     oidcClientId: env.OIDC_PROVIDER_CLIENT_ID,
     oidcClientSecret: env.OIDC_PROVIDER_CLIENT_SECRET,
     publicUrl,
+    // Canonical RFC 8707 resource identifier: the endpoint, not the host.
+    resourceUrl: publicUrl ? `${publicUrl}/mcp` : undefined,
     sessionSecret,
     orgIds,
     port: Number(env.PORT ?? 4000),

@@ -156,11 +156,31 @@ after(async () => {
   setTimeout(() => process.exit(0), 200).unref();
 });
 
-test('advertises protected-resource metadata for discovery', async () => {
-  const res = await fetch(`${base}/.well-known/oauth-protected-resource`);
+test('advertises protected-resource metadata at the RFC 9728 path', async () => {
+  // The canonical resource is the /mcp endpoint, so RFC 9728 puts its
+  // metadata at /.well-known/oauth-protected-resource/mcp — not at the bare
+  // well-known path, which is for a resource identified by the host alone.
+  const res = await fetch(`${base}/.well-known/oauth-protected-resource/mcp`);
   assert.equal(res.status, 200);
   const meta = await res.json();
   assert.ok(meta.authorization_servers?.length, 'should name an authorization server');
+  assert.equal(meta.resource, `${base}/mcp`, 'resource must be the canonical URI');
+});
+
+test('advertises RFC 9207 issuer identification', async () => {
+  const meta = await (await fetch(`${base}/.well-known/oauth-authorization-server`)).json();
+  assert.equal(meta.authorization_response_iss_parameter_supported, true);
+});
+
+test('the 401 challenge carries both resource_metadata and a scope hint', async () => {
+  const res = await fetch(`${base}/mcp`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+  });
+  assert.equal(res.status, 401);
+  const challenge = res.headers.get('www-authenticate') ?? '';
+  assert.match(challenge, /resource_metadata="[^"]*oauth-protected-resource\/mcp"/);
+  assert.match(challenge, /scope="[^"]+"/, 'the spec asks for a scope hint');
 });
 
 test('advertises authorization-server metadata', async () => {
@@ -258,4 +278,23 @@ test('healthz reports status without authentication', async () => {
   assert.equal(body.status, 'ok');
   assert.equal(body.writes, false);
   assert.equal(body.storage, 'memory');
+});
+
+test('a token issued for another resource is refused', async () => {
+  // The spec is explicit: servers MUST validate that a token was issued for
+  // them, MUST only accept tokens valid for their own resources, and MUST NOT
+  // accept or transit any other tokens. Without that, a token obtained for a
+  // different MCP server can be replayed against this one.
+  const { access_token } = await bearerToken();
+  assert.equal((await rpc(access_token, 'tools/list')).status, 200,
+    'a correctly bound token still works');
+
+  // Mint one bound elsewhere by tampering with the stored session's resource.
+  const stored = await store.get(`token:${access_token}`);
+  await store.set(`token:${access_token}`,
+    { ...stored, resource: 'https://someone-elses-mcp.example.com/mcp' }, 3600);
+
+  const after = await rpc(access_token, 'tools/list');
+  assert.equal(after.status, 401, 'a token bound to another resource must be rejected');
+  assert.match(after.body, /invalid_token|not issued for this resource/i);
 });

@@ -124,10 +124,23 @@ docker run --name zoho-analytics-code-mode \
 <pre><code class="lang-bash">curl https://analytics-code.example.com/healthz
 # {"status":"ok","operations":76,"writes":false,"sessions":0,"storage":"redis"}</code></pre>
 </section>
+<section id="standards-compliance">
+<h2><span class="num">06</span>Standards compliance</h2>
+<p>Remote mode is an OAuth 2.1 protected resource as the MCP specification defines one. The same shape every other hosted MCP server uses — Linear at <code>mcp.linear.app/mcp</code>, Stripe at <code>mcp.stripe.com</code>, GitHub at <code>api.githubcopilot.com/mcp</code>, Atlassian at <code>mcp.atlassian.com/v2/mcp</code> — so any compliant client connects without special handling.</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Requirement</th><th>Where</th></tr></thead><tbody><tr><td class="col-narrow"><strong>RFC 9728</strong> Protected Resource Metadata (MUST)</td><td><code>/.well-known/oauth-protected-resource/mcp</code></td></tr><tr><td class="col-narrow"><strong>RFC 8414</strong> Authorization Server Metadata (MUST, one of)</td><td><code>/.well-known/oauth-authorization-server</code></td></tr><tr><td class="col-narrow">OpenID Connect Discovery (the alternative)</td><td><code>/.well-known/openid-configuration</code></td></tr><tr><td class="col-narrow"><strong>RFC 7591</strong> Dynamic Client Registration</td><td><code>/register</code></td></tr><tr><td class="col-narrow"><strong>RFC 8707</strong> resource indicators, audience binding (MUST)</td><td>every token is bound to <code>&lt;public-url&gt;/mcp</code></td></tr><tr><td class="col-narrow"><strong>RFC 9207</strong> issuer identification</td><td><code>iss</code> on every authorization response; advertised in metadata</td></tr><tr><td class="col-narrow">OAuth 2.1 + PKCE <code>S256</code> (MUST)</td><td>enforced by the authorization endpoint</td></tr><tr><td class="col-narrow">Bearer token in the <code>Authorization</code> header (MUST)</td><td>never in a query string</td></tr><tr><td class="col-narrow"><code>WWW-Authenticate</code> with <code>resource_metadata</code> and <code>scope</code></td><td>on every 401</td></tr></tbody></table></div>
+<p>The canonical resource identifier is the <strong>endpoint</strong>, not the host — <code>https://analytics-code.example.com/mcp</code> — which is why the metadata lives at the path-suffixed well-known URL rather than the bare one.</p>
+<div class="note note--good"><div class="note__title">Audience binding is enforced, not merely declared</div><p>The specification is blunt: a server <strong>MUST</strong> validate that a token was issued for it, <strong>MUST</strong> only accept tokens valid for its own resources, and <strong>MUST NOT</strong> accept or transit any other tokens. A token minted for a different MCP server, presented here, is refused with 401 — so a token leaked from or phished for another service cannot be replayed against your Analytics data.</p></div>
+<p>An unauthenticated request shows the whole discovery chain in one header:</p>
+<pre><code class="lang-http">HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Bearer error="invalid_token",
+  error_description="Missing Authorization header",
+  resource_metadata="https://analytics-code.example.com/.well-known/oauth-protected-resource/mcp",
+  scope="ZohoAnalytics.data.read ZohoAnalytics.metadata.read ..."</code></pre>
+</section>
 <section id="how-sign-in-works">
-<h2><span class="num">06</span>How sign-in works</h2>
+<h2><span class="num">07</span>How sign-in works</h2>
 <pre><code class="lang-text"> 1. MCP client POSTs /mcp with no token      -&gt; 401 + WWW-Authenticate
- 2. Client reads /.well-known/oauth-protected-resource
+ 2. Client reads /.well-known/oauth-protected-resource/mcp
  3. Client registers itself                  -&gt; POST /register
  4. Client opens a browser at /authorize     -&gt; we redirect to Zoho
  5. User signs in and consents at Zoho
@@ -136,32 +149,32 @@ docker run --name zoho-analytics-code-mode \
                                                 and mint our own code
  7. We redirect back to the client           -&gt; client exchanges it at /token
  8. Client calls /mcp with its bearer token</code></pre>
-<p>Standard OAuth 2.1 with PKCE throughout, implemented by the MCP SDK. Two things worth knowing:</p>
-<ul><li><strong>The user's Zoho tokens never leave the server.</strong> The MCP client receives a token we mint, which maps to a server-side session holding the Zoho credentials. The sandbox never sees either.</li><li><strong>Access tokens live one hour and refresh silently.</strong> The Zoho token behind a session is renewed in the background, so a long session does not interrupt the user.</li></ul>
+<p>Standard OAuth 2.1 with PKCE throughout. Three things worth knowing:</p>
+<ul><li><strong>The user's Zoho tokens never leave the server.</strong> The MCP client receives a token we mint, which maps to a server-side session holding the Zoho credentials. The sandbox never sees either.</li><li><strong>Access tokens live one hour and refresh silently.</strong> The Zoho token behind a session is renewed in the background, so a long session does not interrupt the user.</li><li><strong>Tokens are bound to this server.</strong> Each carries the resource it was issued for, and anything else is rejected — see <a href="#standards-compliance">Standards compliance</a>.</li></ul>
 </section>
 <section id="organization-access-control">
-<h2><span class="num">07</span>Organization access control</h2>
+<h2><span class="num">08</span>Organization access control</h2>
 <p><code>MCP_SERVER_ORG_IDS</code> is an allowlist. At sign-in, the server checks the user's own token against each listed organization and keeps the ones that answer. A user who can reach <strong>none</strong> of them is refused before any token is minted, and sees:</p>
 <p>&gt; Your Zoho Analytics account does not have access to any organization permitted by this server. Ask the administrator to add your organization to <code>MCP_SERVER_ORG_IDS</code>.</p>
 <div class="note note--good"><div class="note__title">Membership is tested, not asserted</div><p>There is no "list my organizations" endpoint any more, so the server probes each permitted organization with the user's own credentials. That tests real access rather than trusting a claim — a user cannot reach an organization merely because it appears in the allowlist.</p></div>
 <p>Each signed-in user gets a private operation catalog scoped to their own organization, so <code>ORG_ID</code> inside the sandbox is <em>their</em> organization, and one user's token can never be used for another's calls.</p>
 </section>
 <section id="storage-backend">
-<h2><span class="num">08</span>Storage backend</h2>
+<h2><span class="num">09</span>Storage backend</h2>
 <div class="table-wrap"><table><thead><tr><th class="col-narrow"></th><th><code>memory</code> (default)</th><th><code>redis</code></th></tr></thead><tbody><tr><td class="col-narrow">Replicas supported</td><td><strong>one</strong></td><td>many</td></tr><tr><td class="col-narrow">Survives a restart</td><td>no — everyone signs in again</td><td>yes</td></tr><tr><td class="col-narrow">Extra infrastructure</td><td>none</td><td>a Redis instance</td></tr></tbody></table></div>
 <p>Use Redis as soon as you run more than one instance behind a load balancer: an authorization code issued by one replica must be redeemable by another, and a bearer token minted by one must be verifiable by all of them. With <code>memory</code>, a user whose request lands on a different replica is silently signed out.</p>
 </section>
 <section id="capacity">
-<h2><span class="num">09</span>Capacity</h2>
+<h2><span class="num">10</span>Capacity</h2>
 <p>Each signed-in user holds a private catalog of roughly <strong>2.6 MB</strong>, built in about <strong>21 ms</strong>. <code>ZA_MAX_SESSIONS</code> caps how many are kept (default 100, so around 260 MB), and idle ones are evicted after <code>ZA_SESSION_IDLE_MS</code>. Evicting a catalog does not sign the user out; the next request rebuilds it.</p>
 </section>
 <section id="operational-notes">
-<h2><span class="num">10</span>Operational notes</h2>
+<h2><span class="num">11</span>Operational notes</h2>
 <ul><li><code>GET /healthz</code> reports operation count, write mode, live sessions and storage backend. It needs no authentication — put it behind your load balancer, not the public internet, if that bothers you.</li><li><code>GET /</code> serves a short landing page with the client configuration snippet, so you can send users a single URL.</li><li>Logs go to <strong>stderr</strong>, one line per event, prefixed <code>[za]</code>.</li><li><code>SIGTERM</code> and <code>SIGINT</code> drain cleanly: sessions are dropped, the listener closes, the store disconnects.</li></ul>
 <div class="note note--danger"><div class="note__title">Writes are a server-wide decision</div><p><code>ZA_ALLOW_WRITES=true</code> enables create, update and <strong>delete</strong> for every user of the instance, not per user. On a shared server that is a much larger decision than on a laptop. Read <a href="04-security.html#enabling-write-operations">Security</a> first, and prefer a separate instance pointed at a non-production organization.</p></div>
 </section>
 <section id="what-this-does-not-give-you">
-<h2><span class="num">11</span>What this does not give you</h2>
+<h2><span class="num">12</span>What this does not give you</h2>
 <p>Stated plainly, because a security review will ask:</p>
 <ul><li><strong>No audit log.</strong> Programs are not persisted. Each response reports its API call count, and that is all. If you need to know who ran what, you need to add it.</li><li><strong>No per-user rate limiting of Analytics calls.</strong> <code>ZA_MAX_TOOL_CALLS</code> is per program, not per user per hour.</li><li><strong>No scope reduction per user.</strong> Every user gets the same operation set; what they can actually touch is governed by their own Zoho permissions.</li></ul>
 </section>
@@ -179,6 +192,7 @@ docker run --name zoho-analytics-code-mode \
     <a href="#step-1-register-a-server-based-oauth-application">Step 1 — Register a server-based OAuth application</a>
     <a href="#step-2-write-the-env">Step 2 — Write the .env</a>
     <a href="#step-3-run-it">Step 3 — Run it</a>
+    <a href="#standards-compliance">Standards compliance</a>
     <a href="#how-sign-in-works">How sign-in works</a>
     <a href="#organization-access-control">Organization access control</a>
     <a href="#storage-backend">Storage backend</a>
@@ -218,7 +232,7 @@ docker run --name zoho-analytics-code-mode \
       that lets AI agents run sandboxed code against the Analytics v2 API,
       powered by the UTCP code-mode engine.</p>
       <p>Rendered from the Markdown in this folder by <code>build.py</code>.
-      Generated 2026-11-12.</p>
+      Generated 2026-11-17.</p>
       <p><strong>zoho-analytics-code-mode-mcp v2.0.0. Read-only by default.</strong></p>
     </div>
   </div>

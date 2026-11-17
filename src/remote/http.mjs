@@ -14,7 +14,8 @@ import express from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from
   '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { mcpAuthRouter } from '@modelcontextprotocol/sdk/server/auth/router.js';
+import { mcpAuthRouter, createOAuthMetadata } from
+  '@modelcontextprotocol/sdk/server/auth/router.js';
 import { requireBearerAuth } from
   '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js';
 import { registerTools } from '../tools.mjs';
@@ -51,11 +52,42 @@ export function createApp({ config, provider, sessions, operationCount, knowledg
 
   const issuer = new URL(config.publicUrl);
 
-  // ---- OAuth 2.1 endpoints, provided by the SDK --------------------------
+  /**
+   * The canonical resource identifier for this server (RFC 8707 / RFC 9728).
+   *
+   * The spec asks for the most specific URI that identifies the MCP server,
+   * which is the endpoint itself rather than the host. Every token this
+   * server accepts must have been issued for exactly this resource.
+   */
+  const resourceUrl = new URL(`${config.publicUrl}/mcp`);
+
+  // ---- OAuth 2.1 endpoints -----------------------------------------------
+  //
+  // The SDK builds correct RFC 8414 and RFC 9728 metadata but does not
+  // advertise RFC 9207 issuer identification, so that one field is added
+  // here. Registering the route before the SDK's router means Express
+  // matches this handler first.
+  const metadata = {
+    ...createOAuthMetadata({ provider, issuerUrl: issuer, baseUrl: issuer,
+      scopesSupported: scopesFor(config) }),
+    // We return `iss` on every authorization response, which lets a client
+    // detect an authorization-server mix-up. The spec expects this to become
+    // a MUST in a later revision.
+    authorization_response_iss_parameter_supported: true,
+  };
+
+  for (const path of ['/.well-known/oauth-authorization-server',
+    '/.well-known/openid-configuration']) {
+    app.get(path, (_req, res) => {
+      res.set('Cache-Control', 'public, max-age=3600').json(metadata);
+    });
+  }
+
   app.use(mcpAuthRouter({
     provider,
     issuerUrl: issuer,
     baseUrl: issuer,
+    resourceServerUrl: resourceUrl,
     resourceName: 'Zoho Analytics Code Mode',
     scopesSupported: scopesFor(config),
     serviceDocumentationUrl: new URL(
@@ -79,9 +111,37 @@ export function createApp({ config, provider, sessions, operationCount, knowledg
   });
 
   // ---- The MCP endpoint ---------------------------------------------------
+  // Audience binding is a MUST: a token issued for another resource must be
+  // refused rather than honoured, which is what stops a token obtained for a
+  // different server being replayed against this one.
   const requireAuth = requireBearerAuth({
     verifier: provider,
-    resourceMetadataUrl: `${config.publicUrl}/.well-known/oauth-protected-resource`,
+    expectedResource: resourceUrl,
+    resourceMetadataUrl:
+      `${config.publicUrl}/.well-known/oauth-protected-resource/mcp`,
+  });
+
+  /**
+   * Add the `scope` hint the spec asks for on an auth challenge.
+   *
+   * The SDK only emits `scope` when it is also enforcing `requiredScopes`,
+   * and enforcing them here would reject any client that requested none —
+   * which is most of them, since authorization for this resource is really
+   * the Zoho grant plus the organization allowlist rather than a set of MCP
+   * scopes. So the hint is added without the enforcement, which is what
+   * "SHOULD indicate the scopes required" actually asks for.
+   */
+  const scopeHint = scopesFor(config).join(' ');
+  app.use('/mcp', (_req, res, next) => {
+    const setHeader = res.setHeader.bind(res);
+    res.setHeader = (name, value) => {
+      if (String(name).toLowerCase() === 'www-authenticate'
+          && typeof value === 'string' && !value.includes('scope=')) {
+        return setHeader(name, `${value}, scope="${scopeHint}"`);
+      }
+      return setHeader(name, value);
+    };
+    next();
   });
 
   app.post('/mcp', requireAuth, express.json({ limit: '4mb' }), async (req, res) => {

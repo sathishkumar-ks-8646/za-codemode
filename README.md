@@ -8,10 +8,23 @@ Published to npm as [`zoho-analytics-code-mode-mcp`](package.json), in two modes
 | Mode | Entrypoint | Users | Auth |
 |---|---|---|---|
 | **Local** | `src/server.mjs` (stdio) | one, on their own machine | refresh token in the agent config |
-| **Remote** | `src/remote.mjs` (HTTP) | many, one instance | browser sign-in through Zoho, org allowlist |
+| **Remote** | `src/remote.mjs` (HTTP) | many, one instance | OAuth 2.1 browser sign-in, org allowlist |
 
-Remote mode mirrors the environment variables of the self-hosted Zoho Analytics
-Remote MCP Server, so an existing `.env` largely carries over.
+Remote mode is an OAuth 2.1 protected resource as the MCP specification defines
+one — the same shape as Linear, Stripe, GitHub and Atlassian's hosted servers,
+so any compliant client connects without special handling:
+
+| Requirement | Where |
+|---|---|
+| RFC 9728 protected resource metadata (MUST) | `/.well-known/oauth-protected-resource/mcp` |
+| RFC 8414 / OIDC discovery (MUST, one of) | `/.well-known/oauth-authorization-server`, `/.well-known/openid-configuration` |
+| RFC 7591 dynamic client registration | `/register` |
+| RFC 8707 audience binding (MUST) | every token bound to `<public-url>/mcp`; others refused with 401 |
+| RFC 9207 issuer identification | `iss` on every authorization response, advertised in metadata |
+| OAuth 2.1 + PKCE S256 (MUST) | enforced at `/authorize` |
+
+Its environment variables mirror the self-hosted Zoho Analytics Remote MCP
+Server, so an existing `.env` largely carries over.
 
 ```
   AI agent  ──MCP/stdio──▶  this server  ──▶  V8 isolate (model's code)
@@ -131,7 +144,7 @@ v2-code-execution-mcp/
 
 ```bash
 npm install                  # public registry, pinned in .npmrc
-npm test                     # 86 tests, fully offline
+npm test                     # 89 tests, fully offline
 npm run build                # rebuild both artifacts from the published repos
 npm start                    # local mode, stdio
 npm run start:remote         # remote mode, HTTP
@@ -206,7 +219,7 @@ documented pattern returned `{ rowCount: 0 }`.
 
 ## Status
 
-86 tests pass offline: search quality and domain filtering, name resolution
+89 tests pass offline: search quality and domain filtering, name resolution
 (fuzzy matching, ambiguity, misses, columns, variables, enforced refusal),
 result reading, call pacing, local stdio end-to-end, the knowledge tool, the
 full remote OAuth flow (dynamic registration, PKCE, browser redirect through a

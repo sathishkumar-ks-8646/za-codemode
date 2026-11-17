@@ -112,11 +112,43 @@ curl https://analytics-code.example.com/healthz
 # {"status":"ok","operations":76,"writes":false,"sessions":0,"storage":"redis"}
 ```
 
-## 6. How sign-in works
+## 6. Standards compliance
+
+Remote mode is an OAuth 2.1 protected resource as the MCP specification defines one. The same shape every other hosted MCP server uses — Linear at `mcp.linear.app/mcp`, Stripe at `mcp.stripe.com`, GitHub at `api.githubcopilot.com/mcp`, Atlassian at `mcp.atlassian.com/v2/mcp` — so any compliant client connects without special handling.
+
+| ^Requirement | Where |
+|---|---|
+| **RFC 9728** Protected Resource Metadata (MUST) | `/.well-known/oauth-protected-resource/mcp` |
+| **RFC 8414** Authorization Server Metadata (MUST, one of) | `/.well-known/oauth-authorization-server` |
+| OpenID Connect Discovery (the alternative) | `/.well-known/openid-configuration` |
+| **RFC 7591** Dynamic Client Registration | `/register` |
+| **RFC 8707** resource indicators, audience binding (MUST) | every token is bound to `<public-url>/mcp` |
+| **RFC 9207** issuer identification | `iss` on every authorization response; advertised in metadata |
+| OAuth 2.1 + PKCE `S256` (MUST) | enforced by the authorization endpoint |
+| Bearer token in the `Authorization` header (MUST) | never in a query string |
+| `WWW-Authenticate` with `resource_metadata` and `scope` | on every 401 |
+
+The canonical resource identifier is the **endpoint**, not the host — `https://analytics-code.example.com/mcp` — which is why the metadata lives at the path-suffixed well-known URL rather than the bare one.
+
+:::good Audience binding is enforced, not merely declared
+The specification is blunt: a server **MUST** validate that a token was issued for it, **MUST** only accept tokens valid for its own resources, and **MUST NOT** accept or transit any other tokens. A token minted for a different MCP server, presented here, is refused with 401 — so a token leaked from or phished for another service cannot be replayed against your Analytics data.
+:::
+
+An unauthenticated request shows the whole discovery chain in one header:
+
+```http
+HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Bearer error="invalid_token",
+  error_description="Missing Authorization header",
+  resource_metadata="https://analytics-code.example.com/.well-known/oauth-protected-resource/mcp",
+  scope="ZohoAnalytics.data.read ZohoAnalytics.metadata.read ..."
+```
+
+## 7. How sign-in works
 
 ```text
  1. MCP client POSTs /mcp with no token      -> 401 + WWW-Authenticate
- 2. Client reads /.well-known/oauth-protected-resource
+ 2. Client reads /.well-known/oauth-protected-resource/mcp
  3. Client registers itself                  -> POST /register
  4. Client opens a browser at /authorize     -> we redirect to Zoho
  5. User signs in and consents at Zoho
@@ -127,12 +159,13 @@ curl https://analytics-code.example.com/healthz
  8. Client calls /mcp with its bearer token
 ```
 
-Standard OAuth 2.1 with PKCE throughout, implemented by the MCP SDK. Two things worth knowing:
+Standard OAuth 2.1 with PKCE throughout. Three things worth knowing:
 
 - **The user's Zoho tokens never leave the server.** The MCP client receives a token we mint, which maps to a server-side session holding the Zoho credentials. The sandbox never sees either.
 - **Access tokens live one hour and refresh silently.** The Zoho token behind a session is renewed in the background, so a long session does not interrupt the user.
+- **Tokens are bound to this server.** Each carries the resource it was issued for, and anything else is rejected — see [Standards compliance](#standards-compliance).
 
-## 7. Organization access control
+## 8. Organization access control
 
 `MCP_SERVER_ORG_IDS` is an allowlist. At sign-in, the server checks the user's own token against each listed organization and keeps the ones that answer. A user who can reach **none** of them is refused before any token is minted, and sees:
 
@@ -144,7 +177,7 @@ There is no "list my organizations" endpoint any more, so the server probes each
 
 Each signed-in user gets a private operation catalog scoped to their own organization, so `ORG_ID` inside the sandbox is *their* organization, and one user's token can never be used for another's calls.
 
-## 8. Storage backend
+## 9. Storage backend
 
 | ^ | `memory` (default) | `redis` |
 |---|---|---|
@@ -154,11 +187,11 @@ Each signed-in user gets a private operation catalog scoped to their own organiz
 
 Use Redis as soon as you run more than one instance behind a load balancer: an authorization code issued by one replica must be redeemable by another, and a bearer token minted by one must be verifiable by all of them. With `memory`, a user whose request lands on a different replica is silently signed out.
 
-## 9. Capacity
+## 10. Capacity
 
 Each signed-in user holds a private catalog of roughly **2.6 MB**, built in about **21 ms**. `ZA_MAX_SESSIONS` caps how many are kept (default 100, so around 260 MB), and idle ones are evicted after `ZA_SESSION_IDLE_MS`. Evicting a catalog does not sign the user out; the next request rebuilds it.
 
-## 10. Operational notes
+## 11. Operational notes
 
 - `GET /healthz` reports operation count, write mode, live sessions and storage backend. It needs no authentication — put it behind your load balancer, not the public internet, if that bothers you.
 - `GET /` serves a short landing page with the client configuration snippet, so you can send users a single URL.
@@ -169,7 +202,7 @@ Each signed-in user holds a private catalog of roughly **2.6 MB**, built in abou
 `ZA_ALLOW_WRITES=true` enables create, update and **delete** for every user of the instance, not per user. On a shared server that is a much larger decision than on a laptop. Read [Security](04-security.md#enabling-write-operations) first, and prefer a separate instance pointed at a non-production organization.
 :::
 
-## 11. What this does not give you
+## 12. What this does not give you
 
 Stated plainly, because a security review will ask:
 
