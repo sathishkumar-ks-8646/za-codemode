@@ -42,7 +42,7 @@ function page(title, body, status = 200) {
 }
 
 export function createApp({ config, provider, sessions, operationCount, knowledge,
-  domainBreakdown = {} }) {
+  audit, domainBreakdown = {} }) {
   const app = express();
   app.disable('x-powered-by');
   // `trust proxy: true` would let any client spoof X-Forwarded-For and bypass
@@ -100,8 +100,12 @@ export function createApp({ config, provider, sessions, operationCount, knowledg
       const redirectTo = await provider.handleZohoCallback({
         code: req.query.code, state: req.query.state, error: req.query.error,
       });
+      // OWASP requires authentication outcomes, successful or not.
+      audit?.auth({ event: 'sign-in', outcome: 'success', ip: req.ip });
       res.redirect(redirectTo);
     } catch (err) {
+      audit?.auth({ event: 'sign-in', outcome: 'denied',
+        reason: err.message, ip: req.ip });
       const { status, html } = page('Sign-in failed', `
         <h1>Sign-in failed</h1>
         <div class="bad"><p>${escapeHtml(err.message)}</p></div>
@@ -153,7 +157,8 @@ export function createApp({ config, provider, sessions, operationCount, knowledg
       // expensive part (the user's catalog) is pooled separately.
       const server = new McpServer({ name: 'zoho-analytics-code-mode', version: '2.0.0' });
       registerTools(server, () => session, {
-        operationCount, domains: config.domains, knowledge,
+        operationCount, domains: config.domains, knowledge, audit,
+        scope: () => ({ domains: config.domains, writes: config.allowWrites }),
       });
 
       // Stateless: `sessionIdGenerator: undefined` lets each POST stand alone,

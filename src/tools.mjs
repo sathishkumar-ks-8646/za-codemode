@@ -6,10 +6,13 @@
  * with the signed-in user's, keyed off their bearer token.
  */
 import { z } from 'zod';
+import { createHash } from 'node:crypto';
 import { renderSignatures } from './search.mjs';
 import { DOMAINS, DISCOVERY } from './catalog.mjs';
 
-export function registerTools(server, resolve, { operationCount, domains, knowledge }) {
+export function registerTools(server, resolve, {
+  operationCount, domains, knowledge, audit, scope,
+}) {
   const domainList = domains?.length ? domains : Object.keys(DOMAINS);
 
   // -------------------------------------------------------------------------
@@ -215,8 +218,11 @@ export function registerTools(server, resolve, { operationCount, domains, knowle
         : query ? DISCOVERY.resolve(query)
         : DISCOVERY.workspaces(null);
 
+      const requestId = audit?.newRequest?.() ?? undefined;
+      const discoveryActor = actorOf(await resolve(extra), extra);
       try {
-        const { result, calls } = await catalog.execute(program);
+        const { result, calls } = await catalog.execute(program,
+          { requestId, actor: discoveryActor });
         return {
           content: [{ type: 'text', text: JSON.stringify({ ...result, apiCalls: calls }) }],
         };
@@ -247,9 +253,22 @@ export function registerTools(server, resolve, { operationCount, domains, knowle
       },
     },
     async ({ code }, extra) => {
-      const { catalog } = await resolve(extra);
+      const session = await resolve(extra);
+      const { catalog, orgId } = session;
+
+      // One request id ties this execution to every API call it causes, so
+      // the two streams join on `req`.
+      const requestId = audit?.newRequest?.() ?? undefined;
+      const actor = actorOf(session, extra);
+      const started = Date.now();
+
       try {
-        const { result, logs, calls } = await catalog.execute(code);
+        const { result, logs, calls } = await catalog.execute(code, { requestId, actor });
+        audit?.execution({
+          requestId, actor, org: orgId, client: clientOf(extra),
+          tool: 'run_analytics_code', scope: scope?.(session),
+          code, outcome: 'ok', ms: Date.now() - started, apiCalls: calls,
+        });
         return {
           content: [{
             type: 'text',
@@ -257,11 +276,40 @@ export function registerTools(server, resolve, { operationCount, domains, knowle
           }],
         };
       } catch (err) {
+        audit?.execution({
+          requestId, actor, org: orgId, client: clientOf(extra),
+          tool: 'run_analytics_code', scope: scope?.(session),
+          code, outcome: 'error', ms: Date.now() - started, error: err?.message,
+        });
         return { isError: true, content: [{ type: 'text', text: explain(err, knowledge) }] };
       }
     });
 
   return server;
+}
+
+/**
+ * Who is asking.
+ *
+ * In remote mode the bearer token identifies the user, and it must never
+ * reach a log — so it is hashed into a short, stable pseudonym that still
+ * correlates every action by one person.
+ */
+function actorOf(session, extra) {
+  const token = extra?.authInfo?.token;
+  if (token) {
+    return `user:${createHash('sha256').update(token).digest('hex').slice(0, 12)}`;
+  }
+  return session?.credentialSource ?? 'local';
+}
+
+/** Which MCP client made the call, when it tells us. */
+function clientOf(extra) {
+  const info = extra?.requestInfo?.headers ?? {};
+  return {
+    name: extra?.sessionId ? `session:${String(extra.sessionId).slice(0, 8)}` : undefined,
+    ua: typeof info['user-agent'] === 'string' ? info['user-agent'].slice(0, 80) : undefined,
+  };
 }
 
 /** Turn an execution failure into something the model can act on. */

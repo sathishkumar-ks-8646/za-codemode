@@ -15,12 +15,14 @@ export class SessionPool {
   #provider;
   #manualPath;
   #sessions = new Map();          // mcpToken -> { catalog, search, lastUsed, orgId }
+  #audit;
   #sweeper;
 
-  constructor({ config, provider, manualPath }) {
+  constructor({ config, provider, manualPath, audit }) {
     this.#config = config;
     this.#provider = provider;
     this.#manualPath = manualPath;
+    this.#audit = audit ?? null;
 
     this.#sweeper = setInterval(() => this.#sweep(), 60_000);
     this.#sweeper.unref?.();
@@ -54,6 +56,7 @@ export class SessionPool {
       // user's Zoho token, refreshing it behind the scenes.
       tokens: { get: () => this.#provider.zohoTokenFor(mcpToken) },
       manualPath: this.#manualPath,
+      audit: this.#audit,
     });
     await catalog.init();
 

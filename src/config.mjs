@@ -7,6 +7,8 @@
  */
 import { DOMAINS } from './catalog.mjs';
 import { resolveCredentials } from './credentials.mjs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 
 const DC_HINTS = [
   ['https://analyticsapi.zoho.com', 'https://accounts.zoho.com', 'US'],
@@ -39,6 +41,72 @@ function validateDomains(names, problems) {
       + `${unknown.join(', ')}. Valid: ${Object.keys(DOMAINS).join(', ')}.`);
   }
   return names.filter((n) => n in DOMAINS);
+}
+
+/**
+ * Audit logging settings.
+ *
+ * Defaults differ by server type because the workloads do. Measured on this
+ * server's own records, an API line is ~270 bytes and an execution record
+ * ~1.4 KB:
+ *
+ *   local   one person, tens of programs a day. 5 x 10 MB per stream is
+ *           years of history and 100 MB on disk.
+ *   remote  a team, and an operator who wants it in a collector. 10 x 10 MB
+ *           per stream, plus JSON Lines on stdout by default.
+ *
+ * Every value is overridable. Secrets are redacted unless an operator turns
+ * that off deliberately.
+ */
+function parseAudit(env, mode, problems) {
+  const fileMb = Number(env.ZA_AUDIT_MAX_FILE_MB ?? 10);
+  const defaultFiles = mode === 'remote' ? 10 : 5;
+
+  // off  — nothing written
+  // api  — stream A only: what this server did to Zoho
+  // full — both streams, including the program that ran
+  const streams = (env.ZA_AUDIT ?? 'api').toLowerCase();
+  if (!['off', 'api', 'full'].includes(streams)) {
+    problems.push(`ZA_AUDIT must be "off", "api" or "full", got "${env.ZA_AUDIT}".`);
+  }
+
+  if (!Number.isFinite(fileMb) || fileMb <= 0) {
+    problems.push(`ZA_AUDIT_MAX_FILE_MB must be a positive number, got "${env.ZA_AUDIT_MAX_FILE_MB}".`);
+  }
+
+  const apiMaxFiles = Number(env.ZA_AUDIT_API_FILES ?? env.ZA_AUDIT_MAX_FILES ?? defaultFiles);
+  const detailMaxFiles = Number(env.ZA_AUDIT_DETAIL_FILES ?? env.ZA_AUDIT_MAX_FILES ?? defaultFiles);
+  for (const [name, value] of [['ZA_AUDIT_API_FILES', apiMaxFiles],
+    ['ZA_AUDIT_DETAIL_FILES', detailMaxFiles]]) {
+    if (!Number.isInteger(value) || value < 1) {
+      problems.push(`${name} must be a whole number of at least 1, got "${value}".`);
+    }
+  }
+
+  const logSecrets = bool(env.ZA_AUDIT_LOG_SECRETS, false);
+  if (logSecrets) {
+    problems.push('ZA_AUDIT_LOG_SECRETS is enabled. Access tokens and client secrets '
+      + 'will be written to disk in clear text. This is for debugging a single '
+      + 'machine, never for a deployment.');
+  }
+
+  return {
+    streams,
+    dir: env.ZA_AUDIT_DIR ?? join(homedir(), '.zoho-analytics-code-mode', 'audit'),
+    maxFileBytes: Math.round(fileMb * 1e6),
+    apiMaxFiles,
+    detailMaxFiles,
+    // The program a model wrote is the record that answers "what did it do",
+    // so it is on by default — but it can carry business data in a criteria
+    // string, which is why the whole stream is opt-in.
+    logCode: bool(env.ZA_AUDIT_LOG_CODE, true),
+    logArguments: bool(env.ZA_AUDIT_LOG_ARGS, true),
+    logSecrets,
+    chain: bool(env.ZA_AUDIT_HASH_CHAIN, true),
+    // Only honoured by the remote server: stdout is the protocol channel for
+    // a stdio one.
+    stdout: bool(env.ZA_AUDIT_STDOUT, mode === 'remote'),
+  };
 }
 
 function bool(value, fallback) {
@@ -107,6 +175,7 @@ export async function loadConfig(env = process.env) {
     throttleRetries: Number(env.ZA_THROTTLE_RETRIES ?? 3),
     timeoutMs: Number(env.ZA_EXEC_TIMEOUT_MS ?? 60_000),
     memoryLimitMb: Number(env.ZA_EXEC_MEMORY_MB ?? 256),
+    audit: parseAudit(env, 'local', problems),
     problems,
   };
 }
@@ -201,6 +270,7 @@ export function loadRemoteConfig(env = process.env) {
     memoryLimitMb: Number(env.ZA_EXEC_MEMORY_MB ?? 256),
     maxSessions: Number(env.ZA_MAX_SESSIONS ?? 100),
     sessionIdleMs: Number(env.ZA_SESSION_IDLE_MS ?? 30 * 60_000),
+    audit: parseAudit(env, 'remote', problems),
     problems,
   };
 }

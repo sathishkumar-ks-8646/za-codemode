@@ -81,11 +81,13 @@ export class Catalog {
   #exposed;
   #registeredToken = null;
   #lastCallAt = 0;
+  #audit;
   #window = [];
 
-  constructor({ config, tokens, manualPath }) {
+  constructor({ config, tokens, manualPath, audit }) {
     this.#config = config;
     this.#tokens = tokens;
+    this.#audit = audit ?? null;
     this.#manual = JSON.parse(readFileSync(manualPath, 'utf8'));
 
     // Two independent filters decide what the sandbox can reach.
@@ -246,7 +248,13 @@ export class Catalog {
    * way out, and every call on it is a bridge callback into this process. The
    * access token stays here — it is never visible to the executing code.
    */
-  async execute(code) {
+  /** The HTTP method a tool uses, for the audit record. */
+  #methodFor(operation) {
+    return this.#manual.tools.find((t) => t.name === operation)
+      ?.tool_call_template?.http_method ?? '?';
+  }
+
+  async execute(code, options = {}) {
     await this.#ensureRegistered();
 
     // Per-execution budget: generated code loops, and every call bills API
@@ -261,7 +269,31 @@ export class Catalog {
           `API call budget exhausted after ${maxToolCalls} calls. Narrow the task, `
           + 'or raise ZA_MAX_TOOL_CALLS.');
       }
-      return this.#throttled(() => original(name, args));
+
+      // Stream A: one line per outbound call, whatever the outcome. The
+      // operation and its identifiers go in; the rows that come back do not.
+      const started = Date.now();
+      const operation = String(name).replace(/^za\./, '');
+      try {
+        const result = await this.#throttled(() => original(name, args));
+        this.#audit?.apiCall({
+          requestId: options.requestId, actor: options.actor,
+          org: this.#config.orgId, operation,
+          method: this.#methodFor(operation), status: 200,
+          ms: Date.now() - started,
+          bytes: JSON.stringify(result ?? '').length,
+        });
+        return result;
+      } catch (err) {
+        this.#audit?.apiCall({
+          requestId: options.requestId, actor: options.actor,
+          org: this.#config.orgId, operation,
+          method: this.#methodFor(operation),
+          status: Number(/HTTP (\d{3})/.exec(err?.message ?? '')?.[1]) || 0,
+          ms: Date.now() - started, bytes: 0,
+        });
+        throw err;
+      }
     };
 
     // The org ID is required on nearly every operation; handing it to the

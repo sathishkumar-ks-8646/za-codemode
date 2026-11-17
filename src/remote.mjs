@@ -24,6 +24,7 @@ import { SessionPool } from './remote/sessions.mjs';
 import { createApp } from './remote/http.mjs';
 import { Catalog } from './catalog.mjs';
 import { Knowledge } from './knowledge.mjs';
+import { createAudit } from './audit.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MANUAL_PATH = process.env.ZA_MANUAL_PATH
@@ -57,13 +58,14 @@ try {
     + 'get_analytics_guide will not be offered');
 }
 
+const audit = await createAudit(config, { mode: 'remote' });
 const store = await createStore(config);
 const zoho = new ZohoOAuth(config);
 const provider = new ZohoAnalyticsOAuthProvider({ store, zoho, config });
-const sessions = new SessionPool({ config, provider, manualPath: MANUAL_PATH });
+const sessions = new SessionPool({ config, provider, manualPath: MANUAL_PATH, audit });
 
 const app = createApp({
-  config, provider, sessions, operationCount, knowledge,
+  config, provider, sessions, operationCount, knowledge, audit,
   domainBreakdown: probe.domainBreakdown,
 });
 
@@ -74,6 +76,7 @@ const server = app.listen(config.port, () => {
   console.error(`[za] public URL  ${config.publicUrl}`);
   console.error(`[za] redirect    ${config.publicUrl}/auth/callback`);
   console.error(`[za] orgs        ${config.orgIds.join(', ')}`);
+  console.error(`[za] audit       ${audit.describe()}`);
   console.error(`[za] domains     ${Object.entries(probe.domainBreakdown)
     .map(([d, n]) => `${d}:${n}`).join(' ')}`);
   if (knowledge) {
@@ -94,6 +97,7 @@ async function shutdown(signal) {
   console.error(`[za] ${signal} — shutting down`);
   sessions.close();
   await new Promise((done) => server.close(done));
+  await audit.flush();
   await store.close();
   process.exit(0);
 }

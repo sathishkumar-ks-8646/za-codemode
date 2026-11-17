@@ -26,6 +26,7 @@ import { Catalog } from './catalog.mjs';
 import { OperationSearch } from './search.mjs';
 import { registerTools } from './tools.mjs';
 import { Knowledge } from './knowledge.mjs';
+import { createAudit } from './audit.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MANUAL_PATH = process.env.ZA_MANUAL_PATH
@@ -43,8 +44,10 @@ if (config.problems.length) {
   process.exit(78);                   // EX_CONFIG
 }
 
+const audit = await createAudit(config, { mode: 'local' });
+
 const catalog = new Catalog({
-  config, tokens: new TokenSource(config), manualPath: MANUAL_PATH,
+  config, tokens: new TokenSource(config), manualPath: MANUAL_PATH, audit,
 });
 
 try {
@@ -74,6 +77,7 @@ console.error(
   + ` (${config.allowWrites ? 'READ-WRITE' : 'read-only'}), org ${config.orgId},`
   + ` ${config.analyticsUrl}`);
 console.error(`[za] credentials — ${config.credentialSource}`);
+console.error(`[za] audit — ${audit.describe()}`);
 console.error(`[za] domains — ${breakdown}`);
 if (knowledge) {
   const p = knowledge.provenance;
@@ -91,6 +95,13 @@ registerTools(server, () => session, {
   operationCount: catalog.exposedOperations,
   domains: config.domains,
   knowledge,
+  audit,
+  scope: () => ({ domains: config.domains, writes: config.allowWrites }),
 });
+
+// Give queued audit lines a chance to reach disk before the host kills us.
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, () => { audit.flush().finally(() => process.exit(0)); });
+}
 
 await server.connect(new StdioServerTransport());

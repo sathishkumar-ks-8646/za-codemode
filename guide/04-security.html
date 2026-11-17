@@ -30,6 +30,7 @@
       <a href="07-remote-deployment.html">Remote</a>
       <a href="08-engine.html">Engine</a>
       <a href="09-credentials.html">Credentials</a>
+      <a href="10-audit.html">Audit</a>
     </nav>
     <button class="icon-btn nav-toggle" id="nav-toggle" type="button"
             aria-expanded="false" aria-controls="sidebar"
@@ -65,6 +66,7 @@
     <a href="07-remote-deployment.html"><span class="n">07</span><span>Remote deployment</span></a>
     <a href="08-engine.html"><span class="n">08</span><span>How the engine works</span></a>
     <a href="09-credentials.html"><span class="n">09</span><span>Credentials &amp; secrets</span></a>
+    <a href="10-audit.html"><span class="n">10</span><span>Audit logging</span></a>
     <h2>Source</h2>
     <a href="04-security.md"><span class="n">md</span><span>This page as Markdown</span></a>
     <a href="README.md"><span class="n">&#8212;</span><span>Folder README</span></a>
@@ -125,7 +127,7 @@ typeof XMLHttpRequest   // "undefined"</code></pre>
 <section id="for-your-security-review">
 <h2><span class="num">07</span>For your security review</h2>
 <p>Points a reviewer usually wants:</p>
-<ul><li><strong>Execution is local.</strong> The server runs on the user's machine under their account. No Zoho-hosted component is involved, and no data is routed through Zoho's agent infrastructure.</li><li><strong>Network egress from the sandbox is zero.</strong> The isolate has no networking primitives. All API traffic originates in the host process.</li><li><strong>Authorisation is the user's own.</strong> The tool can only reach what the configured OAuth grant and Analytics user permit. It adds no privilege.</li><li><strong>The credential boundary holds under a compromised model.</strong> The worst a malicious or manipulated program can do is call exposed operations — which is the same set the user could call themselves.</li><li><strong>There is no audit log today.</strong> This is the gap to flag. The server reports <code>apiCalls</code> per execution but does not persist a record of programs run.</li><li><strong>Centralised control is available.</strong> <a href="07-remote-deployment.html">Remote deployment</a> moves credentials off user machines, adds browser sign-in and an organization allowlist, and gives you one place to revoke access.</li></ul>
+<ul><li><strong>Execution is local.</strong> The server runs on the user's machine under their account. No Zoho-hosted component is involved, and no data is routed through Zoho's agent infrastructure.</li><li><strong>Network egress from the sandbox is zero.</strong> The isolate has no networking primitives. All API traffic originates in the host process.</li><li><strong>Authorisation is the user's own.</strong> The tool can only reach what the configured OAuth grant and Analytics user permit. It adds no privilege.</li><li><strong>The credential boundary holds under a compromised model.</strong> The worst a malicious or manipulated program can do is call exposed operations — which is the same set the user could call themselves.</li><li><strong>There is an audit log.</strong> Outbound API calls are recorded by default; the detail stream, which includes the program that ran, is opt-in. Secrets are never written unless deliberately enabled. See <a href="10-audit.html">Audit logging</a>.</li><li><strong>Centralised control is available.</strong> <a href="07-remote-deployment.html">Remote deployment</a> moves credentials off user machines, adds browser sign-in and an organization allowlist, and gives you one place to revoke access.</li></ul>
 </section>
 <section id="what-this-does-not-protect-against">
 <h2><span class="num">08</span>What this does not protect against</h2>
@@ -168,6 +170,7 @@ typeof XMLHttpRequest   // "undefined"</code></pre>
       <a href="07-remote-deployment.html">07 &nbsp;Remote deployment</a>
       <a href="08-engine.html">08 &nbsp;How the engine works</a>
       <a href="09-credentials.html">09 &nbsp;Credentials &amp; secrets</a>
+      <a href="10-audit.html">10 &nbsp;Audit logging</a>
     </div>
     <div>
       <h2>Reference</h2>

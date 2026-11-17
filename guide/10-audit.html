@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Audit logging &mdash; Zoho Analytics Code Mode for AI agents</title>
+<meta name="description" content="Audit logging for Zoho Analytics Code Mode — two streams, how much history each keeps, what is redacted, and every setting an operator can change.">
+<link rel="stylesheet" href="assets/migration.css">
+<script src="assets/migration.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <a class="wordmark" href="index.html">
+      <svg class="zoho-mark" role="img" aria-label="Zoho" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.66 6.897a1.299 1.299 0 0 0-1.205.765l-.642 1.44-.062-.385A1.291 1.291 0 0 0 5.27 7.648l-4.185.678A1.291 1.291 0 0 0 .016 9.807l.678 4.18a1.293 1.293 0 0 0 1.27 1.087c.074 0 .143-.01.216-.017l4.18-.678c.436-.07.784-.351.96-.723l2.933 1.307a1.304 1.304 0 0 0 .988.026c.321-.12.575-.365.716-.678l.28-.629.038.276a1.297 1.297 0 0 0 1.455 1.103l3.712-.501a1.29 1.29 0 0 0 1.03.514h4.236c.713 0 1.29-.58 1.291-1.291V9.545c0-.712-.58-1.291-1.291-1.291h-4.236c-.079 0-.155.008-.23.022a1.309 1.309 0 0 0-.275-.288c-.275-.21-.614-.3-.958-.253l-4.197.571c-.155.021-.3.07-.432.14L9.159 7.01a1.27 1.27 0 0 0-.499-.113zm-.025.705c.077 0 .159.013.24.052l2.971 1.324c-.128.238-.18.508-.142.782l.357 2.596h.002l-.745 1.672a.59.59 0 0 1-.777.296l-3.107-1.385-.004-.041-.41-2.526L8.1 7.95a.589.589 0 0 1 .536-.348zm-3.159.733c.125 0 .245.039.343.112.13.09.21.227.237.382l.234 1.446-.56 1.259a1.27 1.27 0 0 0-.026.987c.12.322.364.575.678.717l.295.131a.585.585 0 0 1-.428.314l-4.185.678a.59.59 0 0 1-.674-.485l-.678-4.18a.588.588 0 0 1 .485-.674l4.185-.678c.03-.004.064-.01.094-.01zm11.705.09a.59.59 0 0 1 .415.173 1.287 1.287 0 0 0-.416.947v4.237c0 .033.003.065.005.097l-3.55.482a.586.586 0 0 1-.66-.502l-.191-1.403.899-2.017a1.29 1.29 0 0 0-.333-1.5l3.754-.51c.026-.004.051-.004.077-.004zm1.3.532h4.227c.326 0 .588.266.588.588v4.237a.589.589 0 0 1-.588.588h-4.237a.564.564 0 0 1-.12-.013c.47-.246.758-.765.684-1.318zm-5.988.309.254.113c.296.133.43.48.296.777l-.432.97-.207-1.465a.58.58 0 0 1 .09-.395zm5.39.538.453 3.325a.583.583 0 0 1-.453.65zM6.496 11.545l.17 1.052a.588.588 0 0 1-.293-.776zm3.985 4.344a.588.588 0 0 0-.612.603c0 .358.244.61.601.61a.582.582 0 0 0 .607-.608c0-.35-.242-.605-.596-.605zm5.545 0a.588.588 0 0 0-.612.603c0 .358.245.61.602.61a.582.582 0 0 0 .606-.608c0-.35-.24-.605-.596-.605zm-8.537.018a.047.047 0 0 0-.048.047v.085c0 .026.021.047.048.047h.52l-.623.9a.052.052 0 0 0-.009.027v.027c0 .026.021.047.048.047h.815a.047.047 0 0 0 .047-.047v-.085a.047.047 0 0 0-.047-.047h-.55l.606-.9a.05.05 0 0 0 .008-.026v-.028a.047.047 0 0 0-.047-.047zm5.303 0a.047.047 0 0 0-.047.047v1.086c0 .026.02.047.047.047h.135a.047.047 0 0 0 .047-.047v-.454h.545v.454c0 .026.02.047.047.047h.134a.047.047 0 0 0 .047-.047v-1.086a.047.047 0 0 0-.047-.047h-.134a.047.047 0 0 0-.047.047v.453h-.545v-.453a.047.047 0 0 0-.047-.047zm-2.324.164c.25 0 .372.194.372.425 0 .219-.109.425-.358.426-.242 0-.375-.197-.375-.419 0-.235.108-.432.36-.432zm5.545 0c.25 0 .372.194.372.425 0 .219-.108.425-.358.426-.242 0-.374-.197-.374-.419 0-.235.108-.432.36-.432z" fill="currentColor"></path></svg>
+      Analytics Code Mode<span>&nbsp;/ UTCP for AI agents</span>
+    </a>
+    <span class="chip">Zoho Analytics API v2</span>
+    <nav class="topnav" aria-label="Guide chapters">
+      <a href="index.html">Start here</a>
+      <a href="01-what-it-is.html">What it is</a>
+      <a href="02-install.html">Install</a>
+      <a href="03-using-it.html">Using it</a>
+      <a href="04-security.html">Security</a>
+      <a href="05-troubleshooting.html">Troubleshooting</a>
+      <a href="06-operating.html">Operating</a>
+      <a href="07-remote-deployment.html">Remote</a>
+      <a href="08-engine.html">Engine</a>
+      <a href="09-credentials.html">Credentials</a>
+      <a href="10-audit.html" aria-current="page">Audit</a>
+    </nav>
+    <button class="icon-btn nav-toggle" id="nav-toggle" type="button"
+            aria-expanded="false" aria-controls="sidebar"
+            aria-label="Show chapter navigation">&#9776;</button>
+    <button class="icon-btn" id="theme-toggle" type="button"
+            aria-label="Switch colour theme">&#9680;</button>
+  </div>
+</header>
+
+<div class="deadline-bar">
+  <div class="deadline-bar__inner">
+    <span class="chip chip--sdk">zoho-analytics-code-mode-mcp</span>
+    <p>Install with <strong>npx&nbsp;zoho-analytics-code-mode-mcp</strong>, version&nbsp;2.0.0.
+    <a href="02-install.html">Setup in five minutes &rarr;</a></p>
+    <span class="chip chip--deadline">Read-only</span>
+    <p>Write operations are <strong>disabled by default</strong>. Enable them
+    deliberately. <a href="04-security.html">Security model &rarr;</a></p>
+  </div>
+</div>
+
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidenav" aria-label="Chapters">
+    <h2>Guide</h2>
+    <a href="index.html"><span class="n">00</span><span>Start here</span></a>
+    <a href="01-what-it-is.html"><span class="n">01</span><span>What it is</span></a>
+    <a href="02-install.html"><span class="n">02</span><span>Install &amp; configure</span></a>
+    <a href="03-using-it.html"><span class="n">03</span><span>Using it</span></a>
+    <a href="04-security.html"><span class="n">04</span><span>Security &amp; governance</span></a>
+    <a href="05-troubleshooting.html"><span class="n">05</span><span>Troubleshooting &amp; FAQ</span></a>
+    <a href="06-operating.html"><span class="n">06</span><span>Operating &amp; updating</span></a>
+    <a href="07-remote-deployment.html"><span class="n">07</span><span>Remote deployment</span></a>
+    <a href="08-engine.html"><span class="n">08</span><span>How the engine works</span></a>
+    <a href="09-credentials.html"><span class="n">09</span><span>Credentials &amp; secrets</span></a>
+    <a href="10-audit.html" aria-current="page"><span class="n">10</span><span>Audit logging</span></a>
+    <h2>Source</h2>
+    <a href="10-audit.md"><span class="n">md</span><span>This page as Markdown</span></a>
+    <a href="README.md"><span class="n">&#8212;</span><span>Folder README</span></a>
+    </nav>
+  </aside>
+
+  <main class="doc" id="main">
+<header class="page-head">
+  <div class="spine"><i></i><i></i><i></i><i></i></div>
+  <p class="eyebrow">Code Mode &middot; <b>Chapter 10</b></p>
+  <h1>Audit logging</h1>
+  <p class="lede">Every call this server makes to Zoho Analytics can be recorded, and so can every program your agent runs. Both are off-by-default in the sense that matters: <strong>secrets are never written</strong> unless you deliberately ask for them.</p>
+</header>
+<section id="two-streams-because-they-are-not-alike">
+<h2><span class="num">01</span>Two streams, because they are not alike</h2>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Stream</th><th>One line per</th><th>Sensitivity</th><th>Default</th></tr></thead><tbody><tr><td class="col-narrow"><code>api.jsonl</code></td><td>outbound call to Zoho</td><td>low — operations and IDs, no data</td><td><strong>on</strong></td></tr><tr><td class="col-narrow"><code>detail.jsonl</code></td><td>MCP tool call, including the program that ran</td><td><strong>high</strong> — a filter can carry customer names</td><td>off</td></tr></tbody></table></div>
+<pre><code class="lang-json">{"ts":"2026-11-17T09:14:22.431Z","ev":"api","req":"d002c50b","actor":"keychain:default",
+ "org":"55511666","op":"exportDataView","method":"GET","status":200,"ms":412,"bytes":184203}</code></pre>
+<pre><code class="lang-json">{"ts":"2026-11-17T09:14:22.019Z","ev":"execution","req":"d002c50b","actor":"keychain:default",
+ "org":"55511666","tool":"run_analytics_code",
+ "scope":{"domains":["data-operations"],"writes":false},
+ "code":"const ws = await za.getOrgWorkspaces(...)","outcome":"ok","ms":1840,"apiCalls":7}</code></pre>
+<p>The two join on <code>req</code>, so one execution and every API call it caused read as a single story.</p>
+<p>Format is JSON Lines with RFC 3339 UTC timestamps, carrying the <em>when, where, who and what</em> that OWASP asks of an audit record. Authentication outcomes — successes and denials both — are recorded too.</p>
+</section>
+<section id="turning-it-on">
+<h2><span class="num">02</span>Turning it on</h2>
+<pre><code class="lang-bash">ZA_AUDIT=api     # outbound calls only  (default)
+ZA_AUDIT=full    # add the detail stream
+ZA_AUDIT=off     # nothing</code></pre>
+<pre><code class="lang-bash">npx zoho-analytics-code-mode-mcp audit    # where the files are, and verify them</code></pre>
+</section>
+<section id="how-much-history-you-get">
+<h2><span class="num">03</span>How much history you get</h2>
+<p>Defaults differ by server type, because the workloads do. Measured on this server's own records, an API line is about <strong>270 bytes</strong> and an execution record about <strong>1.4 KB</strong>.</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow"></th><th>Local (stdio)</th><th>Remote (HTTP)</th></tr></thead><tbody><tr><td class="col-narrow">File size</td><td>10 MB</td><td>10 MB</td></tr><tr><td class="col-narrow"><code>api.jsonl</code> history</td><td>5 files — 50 MB</td><td>10 files — 100 MB</td></tr><tr><td class="col-narrow"><code>detail.jsonl</code> history</td><td>5 files — 50 MB</td><td>10 files — 100 MB</td></tr><tr><td class="col-narrow">Also to stdout</td><td>no¹</td><td>yes, for a collector</td></tr></tbody></table></div>
+<p>¹ For a stdio server, stdout <em>is</em> the MCP protocol channel — writing there would corrupt it. The setting is ignored rather than honoured.</p>
+<p>What that buys, at the measured sizes:</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Programs per day</th><th>Both streams last</th></tr></thead><tbody><tr><td class="col-narrow">50</td><td>over a year</td></tr><tr><td class="col-narrow">500</td><td>about 60 days</td></tr><tr><td class="col-narrow">5,000</td><td>about 6 days</td></tr><tr><td class="col-narrow">50,000</td><td>under a day</td></tr></tbody></table></div>
+<div class="note note--warn"><div class="note__title">Size caps and retention obligations are different questions</div><p>A one-person setup has years of history in 100 MB. A busy shared server does not. If you owe someone 90 days or a year of retention, raise the file count, or export — see <a href="#shipping-them-somewhere-else">§7</a>. The cap bounds disk, it does not satisfy a policy.</p></div>
+</section>
+<section id="every-setting">
+<h2><span class="num">04</span>Every setting</h2>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Variable</th><th>Default</th><th>What it does</th></tr></thead><tbody><tr><td class="col-narrow"><code>ZA_AUDIT</code></td><td><code>api</code></td><td><code>off</code>, <code>api</code>, or <code>full</code></td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_DIR</code></td><td><code>~/.zoho-analytics-code-mode/audit</code></td><td>Where files are written, mode <code>0700</code></td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_MAX_FILE_MB</code></td><td><code>10</code></td><td>Size of one file before it rotates</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_API_FILES</code></td><td><code>5</code> local, <code>10</code> remote</td><td>How many <code>api.jsonl</code> backups to keep</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_DETAIL_FILES</code></td><td><code>5</code> local, <code>10</code> remote</td><td>How many <code>detail.jsonl</code> backups to keep</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_MAX_FILES</code></td><td>—</td><td>Sets both of the above at once</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_LOG_SECRETS</code></td><td><strong><code>false</code></strong></td><td>Write tokens and secrets in clear</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_LOG_CODE</code></td><td><code>true</code></td><td>Record the program text in the detail stream</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_LOG_ARGS</code></td><td><code>true</code></td><td>Record tool arguments</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_HASH_CHAIN</code></td><td><code>true</code></td><td>Per-line hashes for tamper detection</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_STDOUT</code></td><td><code>false</code> local, <code>true</code> remote</td><td>Also emit JSON Lines on stdout</td></tr></tbody></table></div>
+<p>Total disk is <code>ZA_AUDIT_MAX_FILE_MB × (ZA_AUDIT_API_FILES + ZA_AUDIT_DETAIL_FILES)</code>, plus the two files currently being written.</p>
+</section>
+<section id="what-is-never-written">
+<h2><span class="num">05</span>What is never written</h2>
+<p>Tokens, client secrets, session keys and refresh tokens are stripped before anything reaches disk — by exact value where this process knows it, and by pattern otherwise, including inside the generated program:</p>
+<pre><code class="lang-javascript">// what the model wrote                  // what the log records
+const t = '1000.deadbeef….0123';         const t = '[redacted]';</code></pre>
+<div class="note note--danger"><div class="note__title"><code>ZA_AUDIT_LOG_SECRETS=true</code> means exactly that</div><p>Access tokens and client secrets are written in clear text to a file on disk. It exists for debugging one machine, never for a deployment. The server prints a warning at startup when it is on, and the setting is reported by <code>audit</code>.</p></div>
+<p>Row data is never logged in either stream. The detail stream records what a program <em>did</em>, not what it <em>returned</em>.</p>
+</section>
+<section id="tamper-detection">
+<h2><span class="num">06</span>Tamper detection</h2>
+<p>Each line carries a hash of the previous line from the same writer. Editing or deleting a line breaks the chain from that point, and <code>audit</code> reports where:</p>
+<pre><code class="lang-text">  integrity:
+    api      1,284 lines, chain intact
+    detail   BROKEN at line 412 — chain broken — a line was changed or removed</code></pre>
+<p>Chains are <strong>per writer</strong>, because one file legitimately holds lines from several processes: a local server is respawned every time you restart your agent, and two agent hosts can write at once. Each run verifies on its own, so restarts and interleaving are not mistaken for tampering.</p>
+<div class="note note--info"><div class="note__title">What this does and does not prove</div><p>It detects edits and deletions by something that cannot rewrite the whole file. It does not stop an administrator who can. On a machine the user controls, local logs are useful for "what did my agent do" — they are <strong>not</strong> a compliance control. For that, get them off the host.</p></div>
+</section>
+<section id="shipping-them-somewhere-else">
+<h2><span class="num">07</span>Shipping them somewhere else</h2>
+<p>Remote mode writes JSON Lines to stdout by default, so a container collector picks them up with no extra configuration:</p>
+<pre><code class="lang-bash">docker logs -f zoho-analytics-code-mode | jq 'select(.ev=="api")'</code></pre>
+<p>From there the usual routes apply — Fluent Bit, Vector, the Docker logging driver, or a sidecar into your SIEM. Because the format is one JSON object per line with stable field names, nothing needs parsing rules.</p>
+<p>For local mode, point <code>ZA_AUDIT_DIR</code> at a directory your agent already collects, or tail the files.</p>
+</section>
+<section id="what-is-still-missing">
+<h2><span class="num">08</span>What is still missing</h2>
+<p>Stated plainly, because a reviewer will ask:</p>
+<ul><li><strong>No per-user rate limiting of Analytics calls.</strong> <code>ZA_MAX_TOOL_CALLS</code> is per program, not per user per hour.</li><li><strong>No access log for the audit files themselves.</strong> OWASP asks for an audit trail of the audit trail; that belongs to your filesystem auditing, not here.</li><li><strong>No built-in retention by age.</strong> Rotation is by size. If you need "90 days", size the files for your volume and check with <code>audit</code>.</li><li><strong>Local mode is self-auditing.</strong> See the note in <a href="#tamper-detection">§6</a>.</li></ul>
+</section>
+    <nav class="pager" aria-label="Chapter">
+      <a href="09-credentials.html"><span class="pager__side">Previous</span>&larr; Credentials &amp; secrets</a>
+      
+    </nav>
+  </main>
+
+<aside class="toc" aria-label="On this page">
+  <nav>
+    <h2>On this page</h2>
+    <a href="#two-streams-because-they-are-not-alike">Two streams, because they are not alike</a>
+    <a href="#turning-it-on">Turning it on</a>
+    <a href="#how-much-history-you-get">How much history you get</a>
+    <a href="#every-setting">Every setting</a>
+    <a href="#what-is-never-written">What is never written</a>
+    <a href="#tamper-detection">Tamper detection</a>
+    <a href="#shipping-them-somewhere-else">Shipping them somewhere else</a>
+    <a href="#what-is-still-missing">What is still missing</a>
+  </nav>
+</aside>
+</div>
+
+<footer class="footer">
+  <div class="spine"><i></i><i></i><i></i><i></i></div>
+  <div class="footer__inner">
+    <div>
+      <h2>Guide</h2>
+      <a href="index.html">00 &nbsp;Start here</a>
+      <a href="01-what-it-is.html">01 &nbsp;What it is</a>
+      <a href="02-install.html">02 &nbsp;Install &amp; configure</a>
+      <a href="03-using-it.html">03 &nbsp;Using it</a>
+      <a href="04-security.html">04 &nbsp;Security &amp; governance</a>
+      <a href="05-troubleshooting.html">05 &nbsp;Troubleshooting &amp; FAQ</a>
+      <a href="06-operating.html">06 &nbsp;Operating &amp; updating</a>
+      <a href="07-remote-deployment.html">07 &nbsp;Remote deployment</a>
+      <a href="08-engine.html">08 &nbsp;How the engine works</a>
+      <a href="09-credentials.html">09 &nbsp;Credentials &amp; secrets</a>
+      <a href="10-audit.html">10 &nbsp;Audit logging</a>
+    </div>
+    <div>
+      <h2>Reference</h2>
+      <a href="02-install.html#configuration-reference">Configuration reference</a>
+      <a href="05-troubleshooting.html#error-codes">Error codes</a>
+      <a href="04-security.html#what-the-sandbox-cannot-do">Sandbox boundary</a>
+      <a href="09-credentials.html">Credentials &amp; profiles</a>
+    </div>
+    <div class="footer__meta">
+      <h2>About</h2>
+      <p>Setup and usage guide for Zoho Analytics Code Mode, the MCP server
+      that lets AI agents run sandboxed code against the Analytics v2 API,
+      powered by the UTCP code-mode engine.</p>
+      <p>Rendered from the Markdown in this folder by <code>build.py</code>.
+      Generated 2026-11-17.</p>
+      <p><strong>zoho-analytics-code-mode-mcp v2.0.0. Read-only by default.</strong></p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

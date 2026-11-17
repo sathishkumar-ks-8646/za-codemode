@@ -14,6 +14,10 @@ import {
 } from './credentials.mjs';
 import { DOMAINS } from './catalog.mjs';
 import { clearCachedToken } from './token-cache.mjs';
+import { verifyChain } from './audit.mjs';
+import { loadConfig } from './config.mjs';
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 
 const CTRL_C = '\u0003';
 const BACKSPACE = /^[\u0008\u007f]$/;
@@ -342,6 +346,54 @@ async function status(args) {
   return resolved.problems.length ? 1 : 0;
 }
 
+/** Where the audit logs are, how big, and whether they verify. */
+async function audit(args) {
+  const config = await loadConfig({
+    ...process.env, ZA_PROFILE: flag(args, '--profile') ?? process.env.ZA_PROFILE,
+  });
+  const a = config.audit;
+
+  console.log('\nZoho Analytics Code Mode — audit logs\n');
+  console.log(`  streams         ${a.streams}`);
+  console.log(`  directory       ${a.dir}`);
+  console.log(`  file size       ${(a.maxFileBytes / 1e6).toFixed(0)} MB`);
+  console.log(`  api history     ${a.apiMaxFiles} files `
+    + `(${(a.apiMaxFiles * a.maxFileBytes / 1e6).toFixed(0)} MB)`);
+  console.log(`  detail history  ${a.detailMaxFiles} files `
+    + `(${(a.detailMaxFiles * a.maxFileBytes / 1e6).toFixed(0)} MB)`);
+  console.log(`  secrets         ${a.logSecrets ? 'LOGGED IN CLEAR' : 'redacted'}`);
+  console.log(`  program text    ${a.logCode ? 'recorded' : 'omitted'}`);
+  console.log(`  hash chain      ${a.chain ? 'on' : 'off'}`);
+
+  if (!existsSync(a.dir)) {
+    console.log('\n  Nothing written yet.\n');
+    return 0;
+  }
+
+  console.log('\n  files:');
+  let total = 0;
+  for (const file of readdirSync(a.dir).sort()) {
+    const size = statSync(join(a.dir, file)).size;
+    total += size;
+    console.log(`    ${file.padEnd(20)} ${(size / 1024).toFixed(0).padStart(7)} KB`);
+  }
+  console.log(`    ${'total'.padEnd(20)} ${(total / 1e6).toFixed(1).padStart(7)} MB`);
+
+  if (a.chain) {
+    console.log('\n  integrity:');
+    for (const name of ['api', 'detail']) {
+      const file = join(a.dir, `${name}.jsonl`);
+      if (!existsSync(file)) continue;
+      const result = verifyChain(readFileSync(file, 'utf8').split('\n'));
+      console.log(result.ok
+        ? `    ${name.padEnd(8)} ${result.lines} lines, chain intact`
+        : `    ${name.padEnd(8)} BROKEN at line ${result.line} — ${result.reason}`);
+    }
+  }
+  console.log();
+  return 0;
+}
+
 function help() {
   console.log(`
 Zoho Analytics Code Mode — MCP server for AI agents
@@ -350,6 +402,7 @@ Zoho Analytics Code Mode — MCP server for AI agents
   zoho-analytics-code-mode-mcp login           store credentials in the OS keychain
   zoho-analytics-code-mode-mcp status          show which credential is in use
   zoho-analytics-code-mode-mcp logout          remove stored credentials
+  zoho-analytics-code-mode-mcp audit           where the audit logs are, and verify them
 
 Options
   --profile <name>      keep several organizations side by side (default "default")
@@ -359,6 +412,16 @@ Options
   --accounts-url <u>    accounts host to match it
   --read-only           data access is read-only (the default)
   --allow-writes        permit create, update and delete
+
+Audit logging
+  ZA_AUDIT              off | api | full          (default: api)
+  ZA_AUDIT_DIR          where to write            (default: ~/.zoho-analytics-code-mode/audit)
+  ZA_AUDIT_MAX_FILE_MB  size of one file          (default: 10)
+  ZA_AUDIT_API_FILES    api history, in files     (default: 5 local, 10 remote)
+  ZA_AUDIT_DETAIL_FILES detail history, in files  (default: 5 local, 10 remote)
+  ZA_AUDIT_LOG_SECRETS  log secrets in clear      (default: false)
+  ZA_AUDIT_LOG_CODE     record the program        (default: true)
+  ZA_AUDIT_HASH_CHAIN   tamper detection          (default: true)
 
 Tool groups
   data-modeling-schema   data-operations        dsml
@@ -378,6 +441,7 @@ export async function runCli(argv) {
     case 'login': return login(args);
     case 'logout': return logout(args);
     case 'status': return status(args);
+    case 'audit': return audit(args);
     case 'help': case '--help': case '-h': return help();
     default:
       console.error(`Unknown command "${command}". Try: login, status, logout, help`);

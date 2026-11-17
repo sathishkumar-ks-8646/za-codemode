@@ -45,6 +45,28 @@ The agent sees **four tools**:
 **203 operations** across ten API domains, as a UTCP manual. 76 read-only ones
 are exposed by default; `ZA_DOMAINS` narrows further.
 
+## Audit logging
+
+Two streams, because they carry different things: `api.jsonl` is one line per
+outbound Zoho call (low sensitivity, on by default), `detail.jsonl` is one
+record per tool call including the program that ran (sensitive, opt-in via
+`ZA_AUDIT=full`). They join on a request id.
+
+JSON Lines, RFC 3339 timestamps, OWASP's when/where/who/what. **Secrets are
+never written** unless `ZA_AUDIT_LOG_SECRETS=true` — redacted by exact value
+and by pattern, including inside the generated program. Size-bounded with
+logrotate-style backups; defaults are 5 files locally and 10 remotely, at
+10 MB each, and every value is configurable. Remote mode also emits to stdout
+for a collector; stdio mode never can, because stdout is the protocol channel.
+
+Each line carries a hash of the previous line **from the same writer**, so an
+edit or deletion is detectable while agent restarts and concurrent hosts —
+which legitimately share one file — still verify.
+
+```bash
+npx zoho-analytics-code-mode-mcp audit    # paths, sizes, and chain verification
+```
+
 ## Credentials stay out of the config file
 
 ```bash
@@ -122,6 +144,7 @@ v2-code-execution-mcp/
 │   ├── credentials.mjs      resolution: env -> credential command -> keychain
 │   ├── cli.mjs              login / status / logout
 │   ├── token-cache.mjs      access-token reuse across process restarts
+│   ├── audit.mjs            two audit streams, rotation, redaction, hash chain
 │   ├── bin.mjs              entry point: no args -> server, args -> CLI
 │   ├── config.mjs           environment parsing and startup validation
 │   ├── quiet.mjs            stdout guard — MUST be the first import
@@ -144,7 +167,7 @@ v2-code-execution-mcp/
 
 ```bash
 npm install                  # public registry, pinned in .npmrc
-npm test                     # 89 tests, fully offline
+npm test                     # 101 tests, fully offline
 npm run build                # rebuild both artifacts from the published repos
 npm start                    # local mode, stdio
 npm run start:remote         # remote mode, HTTP
@@ -219,7 +242,7 @@ documented pattern returned `{ rowCount: 0 }`.
 
 ## Status
 
-89 tests pass offline: search quality and domain filtering, name resolution
+101 tests pass offline: search quality and domain filtering, name resolution
 (fuzzy matching, ambiguity, misses, columns, variables, enforced refusal),
 result reading, call pacing, local stdio end-to-end, the knowledge tool, the
 full remote OAuth flow (dynamic registration, PKCE, browser redirect through a
@@ -230,7 +253,8 @@ Not yet done:
 
 - **The write path (`ZA_ALLOW_WRITES=true`) is lightly tested.** Exercise it
   against a non-production organization first.
-- **No audit log** in either mode.
+- **No per-user rate limiting** of Analytics calls; `ZA_MAX_TOOL_CALLS` is per
+  program, not per user per hour.
 - **The knowledge bundle is a snapshot**, not a live view. Its age is reported
   at startup and warned about past 90 days.
 

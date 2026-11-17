@@ -106,7 +106,7 @@ Points a reviewer usually wants:
 - **Network egress from the sandbox is zero.** The isolate has no networking primitives. All API traffic originates in the host process.
 - **Authorisation is the user's own.** The tool can only reach what the configured OAuth grant and Analytics user permit. It adds no privilege.
 - **The credential boundary holds under a compromised model.** The worst a malicious or manipulated program can do is call exposed operations — which is the same set the user could call themselves.
-- **There is no audit log today.** This is the gap to flag. The server reports `apiCalls` per execution but does not persist a record of programs run.
+- **There is an audit log.** Outbound API calls are recorded by default; the detail stream, which includes the program that ran, is opt-in. Secrets are never written unless deliberately enabled. See [Audit logging](10-audit.md).
 - **Centralised control is available.** [Remote deployment](07-remote-deployment.md) moves credentials off user machines, adds browser sign-in and an organization allowlist, and gives you one place to revoke access.
 
 ## 8. What this does not protect against

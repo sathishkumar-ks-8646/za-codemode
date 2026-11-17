@@ -89,6 +89,7 @@ Deploy it once and let everyone sign in through their browser — no per-user cr
 | [07 Remote deployment](07-remote-deployment.md) | Running one shared instance for a team, with browser sign-in |
 | [08 How the engine works](08-engine.md) | UTCP, code mode, the isolate and the knowledge base |
 | [09 Credentials & profiles](09-credentials.md) | The login command, tool-group scoping, and where secrets are stored |
+| [10 Audit logging](10-audit.md) | Two streams, how much history, and what is never written |
 
 ## 6. The three things to know before you start
 
