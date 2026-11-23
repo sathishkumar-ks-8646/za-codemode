@@ -47,6 +47,27 @@ Zoho Analytics Code Mode — cannot start:
 | 78 | Configuration problem — the message lists every one |
 | 70 | Startup failed, usually a credential rejection |
 
+### "failed to map segment from shared object"
+
+The clone is on a filesystem mounted `noexec`, so the sandbox's native module cannot be loaded even though it installed correctly. `/tmp` is the usual culprit, and so are some mounted volumes and hardened `/home` setups. Check it:
+
+```bash
+findmnt -no TARGET,OPTIONS -T .
+```
+
+If the options list `noexec`, move the clone somewhere executable — your home directory on most machines — and run `npm install` again there. Nothing else needs changing.
+
+### "EACCES … symlink" from npm link
+
+Your npm prefix is a root-owned system directory, which is normal for a distribution-packaged Node. Do not reach for `sudo`; point npm at a prefix you own:
+
+```bash
+npm config set prefix ~/.local
+npm link
+```
+
+Make sure `~/.local/bin` is on your `PATH`. Or skip `npm link` entirely and use the `node` plus absolute path form — `za-codemode login` prints the matching agent configuration either way.
+
 :::warn Never print to stdout from a fork of this server
 An MCP stdio server's stdout *is* the protocol channel. A single stray `console.log` corrupts it and the agent disconnects with no useful message. `src/quiet.mjs` redirects all console output to stderr and must stay the first import.
 :::

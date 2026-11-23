@@ -17,7 +17,7 @@ import { clearCachedToken } from './token-cache.mjs';
 import { verifyChain } from './audit.mjs';
 import { loadConfig } from './config.mjs';
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve, delimiter } from 'node:path';
 
 const CTRL_C = '\u0003';
 const BACKSPACE = /^[\u0008\u007f]$/;
@@ -292,8 +292,12 @@ async function login(args) {
     console.log(JSON.stringify({
       mcpServers: {
         'zoho-analytics-code-mode': {
-          command: 'npx',
-          args: ['-y', 'zoho-analytics-codemode'],
+          // Whatever started this process is what the agent should start too.
+          // Installed by `npm link`, that is the `za-codemode` command; run
+          // from a clone without it, an absolute path to bin.mjs. Printing
+          // argv is the only way to be right in both cases — and printing
+          // `npx` would be wrong in all of them until the package ships.
+          ...invocation(),
           ...(profile === 'default' ? {} : { env: { ZA_PROFILE: profile } }),
         },
       },
@@ -392,6 +396,26 @@ async function audit(args) {
   }
   console.log();
   return 0;
+}
+
+/**
+ * How the agent should spawn this server, derived from how we were spawned.
+ *
+ * `process.argv[1]` is the resolved script, so a `za-codemode` on PATH and a
+ * bare `node /path/to/src/bin.mjs` are distinguishable: the former has a bin
+ * symlink pointing at it. Preferring the short command when it resolves keeps
+ * the printed block copy-pasteable, and falling back to the absolute path
+ * keeps it *correct* when `npm link` was skipped — which is the case the
+ * printed block used to get wrong.
+ */
+function invocation() {
+  const onPath = delimiter && (process.env.PATH ?? '')
+    .split(delimiter)
+    .some((dir) => dir && existsSync(join(dir, 'za-codemode')));
+
+  return onPath
+    ? { command: 'za-codemode' }
+    : { command: process.execPath, args: [resolve(process.argv[1])] };
 }
 
 function help() {
