@@ -263,8 +263,8 @@
         if (tab && set.contains(tab)) { select(set, tab, true); }
       });
 
-      // Left/right and up/down both work: the set is a column on wide
-      // screens and a row on narrow ones, so neither axis is wrong.
+      // The row is horizontal, so left/right is the expected axis; up/down is
+      // accepted too rather than silently doing nothing under a reader's hand.
       set.addEventListener("keydown", function (ev) {
         var current = tabs.indexOf(document.activeElement);
         if (current < 0) { return; }

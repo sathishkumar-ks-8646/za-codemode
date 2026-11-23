@@ -20,7 +20,7 @@ here is exactly the subset these documents use:
     | a | b |                 GFM pipe tables
     ```lang … ```             fenced code
     :::kind Title … :::       callout block; kind = danger warn good info sunset
-    +++tabs [group] … +++     vertical tab set, panes split on `+++tab Label`
+    +++tabs [group] … +++     horizontal tab set, panes split on `+++tab Label`
     <div …> … </div>          a raw HTML block passes through untouched
     **bold** *em* `code` [t](u)
 
@@ -419,7 +419,7 @@ class Renderer:
 
     # -- tabs ---------------------------------------------------------------
     def tabs(self, group: str, body: list[str]) -> str:
-        """A vertical tab set: the labels in a column, one pane shown at a time.
+        """A horizontal tab set: labels in a row, one pane shown at a time.
 
         Panes are split on `+++tab <Label>` and each is rendered as ordinary
         markdown, so code, tables and callouts all work inside one.
@@ -468,7 +468,7 @@ class Renderer:
 
         return (
             '<div class="tabs"%s>'
-            '<div class="tabs__list" role="tablist" aria-orientation="vertical">'
+            '<div class="tabs__list" role="tablist" aria-orientation="horizontal">'
             "%s</div><div class=\"tabs__panels\">%s</div></div>"
         ) % (
             ' data-tab-group="%s"' % _esc(group) if group else "",

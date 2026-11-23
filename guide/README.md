@@ -102,7 +102,7 @@ The markdown subset the renderer understands:
 | `++cell++` in a table | Bold in the "new" green. |
 | ` ```lang ` | A code block with a copy button. |
 | `:::kind Title` … `:::` | A callout. `kind` is `danger`, `warn`, `good`, `info` or `sunset`. |
-| `+++tabs [group]` … `+++` | A vertical tab set. Panes are split on `+++tab Label`. |
+| `+++tabs [group]` … `+++` | A horizontal tab set. Panes are split on `+++tab Label`. |
 | A line starting with `<` | A raw HTML block, passed through. |
 
 ### Tabs
@@ -119,7 +119,7 @@ operating system, their agent — and the others are noise:
 +++
 ```
 
-Two things to know:
+Three things to know:
 
 - **Name the group** when more than one set on a page asks the same question.
   Sets sharing a group name switch together and the choice is remembered, so a
