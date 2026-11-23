@@ -31,9 +31,14 @@ registry, or ship it inside another product.
 - **The guide** (every `.md` and the rendered `.html` under `guide/`):
   [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/),
   so the setup and security chapters can be quoted and adapted with attribution.
-- **Generated artifacts** (`manual/`, `knowledge/`): inherit the terms of their
-  upstream sources, `zoho/analytics-oas` and `zoho/analytics-okf`. Confirm those
-  are compatible with redistribution in a package before publishing one.
+- **`knowledge/knowledge.json`**: cleared for redistribution. It is generated
+  from [github.com/zoho/analytics-okf](https://github.com/zoho/analytics-okf),
+  a public release owned by this repository's author, who permits it being
+  bundled with and distributed as part of this tool. The bundle records the OKF
+  version it came from, so its provenance stays checkable.
+- **`manual/analytics.utcp.json`**: inherits the terms of
+  [github.com/zoho/analytics-oas](https://github.com/zoho/analytics-oas).
+  Confirm those permit redistribution in a package before publishing one.
 - **Trademarks**: Zoho, Zoho Analytics and related marks are not licensed by any of
   the above and remain the property of Zoho Corporation.
 
@@ -43,7 +48,8 @@ registry, or ship it inside another product.
 2. This file is replaced with the approved licence text, and `package.json`'s
    `license` field is set to the matching SPDX identifier instead of
    `SEE LICENSE IN LICENSE.md`.
-3. The upstream terms of `analytics-oas` and `analytics-okf` are confirmed to
-   permit redistributing the generated artifacts in `manual/` and `knowledge/`.
+3. The upstream terms of `analytics-oas` are confirmed to permit redistributing
+   the generated `manual/analytics.utcp.json`. (`knowledge/` is already cleared
+   — see above.)
 
 Copyright (c) Zoho Corporation Pvt. Ltd. All rights reserved.
