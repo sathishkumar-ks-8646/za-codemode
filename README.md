@@ -119,9 +119,10 @@ za-codemode/
 ├── package.json             npm manifest — bin: za-codemode
 ├── .npmrc                   pins the public registry (@utcp/* is not mirrored)
 ├── .github/workflows/ci.yml tests on Node 20 + 22; guide links; HTML in step
-├── Dockerfile               UNRELEASED remote mode; isolated-vm, non-root
-├── docker-compose.yml       UNRELEASED reference deployment with Redis
-├── .env.example             UNRELEASED remote variables, documented
+├── deploy/                  UNRELEASED remote mode only — see its README
+│   ├── Dockerfile           builds the HTTP server; isolated-vm, non-root
+│   ├── docker-compose.yml   reference deployment with Redis
+│   └── .env.example         every remote variable, documented
 ├── src/
 │   ├── server.mjs           LOCAL entrypoint — stdio, single user
 │   ├── remote.mjs           REMOTE entrypoint — HTTP, multi-user

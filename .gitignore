@@ -1,6 +1,7 @@
 node_modules/
 
-# Credentials — never commit. See .env.example for the variable list.
+# Credentials — never commit. See deploy/.env.example for the variable list.
+# The pattern has no leading slash, so it matches at any depth (deploy/.env).
 .env
 .env.live
 .env.local

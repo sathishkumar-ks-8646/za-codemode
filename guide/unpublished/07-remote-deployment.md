@@ -59,6 +59,7 @@ A Self Client issues single-user personal tokens and cannot perform the redirect
 ## 4. Step 2 — Write the `.env`
 
 ```bash
+cd deploy
 cp .env.example .env
 ```
 
@@ -88,19 +89,21 @@ It must equal the number of proxies actually in front of this server. Setting it
 
 ## 5. Step 3 — Run it
 
+The build context is the repository root, because the image needs `src/` and the two generated artifacts, so run this from there:
+
 ```bash
-docker build -t za-codemode:remote .
+docker build -f deploy/Dockerfile -t za-codemode:remote .
 
 docker run --name zoho-analytics-code-mode \
-  --env-file .env \
+  --env-file deploy/.env \
   -p 4000:4000 \
   za-codemode:remote
 ```
 
-Or with Redis, which you need for more than one replica:
+Or with Redis, which you need for more than one replica — compose already sets the context up:
 
 ```bash
-docker compose up -d
+cd deploy && docker compose up -d
 ```
 
 Put TLS in front of it. `MCP_SERVER_PUBLIC_URL` must be `https` outside localhost — the server refuses to start otherwise, because OAuth redirects and bearer tokens must not travel in clear text.

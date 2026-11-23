@@ -1,8 +1,13 @@
-# Zoho Analytics Code Mode — remote, multi-user server.
+# UNRELEASED — Zoho Analytics Code Mode, remote multi-user server.
 #
-#   docker build -t za-codemode:remote .
-#   docker run --name zoho-analytics-code-mode --env-file .env -p 4000:4000 \
-#     za-codemode:remote
+# This is not the shipped product. The released server is stdio, installed from
+# a clone and spawned by the agent host; it needs no image. See ./README.md.
+#
+# Build from the repository root, not from this directory:
+#
+#   docker build -f deploy/Dockerfile -t za-codemode:remote .
+#   docker run --name zoho-analytics-code-mode \
+#     --env-file deploy/.env -p 4000:4000 za-codemode:remote
 FROM node:22-bookworm-slim AS build
 
 WORKDIR /app

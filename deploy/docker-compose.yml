@@ -1,9 +1,19 @@
+# UNRELEASED — the multi-user HTTP server, which is not part of the shipped
+# product. See ./README.md before deploying any of this.
+#
 # Reference deployment: the server plus Redis, so more than one replica can
 # share sessions. With STORAGE_BACKEND=memory a single instance is fine and
 # the redis service can be removed.
+#
+# The build context is the repository root, one level up, because the image
+# needs src/ and the two generated artifacts. Run it from here:
+#
+#   cd deploy && docker compose up --build
 services:
   code-mode-mcp:
-    build: .
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
     image: za-codemode:remote
     env_file: .env
     environment:
