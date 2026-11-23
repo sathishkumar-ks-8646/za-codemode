@@ -62,19 +62,19 @@ With `ZA_ALLOW_WRITES=true`, a program can create, update and **delete** workspa
 
 If you need writes, reduce the blast radius first:
 
-1. **Use a dedicated Self Client** with only the scopes you actually need, so the OAuth grant — not the flag — is the real boundary.
+1. **Use a dedicated Self Client** with only the scopes you actually need, so the OAuth grant — not the flag — is the real boundary. Avoid `ZohoAnalytics.fullaccess.all`; see [Which scopes](02-install.md#which-scopes).
 2. **Point it at a non-production organization** while you learn what your agent does.
 3. **Use an Analytics user with limited permissions.** The API can only do what that user can do.
 4. **Keep the call budget low** (`ZA_MAX_TOOL_CALLS=25`) so a runaway loop stops early.
 
 ## 4. Where credentials live
 
-Your client ID, secret and refresh token sit in your agent's configuration file, in plain text, on your machine. The server reads them at startup, exchanges the refresh token for an access token, and keeps that token in memory.
+Your client ID, secret and refresh token go into your operating system's keychain — macOS Keychain, Windows Credential Manager, Linux Secret Service — put there once by `za-codemode login`. Your agent's configuration holds no secret, only the command to run. The server reads the credential at startup, exchanges the refresh token for an access token, and keeps that token in memory. See [Credentials & profiles](09-credentials.md).
 
 **The access token is never passed into the sandbox.** It is substituted into the request templates in the host process, after the sandbox has handed over the call. Code in the isolate cannot read it, log it, or return it.
 
-:::warn Protect the configuration file
-Do not commit it. Do not paste it into a chat. Use a Self Client created specifically for this tool so it can be revoked without affecting anything else.
+:::warn If you set credentials by environment instead
+`ANALYTICS_*` variables and `ZA_CREDENTIAL_COMMAND` are supported for containers and CI, and they take precedence over the keychain. A refresh token in a config file or a shell profile is plain text that does not expire: do not commit it, do not paste it into a chat, and use a Self Client created specifically for this tool so it can be revoked without affecting anything else.
 :::
 
 ## 5. What reaches your AI provider
@@ -115,5 +115,5 @@ Stated plainly:
 
 - **A wrong answer.** The sandbox guarantees safety, not correctness. A model can still filter on the wrong column or misread a date range. The one case that *is* guarded is substitution: a named variable, view, column or folder that cannot be resolved halts the run rather than being swapped for something else, and that is enforced outside the sandbox.
 - **Data disclosure through results.** Anything returned goes to your AI provider.
-- **A compromised machine.** The configuration file holds a refresh token; a local attacker who reads it has your API access until you revoke it.
+- **A compromised machine.** The keychain unlocks with your login session, so anything running as you can read the refresh token. An attacker who does has your API access until the Self Client is revoked.
 - **Prompt injection via data.** If your data contains text crafted to influence a model, that text can reach the model through results. Returning aggregates rather than raw text columns reduces the exposure.

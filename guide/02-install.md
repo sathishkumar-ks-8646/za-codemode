@@ -56,19 +56,54 @@ You need three OAuth values from Zoho. Create a **Self Client** in the Developer
 1. Go to [api-console.zoho.com](https://api-console.zoho.com) and sign in with the account that owns the data.
 2. Choose **Add Client → Self Client → Create**.
 3. Copy the **Client ID** and **Client Secret**.
-4. Open the **Generate Code** tab and enter this scope:
-   ```text
-   ZohoAnalytics.data.all,ZohoAnalytics.metadata.read,ZohoAnalytics.modeling.read
-   ```
+4. Open the **Generate Code** tab and enter the scopes you need — see [below](#which-scopes).
 5. Pick a validity of 10 minutes, give it a description, and click **Create**. Copy the code immediately — it is shown once.
 
 You also need your **Organization ID**: in Zoho Analytics, go to **Settings → Organization**.
 
-:::warn Scopes decide what the agent can reach
-The scopes above are read-oriented. If you later allow write operations you will need the matching write scopes, and that is worth thinking about before you grant them. See [Security](04-security.md#enabling-write-operations).
+## 4. Which scopes
+
+:::info The authoritative list is Zoho's
+Scopes are an Analytics API concept, not something this tool defines, and the set grows. Read [Authentication](https://www.zoho.com/analytics/api/v2/authentication.html) in the API documentation and choose from there. What follows is orientation, not a substitute.
 :::
 
-## 4. Step 3 — Store them
+A scope is `ZohoAnalytics.<family>.<operation>`, where `<operation>` is one of `read`, `create`, `update`, `delete` or `all`. Supply them to **Generate Code** as a comma-separated list:
+
+```text
+ZohoAnalytics.metadata.read,ZohoAnalytics.data.read,ZohoAnalytics.modeling.read
+```
+
+The families:
+
+| ^Family | Covers |
+|---|---|
+| `metadata` | Organizations, workspaces, views, folders, trash, dependents |
+| `data` | Row data: import, export, add, update and delete rows, sync and refetch |
+| `modeling` | Schema objects: tables, columns, lookups, query tables, formulas, variables |
+| `share` | Sharing, publishing, private and public URLs, slideshows, groups, workspace users |
+| `embed` | Embed URLs, for Embedded Analytics (OEM) customers |
+| `usermanagement` | Organization users, roles, subscription and resource usage |
+| `fullaccess` | Everything above — `ZohoAnalytics.fullaccess.all` |
+
+Three sets that match how this tool is actually used:
+
+| ^You want to… | Grant |
+|---|---|
+| Read and analyse, nothing more | `ZohoAnalytics.metadata.read`, `ZohoAnalytics.data.read`, `ZohoAnalytics.modeling.read` |
+| Also build tables, reports and formulas | add `ZohoAnalytics.modeling.all`, `ZohoAnalytics.data.all` |
+| Not think about it | `ZohoAnalytics.fullaccess.all` |
+
+:::danger `fullaccess.all` is the wrong default for this tool
+It is the simplest answer and the wrong one here. This server executes code written by a language model, and **the OAuth grant — not `ZA_ALLOW_WRITES` — is the real boundary**: the flag is a setting on your own machine, while the grant is enforced by Zoho. A read-only grant means a misread prompt *cannot* delete a workspace, whatever the model writes or the configuration says.
+
+Grant it only when you have a reason, and prefer a Self Client created for this tool alone so it can be revoked without affecting anything else. See [Security](04-security.md#enabling-write-operations).
+:::
+
+:::warn A missing scope surfaces late
+An access token without the scope an operation needs fails with error **8535**, at the moment your agent makes the call — not at setup. Ask your agent `get_analytics_guide("8535")` if you see it. If you widen what the server may reach with `ZA_DOMAINS` or `ZA_ALLOW_WRITES`, check the grant still covers it.
+:::
+
+## 5. Step 3 — Store them
 
 Run this **in a terminal** — not through your agent. It is interactive, and the server your agent spawns has no terminal to prompt from:
 
@@ -76,7 +111,7 @@ Run this **in a terminal** — not through your agent. It is interactive, and th
 za-codemode login
 ```
 
-It asks for your data centre, the Client ID and Secret, your Organization ID, and a refresh token — or paste the Generate Code grant from step 1 and it will do the exchange for you.
+It asks for your data centre, the Client ID and Secret, your Organization ID, and a refresh token — or paste the Generate Code grant from [step 2](#step-2-create-a-self-client) and it will do the exchange for you.
 
 It then asks **which groups of tools this profile may use** and whether writes are allowed. Pick the smallest set that answers your questions; read-only is the default and the recommendation.
 
@@ -92,7 +127,7 @@ Stored under "zoho-analytics-codemode" / "default" in the Keychain.
 
 Credentials go into your operating system's keychain — macOS Keychain, Windows Credential Manager, Linux Secret Service. [Credentials & profiles](09-credentials.md) covers the whole command, scripting it, multiple profiles, and the one Linux caveat.
 
-## 5. Step 4 — Add it to your agent
+## 6. Step 4 — Add it to your agent
 
 `login` prints this block. Note that it holds no credentials:
 
@@ -155,7 +190,7 @@ If you created a named profile, that is the only thing `env` needs:
 "env": { "ZA_PROFILE": "eu-reporting" }
 ```
 
-## 6. Step 5 — Check it works
+## 7. Step 5 — Check it works
 
 Ask your agent:
 
@@ -163,7 +198,7 @@ Ask your agent:
 
 A healthy run calls `search_analytics_api`, then `run_analytics_code`, and answers with a number. If nothing happens, go to [Troubleshooting](05-troubleshooting.md).
 
-## 7. Choosing what to expose
+## 8. Choosing what to expose
 
 `login` asks this, and stores the answer with the profile. Two independent choices decide which of the 203 operations the sandbox can reach.
 
@@ -208,7 +243,7 @@ The server prints the breakdown at startup:
 [za] knowledge — 17 guides, 385 error codes (OKF 2.0.0, generated 2026-10-27, 15d old)
 ```
 
-## 8. Configuration reference
+## 9. Configuration reference
 
 Most people need none of these — `login` covers the credentials and the tool
 scope. They exist for containers, CI, and for overriding a stored profile.
