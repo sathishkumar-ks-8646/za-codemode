@@ -1,6 +1,6 @@
 {
   "name": "zoho-analytics-codemode",
-  "version": "2.0.0",
+  "version": "1.0.0",
   "description": "UTCP code mode for Zoho Analytics \u2014 an MCP server that lets AI agents write and run sandboxed code against the Analytics v2 API, with the OKF knowledge base built in",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -50,6 +50,7 @@
     "@utcp/sdk": "^1.2.0",
     "@utcp/text": "^1.1.0",
     "express": "^5.3.0",
+    "isolated-vm": "^6.0.0",
     "zod": "^4.6.7"
   },
   "optionalDependencies": {

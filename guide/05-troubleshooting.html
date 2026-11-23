@@ -27,7 +27,6 @@
       <a href="04-security.html">Security</a>
       <a href="05-troubleshooting.html" aria-current="page">Troubleshooting</a>
       <a href="06-operating.html">Operating</a>
-      <a href="07-remote-deployment.html">Remote</a>
       <a href="08-engine.html">Engine</a>
       <a href="09-credentials.html">Credentials</a>
       <a href="10-audit.html">Audit</a>
@@ -42,8 +41,8 @@
 
 <div class="deadline-bar">
   <div class="deadline-bar__inner">
-    <span class="chip chip--sdk">za-codemode</span>
-    <p>Install with <strong>npx&nbsp;za-codemode</strong>, version&nbsp;2.0.0.
+    <span class="chip chip--sdk">zoho-analytics-codemode</span>
+    <p>Install with <strong>npx&nbsp;zoho-analytics-codemode</strong>, version&nbsp;1.0.0.
     <a href="02-install.html">Setup in five minutes &rarr;</a></p>
     <span class="chip chip--deadline">Read-only</span>
     <p>Write operations are <strong>disabled by default</strong>. Enable them
@@ -63,7 +62,6 @@
     <a href="04-security.html"><span class="n">04</span><span>Security &amp; governance</span></a>
     <a href="05-troubleshooting.html" aria-current="page"><span class="n">05</span><span>Troubleshooting &amp; FAQ</span></a>
     <a href="06-operating.html"><span class="n">06</span><span>Operating &amp; updating</span></a>
-    <a href="07-remote-deployment.html"><span class="n">07</span><span>Remote deployment</span></a>
     <a href="08-engine.html"><span class="n">08</span><span>How the engine works</span></a>
     <a href="09-credentials.html"><span class="n">09</span><span>Credentials &amp; secrets</span></a>
     <a href="10-audit.html"><span class="n">10</span><span>Audit logging</span></a>
@@ -89,7 +87,7 @@
 <p>A stdio server that exits is reported by most agents as a bare "failed to start". Run it by hand to see the real reason:</p>
 <pre><code class="lang-bash">ANALYTICS_CLIENT_ID=... ANALYTICS_CLIENT_SECRET=... \
 ANALYTICS_REFRESH_TOKEN=... ANALYTICS_ORG_ID=... \
-npx -y zoho-analytics-codemode</code></pre>
+za-codemode</code></pre>
 <p>A healthy start prints one line and then waits:</p>
 <pre><code class="lang-text">[za] ready — 76/203 operations (read-only), org 2375824000000000001, https://analyticsapi.zoho.com</code></pre>
 <p>A configuration problem prints exactly what is wrong:</p>
@@ -140,13 +138,13 @@ npx -y zoho-analytics-codemode</code></pre>
 <h3 id="q-where-does-my-data-go">Q. Where does my data go?</h3>
 <p>From Zoho Analytics to your machine, and from there only what the program returns goes to your AI provider. Nothing is routed through Zoho's agent infrastructure.</p>
 <h3 id="q-can-i-run-it-for-my-whole-team-from-one-place">Q. Can I run it for my whole team from one place?</h3>
-<p>Yes. Run it in remote mode: one instance, browser sign-in through Zoho, an organization allowlist, and nothing for users to install. See <a href="07-remote-deployment.html">Remote deployment</a>.</p>
+<p>Not yet. Today each person installs it and stores their own credential, which also means each person's access is exactly their own Analytics permissions. A shared, multi-user deployment with browser sign-in is built but not released.</p>
 <h3 id="q-which-operations-are-available">Q. Which operations are available?</h3>
 <p>All 203 from the v2 OpenAPI specifications; 76 read-only ones are exposed by default. Ask your agent to search — that is what <code>search_analytics_api</code> is for.</p>
 <h3 id="q-can-the-model-see-my-credentials">Q. Can the model see my credentials?</h3>
 <p>No. They stay in the host process and are substituted into requests after the sandbox hands over a call.</p>
 <h3 id="q-is-there-an-audit-log">Q. Is there an audit log?</h3>
-<p>Not yet, in either mode. Each execution reports its API call count, but programs are not persisted. If you need to know who ran what, you will have to add it — see <a href="07-remote-deployment.html#what-this-does-not-give-you">Remote deployment</a>.</p>
+<p>Yes. One line per outbound Zoho call is written by default; set <code>ZA_AUDIT=full</code> to also record the program each execution ran. Secrets are redacted, files rotate, and each line carries a hash of the previous one so edits are detectable. See <a href="10-audit.html">Audit logging</a>.</p>
 <h3 id="q-why-does-it-need-node-20">Q. Why does it need Node 20?</h3>
 <p>The sandbox is a V8 isolate from a native module that requires a modern Node. Older versions will fail to install it.</p>
 <h3 id="q-can-i-add-my-own-operations">Q. Can I add my own operations?</h3>
@@ -185,7 +183,6 @@ npx -y zoho-analytics-codemode</code></pre>
       <a href="04-security.html">04 &nbsp;Security &amp; governance</a>
       <a href="05-troubleshooting.html">05 &nbsp;Troubleshooting &amp; FAQ</a>
       <a href="06-operating.html">06 &nbsp;Operating &amp; updating</a>
-      <a href="07-remote-deployment.html">07 &nbsp;Remote deployment</a>
       <a href="08-engine.html">08 &nbsp;How the engine works</a>
       <a href="09-credentials.html">09 &nbsp;Credentials &amp; secrets</a>
       <a href="10-audit.html">10 &nbsp;Audit logging</a>
@@ -203,8 +200,8 @@ npx -y zoho-analytics-codemode</code></pre>
       that lets AI agents run sandboxed code against the Analytics v2 API,
       powered by the UTCP code-mode engine.</p>
       <p>Rendered from the Markdown in this folder by <code>build.py</code>.
-      Generated 2026-11-17.</p>
-      <p><strong>za-codemode v2.0.0. Read-only by default.</strong></p>
+      Generated 2026-11-23.</p>
+      <p><strong>zoho-analytics-codemode v1.0.0. Read-only by default.</strong></p>
     </div>
   </div>
 </footer>

@@ -27,7 +27,6 @@
       <a href="04-security.html">Security</a>
       <a href="05-troubleshooting.html">Troubleshooting</a>
       <a href="06-operating.html">Operating</a>
-      <a href="07-remote-deployment.html">Remote</a>
       <a href="08-engine.html">Engine</a>
       <a href="09-credentials.html">Credentials</a>
       <a href="10-audit.html" aria-current="page">Audit</a>
@@ -42,8 +41,8 @@
 
 <div class="deadline-bar">
   <div class="deadline-bar__inner">
-    <span class="chip chip--sdk">za-codemode</span>
-    <p>Install with <strong>npx&nbsp;za-codemode</strong>, version&nbsp;2.0.0.
+    <span class="chip chip--sdk">zoho-analytics-codemode</span>
+    <p>Install with <strong>npx&nbsp;zoho-analytics-codemode</strong>, version&nbsp;1.0.0.
     <a href="02-install.html">Setup in five minutes &rarr;</a></p>
     <span class="chip chip--deadline">Read-only</span>
     <p>Write operations are <strong>disabled by default</strong>. Enable them
@@ -63,7 +62,6 @@
     <a href="04-security.html"><span class="n">04</span><span>Security &amp; governance</span></a>
     <a href="05-troubleshooting.html"><span class="n">05</span><span>Troubleshooting &amp; FAQ</span></a>
     <a href="06-operating.html"><span class="n">06</span><span>Operating &amp; updating</span></a>
-    <a href="07-remote-deployment.html"><span class="n">07</span><span>Remote deployment</span></a>
     <a href="08-engine.html"><span class="n">08</span><span>How the engine works</span></a>
     <a href="09-credentials.html"><span class="n">09</span><span>Credentials &amp; secrets</span></a>
     <a href="10-audit.html" aria-current="page"><span class="n">10</span><span>Audit logging</span></a>
@@ -97,20 +95,20 @@
 <pre><code class="lang-bash">ZA_AUDIT=api     # outbound calls only  (default)
 ZA_AUDIT=full    # add the detail stream
 ZA_AUDIT=off     # nothing</code></pre>
-<pre><code class="lang-bash">npx zoho-analytics-codemode audit    # where the files are, and verify them</code></pre>
+<pre><code class="lang-bash">za-codemode audit    # where the files are, and verify them</code></pre>
 </section>
 <section id="how-much-history-you-get">
 <h2><span class="num">03</span>How much history you get</h2>
-<p>Defaults differ by server type, because the workloads do. Measured on this server's own records, an API line is about <strong>270 bytes</strong> and an execution record about <strong>1.4 KB</strong>.</p>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow"></th><th>Local (stdio)</th><th>Remote (HTTP)</th></tr></thead><tbody><tr><td class="col-narrow">File size</td><td>10 MB</td><td>10 MB</td></tr><tr><td class="col-narrow"><code>api.jsonl</code> history</td><td>5 files — 50 MB</td><td>10 files — 100 MB</td></tr><tr><td class="col-narrow"><code>detail.jsonl</code> history</td><td>5 files — 50 MB</td><td>10 files — 100 MB</td></tr><tr><td class="col-narrow">Also to stdout</td><td>no¹</td><td>yes, for a collector</td></tr></tbody></table></div>
-<p>¹ For a stdio server, stdout <em>is</em> the MCP protocol channel — writing there would corrupt it. The setting is ignored rather than honoured.</p>
+<p>Measured on this server's own records, an API line is about <strong>270 bytes</strong> and an execution record about <strong>1.4 KB</strong>.</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow"></th><th>Default</th></tr></thead><tbody><tr><td class="col-narrow">File size</td><td>10 MB</td></tr><tr><td class="col-narrow"><code>api.jsonl</code> history</td><td>5 files — 50 MB</td></tr><tr><td class="col-narrow"><code>detail.jsonl</code> history</td><td>5 files — 50 MB</td></tr><tr><td class="col-narrow">Also to stdout</td><td>no¹</td></tr></tbody></table></div>
+<p>¹ For a stdio server, stdout <em>is</em> the MCP protocol channel — writing there would corrupt it. <code>ZA_AUDIT_STDOUT</code> is ignored rather than honoured.</p>
 <p>What that buys, at the measured sizes:</p>
 <div class="table-wrap"><table><thead><tr><th class="col-narrow">Programs per day</th><th>Both streams last</th></tr></thead><tbody><tr><td class="col-narrow">50</td><td>over a year</td></tr><tr><td class="col-narrow">500</td><td>about 60 days</td></tr><tr><td class="col-narrow">5,000</td><td>about 6 days</td></tr><tr><td class="col-narrow">50,000</td><td>under a day</td></tr></tbody></table></div>
 <div class="note note--warn"><div class="note__title">Size caps and retention obligations are different questions</div><p>A one-person setup has years of history in 100 MB. A busy shared server does not. If you owe someone 90 days or a year of retention, raise the file count, or export — see <a href="#shipping-them-somewhere-else">§7</a>. The cap bounds disk, it does not satisfy a policy.</p></div>
 </section>
 <section id="every-setting">
 <h2><span class="num">04</span>Every setting</h2>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Variable</th><th>Default</th><th>What it does</th></tr></thead><tbody><tr><td class="col-narrow"><code>ZA_AUDIT</code></td><td><code>api</code></td><td><code>off</code>, <code>api</code>, or <code>full</code></td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_DIR</code></td><td><code>~/.zoho-analytics-code-mode/audit</code></td><td>Where files are written, mode <code>0700</code></td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_MAX_FILE_MB</code></td><td><code>10</code></td><td>Size of one file before it rotates</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_API_FILES</code></td><td><code>5</code> local, <code>10</code> remote</td><td>How many <code>api.jsonl</code> backups to keep</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_DETAIL_FILES</code></td><td><code>5</code> local, <code>10</code> remote</td><td>How many <code>detail.jsonl</code> backups to keep</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_MAX_FILES</code></td><td>—</td><td>Sets both of the above at once</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_LOG_SECRETS</code></td><td><strong><code>false</code></strong></td><td>Write tokens and secrets in clear</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_LOG_CODE</code></td><td><code>true</code></td><td>Record the program text in the detail stream</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_LOG_ARGS</code></td><td><code>true</code></td><td>Record tool arguments</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_HASH_CHAIN</code></td><td><code>true</code></td><td>Per-line hashes for tamper detection</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_STDOUT</code></td><td><code>false</code> local, <code>true</code> remote</td><td>Also emit JSON Lines on stdout</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Variable</th><th>Default</th><th>What it does</th></tr></thead><tbody><tr><td class="col-narrow"><code>ZA_AUDIT</code></td><td><code>api</code></td><td><code>off</code>, <code>api</code>, or <code>full</code></td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_DIR</code></td><td><code>~/.zoho-analytics-code-mode/audit</code></td><td>Where files are written, mode <code>0700</code></td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_MAX_FILE_MB</code></td><td><code>10</code></td><td>Size of one file before it rotates</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_API_FILES</code></td><td><code>5</code></td><td>How many <code>api.jsonl</code> backups to keep</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_DETAIL_FILES</code></td><td><code>5</code></td><td>How many <code>detail.jsonl</code> backups to keep</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_MAX_FILES</code></td><td>—</td><td>Sets both of the above at once</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_LOG_SECRETS</code></td><td><strong><code>false</code></strong></td><td>Write tokens and secrets in clear</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_LOG_CODE</code></td><td><code>true</code></td><td>Record the program text in the detail stream</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_LOG_ARGS</code></td><td><code>true</code></td><td>Record tool arguments</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_HASH_CHAIN</code></td><td><code>true</code></td><td>Per-line hashes for tamper detection</td></tr><tr><td class="col-narrow"><code>ZA_AUDIT_STDOUT</code></td><td><code>false</code></td><td>Also emit JSON Lines on stdout — see <a href="#how-much-history-you-get">§3</a></td></tr></tbody></table></div>
 <p>Total disk is <code>ZA_AUDIT_MAX_FILE_MB × (ZA_AUDIT_API_FILES + ZA_AUDIT_DETAIL_FILES)</code>, plus the two files currently being written.</p>
 </section>
 <section id="what-is-never-written">
@@ -132,10 +130,9 @@ const t = '1000.deadbeef….0123';         const t = '[redacted]';</code></pre>
 </section>
 <section id="shipping-them-somewhere-else">
 <h2><span class="num">07</span>Shipping them somewhere else</h2>
-<p>Remote mode writes JSON Lines to stdout by default, so a container collector picks them up with no extra configuration:</p>
-<pre><code class="lang-bash">docker logs -f zoho-analytics-code-mode | jq 'select(.ev=="api")'</code></pre>
-<p>From there the usual routes apply — Fluent Bit, Vector, the Docker logging driver, or a sidecar into your SIEM. Because the format is one JSON object per line with stable field names, nothing needs parsing rules.</p>
-<p>For local mode, point <code>ZA_AUDIT_DIR</code> at a directory your agent already collects, or tail the files.</p>
+<p>Point <code>ZA_AUDIT_DIR</code> at a directory your collector already watches, and the usual routes apply — Fluent Bit, Vector, a <code>filebeat</code> input, or a sidecar into your SIEM. Because the format is one JSON object per line with stable field names, nothing needs parsing rules:</p>
+<pre><code class="lang-bash">tail -f ~/.zoho-analytics-code-mode/audit/api.jsonl | jq 'select(.ev=="api")'</code></pre>
+<div class="note note--warn"><div class="note__title">Do not turn on ZA_AUDIT_STDOUT here</div><p><code>stdout</code> is the MCP protocol channel for a stdio server. The setting exists for a server that does not speak MCP over stdout, and is ignored in this mode — see <a href="#how-much-history-you-get">§3</a>.</p></div>
 </section>
 <section id="what-is-still-missing">
 <h2><span class="num">08</span>What is still missing</h2>
@@ -175,7 +172,6 @@ const t = '1000.deadbeef….0123';         const t = '[redacted]';</code></pre>
       <a href="04-security.html">04 &nbsp;Security &amp; governance</a>
       <a href="05-troubleshooting.html">05 &nbsp;Troubleshooting &amp; FAQ</a>
       <a href="06-operating.html">06 &nbsp;Operating &amp; updating</a>
-      <a href="07-remote-deployment.html">07 &nbsp;Remote deployment</a>
       <a href="08-engine.html">08 &nbsp;How the engine works</a>
       <a href="09-credentials.html">09 &nbsp;Credentials &amp; secrets</a>
       <a href="10-audit.html">10 &nbsp;Audit logging</a>
@@ -193,8 +189,8 @@ const t = '1000.deadbeef….0123';         const t = '[redacted]';</code></pre>
       that lets AI agents run sandboxed code against the Analytics v2 API,
       powered by the UTCP code-mode engine.</p>
       <p>Rendered from the Markdown in this folder by <code>build.py</code>.
-      Generated 2026-11-17.</p>
-      <p><strong>za-codemode v2.0.0. Read-only by default.</strong></p>
+      Generated 2026-11-23.</p>
+      <p><strong>zoho-analytics-codemode v1.0.0. Read-only by default.</strong></p>
     </div>
   </div>
 </footer>

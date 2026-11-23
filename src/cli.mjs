@@ -417,8 +417,8 @@ Audit logging
   ZA_AUDIT              off | api | full          (default: api)
   ZA_AUDIT_DIR          where to write            (default: ~/.zoho-analytics-code-mode/audit)
   ZA_AUDIT_MAX_FILE_MB  size of one file          (default: 10)
-  ZA_AUDIT_API_FILES    api history, in files     (default: 5 local, 10 remote)
-  ZA_AUDIT_DETAIL_FILES detail history, in files  (default: 5 local, 10 remote)
+  ZA_AUDIT_API_FILES    api history, in files     (default: 5)
+  ZA_AUDIT_DETAIL_FILES detail history, in files  (default: 5)
   ZA_AUDIT_LOG_SECRETS  log secrets in clear      (default: false)
   ZA_AUDIT_LOG_CODE     record the program        (default: true)
   ZA_AUDIT_HASH_CHAIN   tamper detection          (default: true)
@@ -444,7 +444,7 @@ export async function runCli(argv) {
     case 'audit': return audit(args);
     case 'help': case '--help': case '-h': return help();
     default:
-      console.error(`Unknown command "${command}". Try: login, status, logout, help`);
+      console.error(`Unknown command "${command}". Try: login, status, logout, audit, help`);
       return 1;
   }
 }

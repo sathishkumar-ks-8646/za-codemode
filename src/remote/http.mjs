@@ -155,7 +155,7 @@ export function createApp({ config, provider, sessions, operationCount, knowledg
 
       // Stateless per request: each call carries its own bearer token, and the
       // expensive part (the user's catalog) is pooled separately.
-      const server = new McpServer({ name: 'zoho-analytics-code-mode', version: '2.0.0' });
+      const server = new McpServer({ name: 'zoho-analytics-code-mode', version: '1.0.0' });
       registerTools(server, () => session, {
         operationCount, domains: config.domains, knowledge, audit,
         scope: () => ({ domains: config.domains, writes: config.allowWrites }),

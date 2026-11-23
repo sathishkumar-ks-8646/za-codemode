@@ -1,5 +1,5 @@
 ---
-description: How Zoho Analytics Code Mode works — the two tools, the sandbox boundary, where your code actually runs, and how it relates to the existing Zoho Analytics MCP Server.
+description: How Zoho Analytics Code Mode works — the four tools, the sandbox boundary, where your code actually runs, and how it relates to the existing Zoho Analytics MCP Server.
 ---
 
 # What it is

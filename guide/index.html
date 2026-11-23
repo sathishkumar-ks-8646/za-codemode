@@ -27,7 +27,6 @@
       <a href="04-security.html">Security</a>
       <a href="05-troubleshooting.html">Troubleshooting</a>
       <a href="06-operating.html">Operating</a>
-      <a href="07-remote-deployment.html">Remote</a>
       <a href="08-engine.html">Engine</a>
       <a href="09-credentials.html">Credentials</a>
       <a href="10-audit.html">Audit</a>
@@ -42,8 +41,8 @@
 
 <div class="deadline-bar">
   <div class="deadline-bar__inner">
-    <span class="chip chip--sdk">za-codemode</span>
-    <p>Install with <strong>npx&nbsp;za-codemode</strong>, version&nbsp;2.0.0.
+    <span class="chip chip--sdk">zoho-analytics-codemode</span>
+    <p>Install with <strong>npx&nbsp;zoho-analytics-codemode</strong>, version&nbsp;1.0.0.
     <a href="02-install.html">Setup in five minutes &rarr;</a></p>
     <span class="chip chip--deadline">Read-only</span>
     <p>Write operations are <strong>disabled by default</strong>. Enable them
@@ -67,7 +66,7 @@
       <a class="btn" href="01-what-it-is.html">How it works</a>
     </div>
     <dl class="hero__facts">
-      <div class="fact fact--new"><dt>Tools your agent sees</dt><dd>3</dd></div>
+      <div class="fact fact--new"><dt>Tools your agent sees</dt><dd>4</dd></div>
       <div class="fact"><dt>Operations reachable</dt><dd>203</dd></div>
       <div class="fact fact--new"><dt>API domains</dt><dd>10</dd></div>
       <div class="fact"><dt>Documented error codes</dt><dd>385</dd></div>
@@ -86,7 +85,6 @@
     <a href="04-security.html"><span class="n">04</span><span>Security &amp; governance</span></a>
     <a href="05-troubleshooting.html"><span class="n">05</span><span>Troubleshooting &amp; FAQ</span></a>
     <a href="06-operating.html"><span class="n">06</span><span>Operating &amp; updating</span></a>
-    <a href="07-remote-deployment.html"><span class="n">07</span><span>Remote deployment</span></a>
     <a href="08-engine.html"><span class="n">08</span><span>How the engine works</span></a>
     <a href="09-credentials.html"><span class="n">09</span><span>Credentials &amp; secrets</span></a>
     <a href="10-audit.html"><span class="n">10</span><span>Audit logging</span></a>
@@ -99,7 +97,7 @@
   <main class="doc" id="main">
 
 <p>It is built on the <strong>UTCP code-mode engine</strong>: the operation catalog is a UTCP manual generated from the published OpenAPI specifications, and the program runs in a V8 isolate with those operations bridged in. Your agent speaks MCP and never sees any of that — see <a href="08-engine.html">How the engine works</a>.</p>
-<div class="note note--good"><div class="note__title">Five minutes, nothing to host</div><p>Add one block to your agent's configuration file. There is no server to deploy, no port to open, and no AI model to supply — your agent brings its own. Jump to <a href="02-install.html">Install &amp; configure</a>.</p></div>
+<div class="note note--good"><div class="note__title">Ten minutes, nothing to host</div><p>Clone it, store your credentials, and add one block to your agent's configuration file. There is no server to deploy, no port to open, and no AI model to supply — your agent brings its own. Jump to <a href="02-install.html">Install &amp; configure</a>.</p></div>
 <section id="is-this-for-you">
 <h2><span class="num">01</span>Is this for you?</h2>
 <div class="note note--good"><div class="note__title">Yes, if…</div><p>…you use an MCP-capable agent — Claude Desktop, Claude Code, Cursor, VS Code, Windsurf — and you want it to answer questions that span <strong>more than one call</strong>: totals across workspaces, exports that must be polled to completion, or anything needing a loop.</p></div>
@@ -119,27 +117,31 @@
 </section>
 <section id="install-it">
 <h2><span class="num">04</span>Install it</h2>
-<p>Two steps. First, in a terminal:</p>
-<pre><code class="lang-bash">npx zoho-analytics-codemode login</code></pre>
+<p>Three steps. First, clone it and put the <code>za-codemode</code> command on your <code>PATH</code>:</p>
+<pre><code class="lang-bash">git clone https://github.com/sathishkumar-ks-8646/za-codemode.git
+cd za-codemode
+npm install
+npm link</code></pre>
+<p>Second, in a terminal, store your credentials:</p>
+<pre><code class="lang-bash">za-codemode login</code></pre>
 <p>It asks for your Zoho credentials, which groups of tools this profile may use, and whether writes are allowed — then stores the lot in your operating system's keychain.</p>
-<p>Second, paste the block it prints into your agent's configuration. It holds no secrets:</p>
+<p>Third, paste the block it prints into your agent's configuration. It holds no secrets:</p>
 <pre><code class="lang-json">{
   "mcpServers": {
     "zoho-analytics-code-mode": {
-      "command": "npx",
-      "args": ["-y", "zoho-analytics-codemode"]
+      "command": "za-codemode"
     }
   }
 }</code></pre>
 <p>Restart your agent and ask it something. The full walkthrough is in <a href="02-install.html">Install &amp; configure</a>; credentials in detail are in <a href="09-credentials.html">Credentials &amp; profiles</a>.</p>
-<div class="note note--info"><div class="note__title">Rolling this out to a team?</div><p>Deploy it once and let everyone sign in through their browser — no per-user credentials and no installation. See <a href="07-remote-deployment.html">Remote deployment</a>.</p></div>
+<div class="note note--info"><div class="note__title">Not on npm yet</div><p>This is installed from source while the licence is finalised, so there is no <code>npx</code> one-liner today. <a href="02-install.html#step-1-get-the-code">Install &amp; configure</a> covers the clone, and what to do if <code>npm link</code> is not available to you.</p></div>
 </section>
 <section id="read-the-guide-in-order">
 <h2><span class="num">05</span>Read the guide in order</h2>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Chapter</th><th>What it covers</th></tr></thead><tbody><tr><td class="col-narrow"><a href="01-what-it-is.html">01 What it is</a></td><td>How the sandbox works, where your code runs, and how this relates to the MCP Server</td></tr><tr><td class="col-narrow"><a href="02-install.html">02 Install &amp; configure</a></td><td>Credentials, every environment variable, and per-host setup</td></tr><tr><td class="col-narrow"><a href="03-using-it.html">03 Using it</a></td><td>What good prompts look like, worked examples, and what to expect</td></tr><tr><td class="col-narrow"><a href="04-security.html">04 Security &amp; governance</a></td><td>The sandbox boundary, read-only mode, budgets, and what to tell your security team</td></tr><tr><td class="col-narrow"><a href="05-troubleshooting.html">05 Troubleshooting &amp; FAQ</a></td><td>Symptoms, error codes, and answers</td></tr><tr><td class="col-narrow"><a href="06-operating.html">06 Operating &amp; updating</a></td><td>Updates, API-unit cost, and running it from source</td></tr><tr><td class="col-narrow"><a href="07-remote-deployment.html">07 Remote deployment</a></td><td>Running one shared instance for a team, with browser sign-in</td></tr><tr><td class="col-narrow"><a href="08-engine.html">08 How the engine works</a></td><td>UTCP, code mode, the isolate and the knowledge base</td></tr><tr><td class="col-narrow"><a href="09-credentials.html">09 Credentials &amp; profiles</a></td><td>The login command, tool-group scoping, and where secrets are stored</td></tr><tr><td class="col-narrow"><a href="10-audit.html">10 Audit logging</a></td><td>Two streams, how much history, and what is never written</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Chapter</th><th>What it covers</th></tr></thead><tbody><tr><td class="col-narrow"><a href="01-what-it-is.html">01 What it is</a></td><td>How the sandbox works, where your code runs, and how this relates to the MCP Server</td></tr><tr><td class="col-narrow"><a href="02-install.html">02 Install &amp; configure</a></td><td>Credentials, every environment variable, and per-host setup</td></tr><tr><td class="col-narrow"><a href="03-using-it.html">03 Using it</a></td><td>What good prompts look like, worked examples, and what to expect</td></tr><tr><td class="col-narrow"><a href="04-security.html">04 Security &amp; governance</a></td><td>The sandbox boundary, read-only mode, budgets, and what to tell your security team</td></tr><tr><td class="col-narrow"><a href="05-troubleshooting.html">05 Troubleshooting &amp; FAQ</a></td><td>Symptoms, error codes, and answers</td></tr><tr><td class="col-narrow"><a href="06-operating.html">06 Operating &amp; updating</a></td><td>Updates, API-unit cost, and running it from source</td></tr><tr><td class="col-narrow"><a href="08-engine.html">08 How the engine works</a></td><td>UTCP, code mode, the isolate and the knowledge base</td></tr><tr><td class="col-narrow"><a href="09-credentials.html">09 Credentials &amp; profiles</a></td><td>The login command, tool-group scoping, and where secrets are stored</td></tr><tr><td class="col-narrow"><a href="10-audit.html">10 Audit logging</a></td><td>Two streams, how much history, and what is never written</td></tr></tbody></table></div>
 </section>
-<section id="the-three-things-to-know-before-you-start">
-<h2><span class="num">06</span>The three things to know before you start</h2>
+<section id="the-four-things-to-know-before-you-start">
+<h2><span class="num">06</span>The four things to know before you start</h2>
 <ol><li><strong>It does not reduce API units.</strong> The same calls are made, so the same units are billed. What it saves is model turns and context.</li><li><strong>Write operations are off by default,</strong> and you can narrow further. 76 read-only operations are exposed out of 203, and <code>ZA_DOMAINS</code> restricts that to the API domains you actually need. See <a href="02-install.html#choosing-what-to-expose">Choosing what to expose</a>.</li><li><strong>Your agent's model writes the code.</strong> A more capable model writes better code. If results are poor, that is the first thing to check.</li><li><strong>It will not guess which table you meant.</strong> When two views both match your words, it returns both and asks. See <a href="03-using-it.html#finding-your-data">Finding your data</a>.</li></ol>
 </section>
 <section id="conventions-used-in-this-guide">
@@ -160,7 +162,7 @@
     <a href="#what-your-agent-sees">What your agent sees</a>
     <a href="#install-it">Install it</a>
     <a href="#read-the-guide-in-order">Read the guide in order</a>
-    <a href="#the-three-things-to-know-before-you-start">The three things to know before you start</a>
+    <a href="#the-four-things-to-know-before-you-start">The four things to know before you start</a>
     <a href="#conventions-used-in-this-guide">Conventions used in this guide</a>
   </nav>
 </aside>
@@ -178,7 +180,6 @@
       <a href="04-security.html">04 &nbsp;Security &amp; governance</a>
       <a href="05-troubleshooting.html">05 &nbsp;Troubleshooting &amp; FAQ</a>
       <a href="06-operating.html">06 &nbsp;Operating &amp; updating</a>
-      <a href="07-remote-deployment.html">07 &nbsp;Remote deployment</a>
       <a href="08-engine.html">08 &nbsp;How the engine works</a>
       <a href="09-credentials.html">09 &nbsp;Credentials &amp; secrets</a>
       <a href="10-audit.html">10 &nbsp;Audit logging</a>
@@ -196,8 +197,8 @@
       that lets AI agents run sandboxed code against the Analytics v2 API,
       powered by the UTCP code-mode engine.</p>
       <p>Rendered from the Markdown in this folder by <code>build.py</code>.
-      Generated 2026-11-17.</p>
-      <p><strong>za-codemode v2.0.0. Read-only by default.</strong></p>
+      Generated 2026-11-23.</p>
+      <p><strong>zoho-analytics-codemode v1.0.0. Read-only by default.</strong></p>
     </div>
   </div>
 </footer>

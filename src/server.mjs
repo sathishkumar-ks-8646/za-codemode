@@ -90,7 +90,7 @@ if (knowledge) {
   }
 }
 
-const server = new McpServer({ name: 'zoho-analytics-code-mode', version: '2.0.0' });
+const server = new McpServer({ name: 'zoho-analytics-code-mode', version: '1.0.0' });
 registerTools(server, () => session, {
   operationCount: catalog.exposedOperations,
   domains: config.domains,

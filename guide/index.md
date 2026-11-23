@@ -8,8 +8,8 @@ Your AI agent can already talk to Zoho Analytics one call at a time. This tool l
 
 It is built on the **UTCP code-mode engine**: the operation catalog is a UTCP manual generated from the published OpenAPI specifications, and the program runs in a V8 isolate with those operations bridged in. Your agent speaks MCP and never sees any of that — see [How the engine works](08-engine.md).
 
-:::good Five minutes, nothing to host
-Add one block to your agent's configuration file. There is no server to deploy, no port to open, and no AI model to supply — your agent brings its own. Jump to [Install & configure](02-install.md).
+:::good Ten minutes, nothing to host
+Clone it, store your credentials, and add one block to your agent's configuration file. There is no server to deploy, no port to open, and no AI model to supply — your agent brings its own. Jump to [Install & configure](02-install.md).
 :::
 
 ## 1. Is this for you?
@@ -48,22 +48,30 @@ Behind them sit **203 operations** across ten API domains, generated from the pu
 
 ## 4. Install it
 
-Two steps. First, in a terminal:
+Three steps. First, clone it and put the `za-codemode` command on your `PATH`:
 
 ```bash
-npx zoho-analytics-codemode login
+git clone https://github.com/sathishkumar-ks-8646/za-codemode.git
+cd za-codemode
+npm install
+npm link
+```
+
+Second, in a terminal, store your credentials:
+
+```bash
+za-codemode login
 ```
 
 It asks for your Zoho credentials, which groups of tools this profile may use, and whether writes are allowed — then stores the lot in your operating system's keychain.
 
-Second, paste the block it prints into your agent's configuration. It holds no secrets:
+Third, paste the block it prints into your agent's configuration. It holds no secrets:
 
 ```json
 {
   "mcpServers": {
     "zoho-analytics-code-mode": {
-      "command": "npx",
-      "args": ["-y", "zoho-analytics-codemode"]
+      "command": "za-codemode"
     }
   }
 }
@@ -71,9 +79,8 @@ Second, paste the block it prints into your agent's configuration. It holds no s
 
 Restart your agent and ask it something. The full walkthrough is in [Install & configure](02-install.md); credentials in detail are in [Credentials & profiles](09-credentials.md).
 
-
-:::info Rolling this out to a team?
-Deploy it once and let everyone sign in through their browser — no per-user credentials and no installation. See [Remote deployment](07-remote-deployment.md).
+:::info Not on npm yet
+This is installed from source while the licence is finalised, so there is no `npx` one-liner today. [Install & configure](02-install.md#step-1-get-the-code) covers the clone, and what to do if `npm link` is not available to you.
 :::
 
 ## 5. Read the guide in order
@@ -86,12 +93,11 @@ Deploy it once and let everyone sign in through their browser — no per-user cr
 | [04 Security & governance](04-security.md) | The sandbox boundary, read-only mode, budgets, and what to tell your security team |
 | [05 Troubleshooting & FAQ](05-troubleshooting.md) | Symptoms, error codes, and answers |
 | [06 Operating & updating](06-operating.md) | Updates, API-unit cost, and running it from source |
-| [07 Remote deployment](07-remote-deployment.md) | Running one shared instance for a team, with browser sign-in |
 | [08 How the engine works](08-engine.md) | UTCP, code mode, the isolate and the knowledge base |
 | [09 Credentials & profiles](09-credentials.md) | The login command, tool-group scoping, and where secrets are stored |
 | [10 Audit logging](10-audit.md) | Two streams, how much history, and what is never written |
 
-## 6. The three things to know before you start
+## 6. The four things to know before you start
 
 1. **It does not reduce API units.** The same calls are made, so the same units are billed. What it saves is model turns and context.
 2. **Write operations are off by default,** and you can narrow further. 76 read-only operations are exposed out of 203, and `ZA_DOMAINS` restricts that to the API domains you actually need. See [Choosing what to expose](02-install.md#choosing-what-to-expose).

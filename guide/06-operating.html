@@ -27,7 +27,6 @@
       <a href="04-security.html">Security</a>
       <a href="05-troubleshooting.html">Troubleshooting</a>
       <a href="06-operating.html" aria-current="page">Operating</a>
-      <a href="07-remote-deployment.html">Remote</a>
       <a href="08-engine.html">Engine</a>
       <a href="09-credentials.html">Credentials</a>
       <a href="10-audit.html">Audit</a>
@@ -42,8 +41,8 @@
 
 <div class="deadline-bar">
   <div class="deadline-bar__inner">
-    <span class="chip chip--sdk">za-codemode</span>
-    <p>Install with <strong>npx&nbsp;za-codemode</strong>, version&nbsp;2.0.0.
+    <span class="chip chip--sdk">zoho-analytics-codemode</span>
+    <p>Install with <strong>npx&nbsp;zoho-analytics-codemode</strong>, version&nbsp;1.0.0.
     <a href="02-install.html">Setup in five minutes &rarr;</a></p>
     <span class="chip chip--deadline">Read-only</span>
     <p>Write operations are <strong>disabled by default</strong>. Enable them
@@ -63,7 +62,6 @@
     <a href="04-security.html"><span class="n">04</span><span>Security &amp; governance</span></a>
     <a href="05-troubleshooting.html"><span class="n">05</span><span>Troubleshooting &amp; FAQ</span></a>
     <a href="06-operating.html" aria-current="page"><span class="n">06</span><span>Operating &amp; updating</span></a>
-    <a href="07-remote-deployment.html"><span class="n">07</span><span>Remote deployment</span></a>
     <a href="08-engine.html"><span class="n">08</span><span>How the engine works</span></a>
     <a href="09-credentials.html"><span class="n">09</span><span>Credentials &amp; secrets</span></a>
     <a href="10-audit.html"><span class="n">10</span><span>Audit logging</span></a>
@@ -82,9 +80,13 @@
 </header>
 <section id="updates">
 <h2><span class="num">01</span>Updates</h2>
-<p>With <code>npx -y zoho-analytics-codemode</code>, the latest published version is fetched when your agent starts the server. To pin a version, name it:</p>
-<pre><code class="lang-json">"args": ["-y", "zoho-analytics-codemode@1.0.0"]</code></pre>
-<p>New Analytics operations arrive with a new release of this package, because the catalog is generated from the published OpenAPI specifications and bundled at build time.</p>
+<p>This is installed from source, so updating is a pull in your clone:</p>
+<pre><code class="lang-bash">cd /path/to/za-codemode
+git pull
+npm install          # in case a dependency moved</code></pre>
+<p>Restart your agent afterwards — it holds the old process open until it does.</p>
+<p>New Analytics operations arrive with a new commit, because the catalog is generated from the published OpenAPI specifications and committed as a build artifact. To take a catalog update without taking code changes, rebuild it yourself — see <a href="#building-the-catalog-from-source">§4</a>.</p>
+<div class="note note--info"><div class="note__title">Pinning a version</div><p><code>git pull</code> tracks <code>main</code>. To hold a known-good state, check out a tag or a commit instead, and note which one you are on: there is no <code>--version</code> flag yet, so the commit is the only answer to "which build is this".</p></div>
 </section>
 <section id="what-it-costs">
 <h2><span class="num">02</span>What it costs</h2>
@@ -96,11 +98,11 @@
 </section>
 <section id="running-from-source">
 <h2><span class="num">03</span>Running from source</h2>
-<pre><code class="lang-bash">git clone &lt;this-repository&gt;
-cd code-execution-mcp
+<pre><code class="lang-bash">git clone https://github.com/sathishkumar-ks-8646/za-codemode.git
+cd za-codemode
 npm install
 npm test</code></pre>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Command</th><th>What it does</th></tr></thead><tbody><tr><td class="col-narrow"><code>npm start</code></td><td>Run the server on stdio</td></tr><tr><td class="col-narrow"><code>npm test</code></td><td>The whole suite — search quality and end-to-end MCP</td></tr><tr><td class="col-narrow"><code>npm run build:manual</code></td><td>Regenerate the operation catalog from <code>v2.0/oas/</code></td></tr><tr><td class="col-narrow"><code>npm run build:knowledge</code></td><td>Regenerate the knowledge bundle from <code>v2.0/okf/</code></td></tr><tr><td class="col-narrow"><code>npm run build</code></td><td>Both</td></tr><tr><td class="col-narrow"><code>node test/mock-analytics.mjs 8788</code></td><td>Start the mock API by itself</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Command</th><th>What it does</th></tr></thead><tbody><tr><td class="col-narrow"><code>npm start</code></td><td>Run the server on stdio</td></tr><tr><td class="col-narrow"><code>npm test</code></td><td>The whole suite — 101 tests, fully offline</td></tr><tr><td class="col-narrow"><code>npm run build:manual</code></td><td>Regenerate the operation catalog from the published OAS repository</td></tr><tr><td class="col-narrow"><code>npm run build:knowledge</code></td><td>Regenerate the knowledge bundle from the published OKF repository</td></tr><tr><td class="col-narrow"><code>npm run build</code></td><td>Both</td></tr><tr><td class="col-narrow"><code>npm run verify:knowledge</code></td><td>Check a local OKF checkout against the bundle</td></tr><tr><td class="col-narrow"><code>node test/mock-analytics.mjs 8788</code></td><td>Start the mock API by itself</td></tr><tr><td class="col-narrow"><code>python3 guide/build.py</code></td><td>Re-render this guide; <code>--check</code> validates without writing</td></tr></tbody></table></div>
 <div class="note note--warn"><div class="note__title">Install from the public registry</div><p>The <code>@utcp/*</code> packages are not mirrored on internal registries. <code>.npmrc</code> in this folder pins <code>registry=https://registry.npmjs.org</code> for exactly that reason.</p></div>
 <h3 id="pointing-it-at-the-mock">Pointing it at the mock</h3>
 <p>The test suite runs entirely offline against a mock Analytics API. To drive the real server against it by hand:</p>
@@ -114,7 +116,8 @@ npm start</code></pre>
 <section id="building-the-catalog-from-source">
 <h2><span class="num">04</span>Building the catalog from source</h2>
 <p><code>manual/analytics.utcp.json</code> is generated, never hand-edited:</p>
-<pre><code class="lang-bash">npm run build:manual          # reads ../v2.0/oas/*-grouped-api.json</code></pre>
+<pre><code class="lang-bash">npm run build:manual                                 # from github.com/zoho/analytics-oas
+node tools/build-manual.mjs --local &lt;oas-dir&gt;        # offline, from a checkout</code></pre>
 <p>It emits 203 operations, about 565 KB. Five transformations are applied that a stock OpenAPI conversion gets wrong for Zoho:</p>
 <div class="table-wrap"><table><thead><tr><th class="col-narrow">Transformation</th><th>Why</th></tr></thead><tbody><tr><td class="col-narrow"><code>CONFIG</code> typed as <code>string</code></td><td>The specification types it as an object, but the API wants stringified, URL-encoded JSON</td></tr><tr><td class="col-narrow">Base URL becomes a variable</td><td>So one build serves all seven data centres</td></tr><tr><td class="col-narrow"><code>Authorization</code> header auth</td><td>Zoho accepts <code>Bearer</code>; the stock conversion emits an OAuth2 flow Zoho does not use</td></tr><tr><td class="col-narrow">Full descriptions kept</td><td>A stock conversion keeps only <code>summary</code> and drops the detail the model needs</td></tr><tr><td class="col-narrow"><code>${...}</code> in prose defused</td><td>One operation documents a <code>${variableName}</code> placeholder, which the templating engine would otherwise try to resolve</td></tr></tbody></table></div>
 </section>
@@ -123,45 +126,65 @@ npm start</code></pre>
 <p><code>knowledge/knowledge.json</code> is generated from the published OKF bundle at <a href="https://github.com/zoho/analytics-okf">github.com/zoho/analytics-okf</a> — around 12 MB across 600+ files, far too much to ship or to put in front of a model. The build resolves the current version from that repository's root <code>manifest.json</code> rather than hard-coding one. <code>tools/build-knowledge.mjs</code> selects the parts that change the code a model writes:</p>
 <div class="table-wrap"><table><thead><tr><th class="col-narrow">Included</th><th>Why</th></tr></thead><tbody><tr><td class="col-narrow">All 8 workflow playbooks</td><td>Multi-step recipes are exactly what code mode is for</td></tr><tr><td class="col-narrow">9 foundations references</td><td>Criteria grammar, CONFIG conventions, job polling, identifiers, enums, limits</td></tr><tr><td class="col-narrow">385 error codes</td><td>The attribute table only; the per-operation "Raised by" tables are what make the source 922 KB</td></tr></tbody></table></div>
 <p>Deliberately excluded: the permission matrix, OAuth scopes, API-unit tables and glossary. They are reference material for humans, and none of them change the code that gets generated.</p>
-<pre><code class="lang-bash">npm run build:knowledge                               # from the published repository
-node tools/build-knowledge.mjs --local  ../v2.0/okf   # offline, from a checkout
-node tools/build-knowledge.mjs --verify ../v2.0/okf   # has a checkout drifted?</code></pre>
+<pre><code class="lang-bash">npm run build:knowledge                             # from the published repository
+node tools/build-knowledge.mjs --local  &lt;okf-dir&gt;   # offline, from a checkout
+node tools/build-knowledge.mjs --verify &lt;okf-dir&gt;   # has a checkout drifted?</code></pre>
 <p>Each build records the OKF version and the date that bundle was generated, and the server reports both at startup — so a stale snapshot is visible rather than silently authoritative.</p>
 </section>
 <section id="the-test-suite">
 <h2><span class="num">06</span>The test suite</h2>
-<pre><code class="lang-text">test/search.test.mjs    search quality — API and user vocabulary
-test/agent.test.mjs     end-to-end over real MCP stdio against the mock</code></pre>
-<p><code>agent.test.mjs</code> asserts the properties that matter: exactly two tools, signatures stay small, a multi-step program returns only its answer, <code>ORG_ID</code> is present, <strong>the sandbox is sealed</strong>, write operations are hidden, and a failed program yields an actionable error.</p>
-<p>The sandbox-seal test is the one to keep green above all others — it asserts that <code>require</code>, <code>fetch</code>, <code>process</code>, <code>Buffer</code> and <code>XMLHttpRequest</code> are all unreachable from executing code.</p>
+<p>101 tests, no network, no credentials — everything runs against a mock Analytics API and a mock Zoho Accounts.</p>
+<pre><code class="lang-text">test/agent.test.mjs        end-to-end over real MCP stdio against the mock
+test/resolve.test.mjs      name resolution: fuzzy matching, ambiguity, refusal
+test/search.test.mjs       search quality — API and user vocabulary
+test/audit.test.mjs        two streams, rotation, redaction, hash chain
+test/credentials.test.mjs  env -&gt; credential command -&gt; keychain resolution
+test/token-cache.test.mjs  access-token reuse across process restarts
+test/orgs.test.mjs         organization allowlist enforcement
+test/remote.test.mjs       the full OAuth 2.1 flow (unreleased mode)
+test/mock-analytics.mjs    the mock API — enforces org scoping, returns real shapes
+test/mock-accounts.mjs     the mock token endpoint</code></pre>
+<p><code>agent.test.mjs</code> asserts the properties that matter: exactly four tools, signatures stay small, a multi-step program returns only its answer, <code>ORG_ID</code> is present, <strong>the sandbox is sealed</strong>, write operations are hidden, the org header and <code>Bearer</code> prefix reach the API correctly, and a failed program yields an actionable error.</p>
+<p>Two tests to keep green above all others:</p>
+<ul><li><strong>"the sandbox is sealed"</strong> — asserts that <code>require</code>, <code>fetch</code>, <code>process</code>, <code>Buffer</code> and <code>XMLHttpRequest</code> are all unreachable from executing code. <a href="04-security.html#what-the-sandbox-cannot-do">Security</a> is only true while this passes.</li><li><strong>"catching the refusal does NOT let the program substitute"</strong> — asserts that a program which swallows a failed name resolution still fails the whole execution. Analysing <code>sum_of_revenue</code> when the user said <code>sum_of_cost</code> is the worst outcome this tool can produce.</li></ul>
+<div class="note note--info"><div class="note__title">The mock mirrors the API, not the documentation</div><p><code>mock-analytics.mjs</code> returns the shapes live Analytics actually sends — rows as a flat array in <code>data</code>, numbers as formatted strings like <code>"$1,682.39"</code> — because an earlier version returned the documented shapes instead and hid two defects that each produced a <em>plausible wrong number</em>. If you extend it, copy a real response.</p></div>
 </section>
 <section id="known-rough-edges">
 <h2><span class="num">07</span>Known rough edges</h2>
 <p>Honest notes for anyone maintaining this.</p>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Edge</th><th>Detail</th></tr></thead><tbody><tr><td class="col-narrow">The process does not exit cleanly</td><td><code>isolated-vm</code> worker threads outlive <code>process.exit()</code>. Tests force exit; agents kill the child on quit, so it does not matter in normal use</td></tr><tr><td class="col-narrow">No audit log</td><td>Programs are not persisted. <code>apiCalls</code> is reported per execution and that is all</td></tr><tr><td class="col-narrow">Search is lexical</td><td>Synonym expansion plus field-weighted scoring, no embeddings. It handles API vocabulary well and paraphrase adequately</td></tr><tr><td class="col-narrow">The knowledge bundle is a snapshot</td><td>Regenerated by <code>npm run build:knowledge</code>; it does not follow github.com/zoho/analytics-okf automatically. Its age is reported at startup and warned about past 90 days</td></tr><tr><td class="col-narrow">Write path is lightly tested</td><td><code>ZA_ALLOW_WRITES=true</code> exposes all 203 operations; only the read-only set is covered by tests</td></tr><tr><td class="col-narrow">UTCP is a thin dependency</td><td>All of it is fenced inside <code>src/catalog.mjs</code> precisely so it can be replaced without touching the rest</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Edge</th><th>Detail</th></tr></thead><tbody><tr><td class="col-narrow"><strong>Results are not size-capped</strong></td><td>A program is told to <code>return</code> only its final answer, and that instruction is the only thing keeping a large result out of your context. Nothing truncates it. Ask for aggregates, and see <a href="03-using-it.html#what-makes-a-good-request">Using it</a></td></tr><tr><td class="col-narrow"><strong>Write path is lightly tested</strong></td><td><code>ZA_ALLOW_WRITES=true</code> exposes all 203 operations; only the read-only set is covered by tests. Exercise it against a non-production organization first</td></tr><tr><td class="col-narrow"><strong>Not on npm</strong></td><td>Installed from source while the licence is finalised, so there is no <code>npx</code> one-liner and no <code>--version</code> flag. The commit is the build identifier</td></tr><tr><td class="col-narrow">The process does not exit cleanly</td><td><code>isolated-vm</code> worker threads outlive <code>process.exit()</code>. Tests force exit; agents kill the child on quit, so it does not matter in normal use</td></tr><tr><td class="col-narrow">No per-user rate limiting</td><td><code>ZA_MAX_TOOL_CALLS</code> is per program, not per user per hour</td></tr><tr><td class="col-narrow">Search is lexical</td><td>Synonym expansion plus field-weighted scoring, no embeddings. It handles API vocabulary well and paraphrase adequately</td></tr><tr><td class="col-narrow">The knowledge bundle is a snapshot</td><td>Regenerated by <code>npm run build:knowledge</code>; it does not follow github.com/zoho/analytics-okf automatically. Its age is reported at startup and warned about past 90 days</td></tr><tr><td class="col-narrow">A transitive dependency is flagged</td><td><code>@utcp/sdk</code> pins <code>zod</code> 3.x, which carries GHSA-mrhx-c7xc-m3w5. No fix is available upstream; it is in UTCP's input-validation path, and <code>npm audit</code> will report it</td></tr><tr><td class="col-narrow">UTCP is a thin dependency</td><td>All of it is fenced inside <code>src/catalog.mjs</code> precisely so it can be replaced without touching the rest</td></tr></tbody></table></div>
 </section>
 <section id="where-things-live">
 <h2><span class="num">08</span>Where things live</h2>
-<pre><code class="lang-text">code-execution-mcp/
+<pre><code class="lang-text">za-codemode/
 ├── src/
-│   ├── server.mjs       the MCP server and its three tools
-│   ├── knowledge.mjs    the OKF knowledge base: lookup, search, hints
-│   ├── catalog.mjs      the operation catalog and sandbox — the only UTCP usage
-│   ├── search.mjs       query expansion and ranking
-│   ├── auth.mjs         refresh token -&gt; access token
-│   ├── config.mjs       environment parsing and validation
-│   └── quiet.mjs        stdout guard — must be imported first
+│   ├── bin.mjs             entry point: no args -&gt; server, args -&gt; CLI
+│   ├── server.mjs          the stdio MCP server
+│   ├── tools.mjs           the four tools
+│   ├── catalog.mjs         the operation catalog and sandbox — the only UTCP usage
+│   ├── sandbox-prelude.mjs `find` (name resolver) and `rows` (result readers)
+│   ├── search.mjs          query expansion and ranking
+│   ├── knowledge.mjs       the OKF knowledge base: lookup, search, hints
+│   ├── auth.mjs            refresh token -&gt; access token
+│   ├── credentials.mjs     resolution: env -&gt; credential command -&gt; keychain
+│   ├── token-cache.mjs     access-token reuse across process restarts
+│   ├── cli.mjs             login / status / logout / audit
+│   ├── audit.mjs           two streams, rotation, redaction, hash chain
+│   ├── config.mjs          environment parsing and validation
+│   ├── quiet.mjs           stdout guard — must be imported first
+│   └── remote/             the unreleased multi-user HTTP server
 ├── tools/
 │   ├── build-manual.mjs     OpenAPI specs -&gt; UTCP operation catalog
 │   └── build-knowledge.mjs  OKF docs -&gt; shipped knowledge bundle
 ├── manual/analytics.utcp.json     generated; do not hand-edit
 ├── knowledge/knowledge.json       generated; do not hand-edit
-├── test/                mock API, search tests, end-to-end tests
-└── guide/               this documentation</code></pre>
+├── test/                 mocks and the 101 tests
+└── guide/                this documentation — .md authored, .html generated</code></pre>
+<div class="note note--warn"><div class="note__title"><code>src/quiet.mjs</code> must stay the first import of <code>server.mjs</code></div><p>An MCP stdio server's stdout <em>is</em> the JSON-RPC channel, and the UTCP SDK logs progress with <code>console.log</code>. One stray line corrupts the stream, and the agent disconnects with no diagnosable error.</p></div>
 </section>
     <nav class="pager" aria-label="Chapter">
       <a href="05-troubleshooting.html"><span class="pager__side">Previous</span>&larr; Troubleshooting &amp; FAQ</a>
-      <a href="07-remote-deployment.html" style="margin-left:auto;text-align:right"><span class="pager__side">Next</span>Remote deployment &rarr;</a>
+      <a href="08-engine.html" style="margin-left:auto;text-align:right"><span class="pager__side">Next</span>How the engine works &rarr;</a>
     </nav>
   </main>
 
@@ -192,7 +215,6 @@ test/agent.test.mjs     end-to-end over real MCP stdio against the mock</code></
       <a href="04-security.html">04 &nbsp;Security &amp; governance</a>
       <a href="05-troubleshooting.html">05 &nbsp;Troubleshooting &amp; FAQ</a>
       <a href="06-operating.html">06 &nbsp;Operating &amp; updating</a>
-      <a href="07-remote-deployment.html">07 &nbsp;Remote deployment</a>
       <a href="08-engine.html">08 &nbsp;How the engine works</a>
       <a href="09-credentials.html">09 &nbsp;Credentials &amp; secrets</a>
       <a href="10-audit.html">10 &nbsp;Audit logging</a>
@@ -210,8 +232,8 @@ test/agent.test.mjs     end-to-end over real MCP stdio against the mock</code></
       that lets AI agents run sandboxed code against the Analytics v2 API,
       powered by the UTCP code-mode engine.</p>
       <p>Rendered from the Markdown in this folder by <code>build.py</code>.
-      Generated 2026-11-17.</p>
-      <p><strong>za-codemode v2.0.0. Read-only by default.</strong></p>
+      Generated 2026-11-23.</p>
+      <p><strong>zoho-analytics-codemode v1.0.0. Read-only by default.</strong></p>
     </div>
   </div>
 </footer>

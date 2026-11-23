@@ -27,7 +27,6 @@
       <a href="04-security.html">Security</a>
       <a href="05-troubleshooting.html">Troubleshooting</a>
       <a href="06-operating.html">Operating</a>
-      <a href="07-remote-deployment.html">Remote</a>
       <a href="08-engine.html" aria-current="page">Engine</a>
       <a href="09-credentials.html">Credentials</a>
       <a href="10-audit.html">Audit</a>
@@ -42,8 +41,8 @@
 
 <div class="deadline-bar">
   <div class="deadline-bar__inner">
-    <span class="chip chip--sdk">za-codemode</span>
-    <p>Install with <strong>npx&nbsp;za-codemode</strong>, version&nbsp;2.0.0.
+    <span class="chip chip--sdk">zoho-analytics-codemode</span>
+    <p>Install with <strong>npx&nbsp;zoho-analytics-codemode</strong>, version&nbsp;1.0.0.
     <a href="02-install.html">Setup in five minutes &rarr;</a></p>
     <span class="chip chip--deadline">Read-only</span>
     <p>Write operations are <strong>disabled by default</strong>. Enable them
@@ -63,7 +62,6 @@
     <a href="04-security.html"><span class="n">04</span><span>Security &amp; governance</span></a>
     <a href="05-troubleshooting.html"><span class="n">05</span><span>Troubleshooting &amp; FAQ</span></a>
     <a href="06-operating.html"><span class="n">06</span><span>Operating &amp; updating</span></a>
-    <a href="07-remote-deployment.html"><span class="n">07</span><span>Remote deployment</span></a>
     <a href="08-engine.html" aria-current="page"><span class="n">08</span><span>How the engine works</span></a>
     <a href="09-credentials.html"><span class="n">09</span><span>Credentials &amp; secrets</span></a>
     <a href="10-audit.html"><span class="n">10</span><span>Audit logging</span></a>
@@ -83,7 +81,7 @@
 <section id="the-three-layers">
 <h2><span class="num">01</span>The three layers</h2>
 <pre><code class="lang-text">  ┌─ MCP ──────────────────────────────────────────────┐
-  │  what your agent speaks. Three tools.              │
+  │  what your agent speaks. Four tools.               │
   │  @modelcontextprotocol/sdk                         │
   └────────────────────┬───────────────────────────────┘
                        │
@@ -138,7 +136,7 @@
 </section>
 <section id="dependencies-and-why-they-are-contained">
 <h2><span class="num">06</span>Dependencies, and why they are contained</h2>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Package</th><th>Role</th></tr></thead><tbody><tr><td class="col-narrow"><code>@modelcontextprotocol/sdk</code></td><td>the MCP server, OAuth 2.1, HTTP transport</td></tr><tr><td class="col-narrow"><code>@utcp/code-mode</code></td><td>the sandbox and the tool bridge</td></tr><tr><td class="col-narrow"><code>@utcp/http</code></td><td>makes the real API calls from the call templates</td></tr><tr><td class="col-narrow"><code>@utcp/text</code></td><td>hands the manual over inline, so nothing is fetched</td></tr><tr><td class="col-narrow"><code>isolated-vm</code></td><td>the V8 isolate itself</td></tr><tr><td class="col-narrow"><code>express</code></td><td>the remote server's HTTP layer</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Package</th><th>Role</th></tr></thead><tbody><tr><td class="col-narrow"><code>@modelcontextprotocol/sdk</code></td><td>the MCP server, OAuth 2.1, HTTP transport</td></tr><tr><td class="col-narrow"><code>@utcp/code-mode</code></td><td>the sandbox and the tool bridge</td></tr><tr><td class="col-narrow"><code>@utcp/http</code></td><td>makes the real API calls from the call templates</td></tr><tr><td class="col-narrow"><code>@utcp/text</code></td><td>hands the manual over inline, so nothing is fetched</td></tr><tr><td class="col-narrow"><code>isolated-vm</code></td><td>the V8 isolate itself</td></tr><tr><td class="col-narrow"><code>express</code></td><td>the HTTP layer, used only by the unreleased multi-user server</td></tr></tbody></table></div>
 <p>Every <code>@utcp/*</code> import lives in a single file, <code>src/catalog.mjs</code>. That is deliberate: UTCP is a young project with a small user base, and confining it to one module means it can be replaced without touching anything else. The server uses exactly three of its functions.</p>
 <div class="note note--info"><div class="note__title">Search deliberately does not use UTCP</div><p>UTCP's own tool search is plain word matching, and it failed on the way people actually phrase things — <em>"how much revenue did we make"</em> returned unrelated operations. <code>search_analytics_api</code> uses its own index with synonym expansion and field weighting, folding UTCP's results in only as a ranking bonus. UTCP owns the calling, not the finding.</p></div>
 </section>
@@ -162,7 +160,7 @@ node tools/build-knowledge.mjs --verify ../v2.0/okf   # does a checkout match pu
 <p>Neither output is hand-edited. The manual build applies five corrections that a stock OpenAPI conversion gets wrong for Zoho — see <a href="06-operating.html#building-the-catalog-from-source">Operating</a> — two of which were found only by testing against an API mock that enforces organization scoping.</p>
 </section>
     <nav class="pager" aria-label="Chapter">
-      <a href="07-remote-deployment.html"><span class="pager__side">Previous</span>&larr; Remote deployment</a>
+      <a href="06-operating.html"><span class="pager__side">Previous</span>&larr; Operating &amp; updating</a>
       <a href="09-credentials.html" style="margin-left:auto;text-align:right"><span class="pager__side">Next</span>Credentials &amp; secrets &rarr;</a>
     </nav>
   </main>
@@ -194,7 +192,6 @@ node tools/build-knowledge.mjs --verify ../v2.0/okf   # does a checkout match pu
       <a href="04-security.html">04 &nbsp;Security &amp; governance</a>
       <a href="05-troubleshooting.html">05 &nbsp;Troubleshooting &amp; FAQ</a>
       <a href="06-operating.html">06 &nbsp;Operating &amp; updating</a>
-      <a href="07-remote-deployment.html">07 &nbsp;Remote deployment</a>
       <a href="08-engine.html">08 &nbsp;How the engine works</a>
       <a href="09-credentials.html">09 &nbsp;Credentials &amp; secrets</a>
       <a href="10-audit.html">10 &nbsp;Audit logging</a>
@@ -212,8 +209,8 @@ node tools/build-knowledge.mjs --verify ../v2.0/okf   # does a checkout match pu
       that lets AI agents run sandboxed code against the Analytics v2 API,
       powered by the UTCP code-mode engine.</p>
       <p>Rendered from the Markdown in this folder by <code>build.py</code>.
-      Generated 2026-11-17.</p>
-      <p><strong>za-codemode v2.0.0. Read-only by default.</strong></p>
+      Generated 2026-11-23.</p>
+      <p><strong>zoho-analytics-codemode v1.0.0. Read-only by default.</strong></p>
     </div>
   </div>
 </footer>

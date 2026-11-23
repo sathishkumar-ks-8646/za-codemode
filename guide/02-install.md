@@ -4,22 +4,52 @@ description: How to install Zoho Analytics Code Mode — obtaining OAuth credent
 
 # Install & configure
 
-Five minutes. You need Node 20 or newer, and a Zoho Analytics account.
+Ten minutes. You need Node 20 or newer, git, and a Zoho Analytics account.
 
 ## 1. Prerequisites
 
 | ^Requirement | Check |
 |---|---|
 | Node.js 20+ | `node --version` |
+| git | `git --version` |
 | An MCP-capable agent | Claude Desktop, Claude Code, Cursor, VS Code, Windsurf |
 | A terminal | `login` is interactive; your agent cannot run it for you |
-| A Zoho Analytics organization | You need its Organization ID — see [step 2](#step-1-create-a-self-client) |
+| A Zoho Analytics organization | You need its Organization ID — see [step 2](#step-2-create-a-self-client) |
 
 :::info Why Node
-The sandbox is a V8 isolate provided by a native module, which installs automatically on first run. There is nothing to compile by hand.
+The sandbox is a V8 isolate provided by `isolated-vm`, a native module. Prebuilt binaries cover macOS on Apple silicon, Linux on x64 and arm64, and Windows on x64, so `npm install` needs no toolchain on any of those. Elsewhere — an Intel Mac, for instance — it compiles on install and needs Python 3, `make` and a C++ compiler first.
 :::
 
-## 2. Step 1 — Create a Self Client
+## 2. Step 1 — Get the code
+
+This is not on npm yet, so install it from source:
+
+```bash
+git clone https://github.com/sathishkumar-ks-8646/za-codemode.git
+cd za-codemode
+npm install
+npm link
+```
+
+`npm link` puts a `za-codemode` command on your `PATH`, which is what the rest of this guide and your agent's configuration both call. Confirm it:
+
+```bash
+za-codemode help
+```
+
+:::info If npm link is not available to you
+It writes into your global npm prefix, which some managed machines do not allow. Skip it and use the full path instead — everywhere this guide says `za-codemode`, write `node /path/to/za-codemode/src/bin.mjs`:
+
+```bash
+node /path/to/za-codemode/src/bin.mjs login
+```
+
+The agent configuration in [step 4](#step-4-add-it-to-your-agent) shows the matching form.
+:::
+
+Keep the clone. The server runs from it — deleting the directory breaks the command.
+
+## 3. Step 2 — Create a Self Client
 
 You need three OAuth values from Zoho. Create a **Self Client** in the Developer Console:
 
@@ -38,12 +68,12 @@ You also need your **Organization ID**: in Zoho Analytics, go to **Settings → 
 The scopes above are read-oriented. If you later allow write operations you will need the matching write scopes, and that is worth thinking about before you grant them. See [Security](04-security.md#enabling-write-operations).
 :::
 
-## 3. Step 2 — Store them
+## 4. Step 3 — Store them
 
 Run this **in a terminal** — not through your agent. It is interactive, and the server your agent spawns has no terminal to prompt from:
 
 ```bash
-npx zoho-analytics-codemode login
+za-codemode login
 ```
 
 It asks for your data centre, the Client ID and Secret, your Organization ID, and a refresh token — or paste the Generate Code grant from step 1 and it will do the exchange for you.
@@ -62,7 +92,7 @@ Stored under "zoho-analytics-codemode" / "default" in the Keychain.
 
 Credentials go into your operating system's keychain — macOS Keychain, Windows Credential Manager, Linux Secret Service. [Credentials & profiles](09-credentials.md) covers the whole command, scripting it, multiple profiles, and the one Linux caveat.
 
-## 4. Step 3 — Add it to your agent
+## 5. Step 4 — Add it to your agent
 
 `login` prints this block. Note that it holds no credentials:
 
@@ -70,8 +100,20 @@ Credentials go into your operating system's keychain — macOS Keychain, Windows
 {
   "mcpServers": {
     "zoho-analytics-code-mode": {
-      "command": "npx",
-      "args": ["-y", "zoho-analytics-codemode"]
+      "command": "za-codemode"
+    }
+  }
+}
+```
+
+If you skipped `npm link`, name the entry point directly instead — an absolute path, because your agent does not start in your clone:
+
+```json
+{
+  "mcpServers": {
+    "zoho-analytics-code-mode": {
+      "command": "node",
+      "args": ["/path/to/za-codemode/src/bin.mjs"]
     }
   }
 }
@@ -87,10 +129,14 @@ Edit `claude_desktop_config.json`:
 
 Quit Claude Desktop completely and reopen it. The tools appear in the tools menu.
 
+:::warn Claude Desktop does not read your shell PATH
+On macOS it is launched by the window server, not your shell, so a `za-codemode` installed by `npm link` is often invisible to it even though it works in your terminal. If the server fails to start there, use the `node` + absolute path form above.
+:::
+
 ### Claude Code
 
 ```bash
-claude mcp add zoho-analytics-code-mode -- npx -y zoho-analytics-codemode
+claude mcp add zoho-analytics-code-mode -- za-codemode
 ```
 
 ### Cursor
@@ -109,7 +155,7 @@ If you created a named profile, that is the only thing `env` needs:
 "env": { "ZA_PROFILE": "eu-reporting" }
 ```
 
-## 5. Step 4 — Check it works
+## 6. Step 5 — Check it works
 
 Ask your agent:
 
@@ -117,7 +163,7 @@ Ask your agent:
 
 A healthy run calls `search_analytics_api`, then `run_analytics_code`, and answers with a number. If nothing happens, go to [Troubleshooting](05-troubleshooting.md).
 
-## 6. Choosing what to expose
+## 7. Choosing what to expose
 
 `login` asks this, and stores the answer with the profile. Two independent choices decide which of the 203 operations the sandbox can reach.
 
@@ -162,7 +208,7 @@ The server prints the breakdown at startup:
 [za] knowledge — 17 guides, 385 error codes (OKF 2.0.0, generated 2026-10-27, 15d old)
 ```
 
-## 7. Configuration reference
+## 8. Configuration reference
 
 Most people need none of these — `login` covers the credentials and the tool
 scope. They exist for containers, CI, and for overriding a stored profile.
@@ -170,8 +216,7 @@ scope. They exist for containers, CI, and for overriding a stored profile.
 :::info Environment beats the keychain
 If an `ANALYTICS_*` variable is set, it wins. That is deliberate — a container
 has no keychain — but it also means a stale variable can silently shadow a
-stored profile. `npx zoho-analytics-codemode status` reports which source
-actually answered.
+stored profile. `za-codemode status` reports which source actually answered.
 :::
 
 Every variable the server reads.

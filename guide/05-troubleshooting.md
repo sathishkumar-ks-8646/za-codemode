@@ -24,7 +24,7 @@ A stdio server that exits is reported by most agents as a bare "failed to start"
 ```bash
 ANALYTICS_CLIENT_ID=... ANALYTICS_CLIENT_SECRET=... \
 ANALYTICS_REFRESH_TOKEN=... ANALYTICS_ORG_ID=... \
-npx -y zoho-analytics-codemode
+za-codemode
 ```
 
 A healthy start prints one line and then waits:
@@ -130,7 +130,7 @@ From Zoho Analytics to your machine, and from there only what the program return
 
 ### Q. Can I run it for my whole team from one place?
 
-Yes. Run it in remote mode: one instance, browser sign-in through Zoho, an organization allowlist, and nothing for users to install. See [Remote deployment](07-remote-deployment.md).
+Not yet. Today each person installs it and stores their own credential, which also means each person's access is exactly their own Analytics permissions. A shared, multi-user deployment with browser sign-in is built but not released.
 
 ### Q. Which operations are available?
 
@@ -142,7 +142,7 @@ No. They stay in the host process and are substituted into requests after the sa
 
 ### Q. Is there an audit log?
 
-Not yet, in either mode. Each execution reports its API call count, but programs are not persisted. If you need to know who ran what, you will have to add it — see [Remote deployment](07-remote-deployment.md#what-this-does-not-give-you).
+Yes. One line per outbound Zoho call is written by default; set `ZA_AUDIT=full` to also record the program each execution ran. Secrets are redacted, files rotate, and each line carries a hash of the previous one so edits are detectable. See [Audit logging](10-audit.md).
 
 ### Q. Why does it need Node 20?
 

@@ -38,21 +38,21 @@ ZA_AUDIT=off     # nothing
 ```
 
 ```bash
-npx zoho-analytics-codemode audit    # where the files are, and verify them
+za-codemode audit    # where the files are, and verify them
 ```
 
 ## 3. How much history you get
 
-Defaults differ by server type, because the workloads do. Measured on this server's own records, an API line is about **270 bytes** and an execution record about **1.4 KB**.
+Measured on this server's own records, an API line is about **270 bytes** and an execution record about **1.4 KB**.
 
-| ^ | Local (stdio) | Remote (HTTP) |
-|---|---|---|
-| File size | 10 MB | 10 MB |
-| `api.jsonl` history | 5 files — 50 MB | 10 files — 100 MB |
-| `detail.jsonl` history | 5 files — 50 MB | 10 files — 100 MB |
-| Also to stdout | no¹ | yes, for a collector |
+| ^ | Default |
+|---|---|
+| File size | 10 MB |
+| `api.jsonl` history | 5 files — 50 MB |
+| `detail.jsonl` history | 5 files — 50 MB |
+| Also to stdout | no¹ |
 
-¹ For a stdio server, stdout *is* the MCP protocol channel — writing there would corrupt it. The setting is ignored rather than honoured.
+¹ For a stdio server, stdout *is* the MCP protocol channel — writing there would corrupt it. `ZA_AUDIT_STDOUT` is ignored rather than honoured.
 
 What that buys, at the measured sizes:
 
@@ -74,14 +74,14 @@ A one-person setup has years of history in 100 MB. A busy shared server does not
 | `ZA_AUDIT` | `api` | `off`, `api`, or `full` |
 | `ZA_AUDIT_DIR` | `~/.zoho-analytics-code-mode/audit` | Where files are written, mode `0700` |
 | `ZA_AUDIT_MAX_FILE_MB` | `10` | Size of one file before it rotates |
-| `ZA_AUDIT_API_FILES` | `5` local, `10` remote | How many `api.jsonl` backups to keep |
-| `ZA_AUDIT_DETAIL_FILES` | `5` local, `10` remote | How many `detail.jsonl` backups to keep |
+| `ZA_AUDIT_API_FILES` | `5` | How many `api.jsonl` backups to keep |
+| `ZA_AUDIT_DETAIL_FILES` | `5` | How many `detail.jsonl` backups to keep |
 | `ZA_AUDIT_MAX_FILES` | — | Sets both of the above at once |
 | `ZA_AUDIT_LOG_SECRETS` | **`false`** | Write tokens and secrets in clear |
 | `ZA_AUDIT_LOG_CODE` | `true` | Record the program text in the detail stream |
 | `ZA_AUDIT_LOG_ARGS` | `true` | Record tool arguments |
 | `ZA_AUDIT_HASH_CHAIN` | `true` | Per-line hashes for tamper detection |
-| `ZA_AUDIT_STDOUT` | `false` local, `true` remote | Also emit JSON Lines on stdout |
+| `ZA_AUDIT_STDOUT` | `false` | Also emit JSON Lines on stdout — see [§3](#how-much-history-you-get) |
 
 Total disk is `ZA_AUDIT_MAX_FILE_MB × (ZA_AUDIT_API_FILES + ZA_AUDIT_DETAIL_FILES)`, plus the two files currently being written.
 
@@ -118,15 +118,15 @@ It detects edits and deletions by something that cannot rewrite the whole file. 
 
 ## 7. Shipping them somewhere else
 
-Remote mode writes JSON Lines to stdout by default, so a container collector picks them up with no extra configuration:
+Point `ZA_AUDIT_DIR` at a directory your collector already watches, and the usual routes apply — Fluent Bit, Vector, a `filebeat` input, or a sidecar into your SIEM. Because the format is one JSON object per line with stable field names, nothing needs parsing rules:
 
 ```bash
-docker logs -f zoho-analytics-code-mode | jq 'select(.ev=="api")'
+tail -f ~/.zoho-analytics-code-mode/audit/api.jsonl | jq 'select(.ev=="api")'
 ```
 
-From there the usual routes apply — Fluent Bit, Vector, the Docker logging driver, or a sidecar into your SIEM. Because the format is one JSON object per line with stable field names, nothing needs parsing rules.
-
-For local mode, point `ZA_AUDIT_DIR` at a directory your agent already collects, or tail the files.
+:::warn Do not turn on ZA_AUDIT_STDOUT here
+`stdout` is the MCP protocol channel for a stdio server. The setting exists for a server that does not speak MCP over stdout, and is ignored in this mode — see [§3](#how-much-history-you-get).
+:::
 
 ## 8. What is still missing
 

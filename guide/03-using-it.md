@@ -1,5 +1,5 @@
 ---
-description: How to get good results from Zoho Analytics Code Mode — worked examples, what makes a good prompt, and how the two tools work together.
+description: How to get good results from Zoho Analytics Code Mode — worked examples, what makes a good prompt, and how the four tools work together.
 ---
 
 # Using it

@@ -1,0 +1,81 @@
+### CI for za-codemode.
+#
+# Three things are checked, in rising order of how often they break:
+#
+#   1. The test suite — 101 tests, fully offline against the mock Analytics API.
+#   2. The guide validates — every page has an H1 and every internal link and
+#      anchor resolves.
+#   3. The rendered HTML matches the authored Markdown. The `.html` files are
+#      generated and committed, so a doc change that edits only the `.md` leaves
+#      the published guide stale. Re-rendering and diffing is the only way to
+#      catch that before a reader does.
+#
+# isolated-vm is a native addon. Prebuilt binaries cover linux-x64, so `npm ci`
+# needs no toolchain here; `--foreground-scripts` makes a fallback compile
+# visible in the log rather than silent.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      # The @utcp/* packages are not mirrored on internal registries; .npmrc
+      # pins the public one. --foreground-scripts surfaces the native build.
+      - name: Install
+        run: npm ci --foreground-scripts
+
+      - name: Verify the sandbox engine loaded
+        run: node -e "import('isolated-vm').then(()=>console.log('isolated-vm ok'))"
+
+      - name: Test
+        run: npm test
+
+  guide:
+    name: Guide
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate links, anchors and headings
+        run: python3 guide/build.py --check
+
+      # The footer carries the render date, so every re-render touches all ten
+      # files. -I ignores hunks whose every changed line matches that pattern,
+      # leaving real content drift to fail the job.
+      - name: Rendered HTML is in step with the Markdown
+        run: |
+          python3 guide/build.py
+          if ! git diff -I'Generated [0-9]{4}-[0-9]{2}-[0-9]{2}\.' \
+                        --exit-code --stat -- guide/; then
+            echo
+            echo "::error::guide/*.html is stale. Run 'cd guide && python3 build.py' and commit the result."
+            exit 1
+          fi

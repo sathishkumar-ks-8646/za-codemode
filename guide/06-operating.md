@@ -6,13 +6,21 @@ description: Operating Zoho Analytics Code Mode — updates, API unit cost, runn
 
 ## 1. Updates
 
-With `npx -y zoho-analytics-codemode`, the latest published version is fetched when your agent starts the server. To pin a version, name it:
+This is installed from source, so updating is a pull in your clone:
 
-```json
-"args": ["-y", "zoho-analytics-codemode@1.0.0"]
+```bash
+cd /path/to/za-codemode
+git pull
+npm install          # in case a dependency moved
 ```
 
-New Analytics operations arrive with a new release of this package, because the catalog is generated from the published OpenAPI specifications and bundled at build time.
+Restart your agent afterwards — it holds the old process open until it does.
+
+New Analytics operations arrive with a new commit, because the catalog is generated from the published OpenAPI specifications and committed as a build artifact. To take a catalog update without taking code changes, rebuild it yourself — see [§4](#building-the-catalog-from-source).
+
+:::info Pinning a version
+`git pull` tracks `main`. To hold a known-good state, check out a tag or a commit instead, and note which one you are on: there is no `--version` flag yet, so the commit is the only answer to "which build is this".
+:::
 
 ## 2. What it costs
 
@@ -34,8 +42,8 @@ Filter server-side. A `CONFIG` with `criteria` is applied by Analytics before ro
 ## 3. Running from source
 
 ```bash
-git clone <this-repository>
-cd code-execution-mcp
+git clone https://github.com/sathishkumar-ks-8646/za-codemode.git
+cd za-codemode
 npm install
 npm test
 ```
@@ -43,11 +51,13 @@ npm test
 | ^Command | What it does |
 |---|---|
 | `npm start` | Run the server on stdio |
-| `npm test` | The whole suite — search quality and end-to-end MCP |
-| `npm run build:manual` | Regenerate the operation catalog from `v2.0/oas/` |
-| `npm run build:knowledge` | Regenerate the knowledge bundle from `v2.0/okf/` |
+| `npm test` | The whole suite — 101 tests, fully offline |
+| `npm run build:manual` | Regenerate the operation catalog from the published OAS repository |
+| `npm run build:knowledge` | Regenerate the knowledge bundle from the published OKF repository |
 | `npm run build` | Both |
+| `npm run verify:knowledge` | Check a local OKF checkout against the bundle |
 | `node test/mock-analytics.mjs 8788` | Start the mock API by itself |
+| `python3 guide/build.py` | Re-render this guide; `--check` validates without writing |
 
 :::warn Install from the public registry
 The `@utcp/*` packages are not mirrored on internal registries. `.npmrc` in this folder pins `registry=https://registry.npmjs.org` for exactly that reason.
@@ -71,7 +81,8 @@ npm start
 `manual/analytics.utcp.json` is generated, never hand-edited:
 
 ```bash
-npm run build:manual          # reads ../v2.0/oas/*-grouped-api.json
+npm run build:manual                                 # from github.com/zoho/analytics-oas
+node tools/build-manual.mjs --local <oas-dir>        # offline, from a checkout
 ```
 
 It emits 203 operations, about 565 KB. Five transformations are applied that a stock OpenAPI conversion gets wrong for Zoho:
@@ -97,23 +108,40 @@ It emits 203 operations, about 565 KB. Five transformations are applied that a s
 Deliberately excluded: the permission matrix, OAuth scopes, API-unit tables and glossary. They are reference material for humans, and none of them change the code that gets generated.
 
 ```bash
-npm run build:knowledge                               # from the published repository
-node tools/build-knowledge.mjs --local  ../v2.0/okf   # offline, from a checkout
-node tools/build-knowledge.mjs --verify ../v2.0/okf   # has a checkout drifted?
+npm run build:knowledge                             # from the published repository
+node tools/build-knowledge.mjs --local  <okf-dir>   # offline, from a checkout
+node tools/build-knowledge.mjs --verify <okf-dir>   # has a checkout drifted?
 ```
 
 Each build records the OKF version and the date that bundle was generated, and the server reports both at startup — so a stale snapshot is visible rather than silently authoritative.
 
 ## 6. The test suite
 
+101 tests, no network, no credentials — everything runs against a mock Analytics API and a mock Zoho Accounts.
+
 ```text
-test/search.test.mjs    search quality — API and user vocabulary
-test/agent.test.mjs     end-to-end over real MCP stdio against the mock
+test/agent.test.mjs        end-to-end over real MCP stdio against the mock
+test/resolve.test.mjs      name resolution: fuzzy matching, ambiguity, refusal
+test/search.test.mjs       search quality — API and user vocabulary
+test/audit.test.mjs        two streams, rotation, redaction, hash chain
+test/credentials.test.mjs  env -> credential command -> keychain resolution
+test/token-cache.test.mjs  access-token reuse across process restarts
+test/orgs.test.mjs         organization allowlist enforcement
+test/remote.test.mjs       the full OAuth 2.1 flow (unreleased mode)
+test/mock-analytics.mjs    the mock API — enforces org scoping, returns real shapes
+test/mock-accounts.mjs     the mock token endpoint
 ```
 
-`agent.test.mjs` asserts the properties that matter: exactly two tools, signatures stay small, a multi-step program returns only its answer, `ORG_ID` is present, **the sandbox is sealed**, write operations are hidden, and a failed program yields an actionable error.
+`agent.test.mjs` asserts the properties that matter: exactly four tools, signatures stay small, a multi-step program returns only its answer, `ORG_ID` is present, **the sandbox is sealed**, write operations are hidden, the org header and `Bearer` prefix reach the API correctly, and a failed program yields an actionable error.
 
-The sandbox-seal test is the one to keep green above all others — it asserts that `require`, `fetch`, `process`, `Buffer` and `XMLHttpRequest` are all unreachable from executing code.
+Two tests to keep green above all others:
+
+- **"the sandbox is sealed"** — asserts that `require`, `fetch`, `process`, `Buffer` and `XMLHttpRequest` are all unreachable from executing code. [Security](04-security.md#what-the-sandbox-cannot-do) is only true while this passes.
+- **"catching the refusal does NOT let the program substitute"** — asserts that a program which swallows a failed name resolution still fails the whole execution. Analysing `sum_of_revenue` when the user said `sum_of_cost` is the worst outcome this tool can produce.
+
+:::info The mock mirrors the API, not the documentation
+`mock-analytics.mjs` returns the shapes live Analytics actually sends — rows as a flat array in `data`, numbers as formatted strings like `"$1,682.39"` — because an earlier version returned the documented shapes instead and hid two defects that each produced a *plausible wrong number*. If you extend it, copy a real response.
+:::
 
 ## 7. Known rough edges
 
@@ -121,30 +149,45 @@ Honest notes for anyone maintaining this.
 
 | ^Edge | Detail |
 |---|---|
+| **Results are not size-capped** | A program is told to `return` only its final answer, and that instruction is the only thing keeping a large result out of your context. Nothing truncates it. Ask for aggregates, and see [Using it](03-using-it.md#what-makes-a-good-request) |
+| **Write path is lightly tested** | `ZA_ALLOW_WRITES=true` exposes all 203 operations; only the read-only set is covered by tests. Exercise it against a non-production organization first |
+| **Not on npm** | Installed from source while the licence is finalised, so there is no `npx` one-liner and no `--version` flag. The commit is the build identifier |
 | The process does not exit cleanly | `isolated-vm` worker threads outlive `process.exit()`. Tests force exit; agents kill the child on quit, so it does not matter in normal use |
-| No audit log | Programs are not persisted. `apiCalls` is reported per execution and that is all |
+| No per-user rate limiting | `ZA_MAX_TOOL_CALLS` is per program, not per user per hour |
 | Search is lexical | Synonym expansion plus field-weighted scoring, no embeddings. It handles API vocabulary well and paraphrase adequately |
 | The knowledge bundle is a snapshot | Regenerated by `npm run build:knowledge`; it does not follow github.com/zoho/analytics-okf automatically. Its age is reported at startup and warned about past 90 days |
-| Write path is lightly tested | `ZA_ALLOW_WRITES=true` exposes all 203 operations; only the read-only set is covered by tests |
+| A transitive dependency is flagged | `@utcp/sdk` pins `zod` 3.x, which carries GHSA-mrhx-c7xc-m3w5. No fix is available upstream; it is in UTCP's input-validation path, and `npm audit` will report it |
 | UTCP is a thin dependency | All of it is fenced inside `src/catalog.mjs` precisely so it can be replaced without touching the rest |
 
 ## 8. Where things live
 
 ```text
-code-execution-mcp/
+za-codemode/
 ├── src/
-│   ├── server.mjs       the MCP server and its three tools
-│   ├── knowledge.mjs    the OKF knowledge base: lookup, search, hints
-│   ├── catalog.mjs      the operation catalog and sandbox — the only UTCP usage
-│   ├── search.mjs       query expansion and ranking
-│   ├── auth.mjs         refresh token -> access token
-│   ├── config.mjs       environment parsing and validation
-│   └── quiet.mjs        stdout guard — must be imported first
+│   ├── bin.mjs             entry point: no args -> server, args -> CLI
+│   ├── server.mjs          the stdio MCP server
+│   ├── tools.mjs           the four tools
+│   ├── catalog.mjs         the operation catalog and sandbox — the only UTCP usage
+│   ├── sandbox-prelude.mjs `find` (name resolver) and `rows` (result readers)
+│   ├── search.mjs          query expansion and ranking
+│   ├── knowledge.mjs       the OKF knowledge base: lookup, search, hints
+│   ├── auth.mjs            refresh token -> access token
+│   ├── credentials.mjs     resolution: env -> credential command -> keychain
+│   ├── token-cache.mjs     access-token reuse across process restarts
+│   ├── cli.mjs             login / status / logout / audit
+│   ├── audit.mjs           two streams, rotation, redaction, hash chain
+│   ├── config.mjs          environment parsing and validation
+│   ├── quiet.mjs           stdout guard — must be imported first
+│   └── remote/             the unreleased multi-user HTTP server
 ├── tools/
 │   ├── build-manual.mjs     OpenAPI specs -> UTCP operation catalog
 │   └── build-knowledge.mjs  OKF docs -> shipped knowledge bundle
 ├── manual/analytics.utcp.json     generated; do not hand-edit
 ├── knowledge/knowledge.json       generated; do not hand-edit
-├── test/                mock API, search tests, end-to-end tests
-└── guide/               this documentation
+├── test/                 mocks and the 101 tests
+└── guide/                this documentation — .md authored, .html generated
 ```
+
+:::warn `src/quiet.mjs` must stay the first import of `server.mjs`
+An MCP stdio server's stdout *is* the JSON-RPC channel, and the UTCP SDK logs progress with `console.log`. One stray line corrupts the stream, and the agent disconnects with no diagnosable error.
+:::

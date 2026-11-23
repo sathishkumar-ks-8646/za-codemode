@@ -52,13 +52,21 @@ PAGES = [
     ("04-security",        "04", "Security & governance",      "Security"),
     ("05-troubleshooting", "05", "Troubleshooting & FAQ",      "Troubleshooting"),
     ("06-operating",       "06", "Operating & updating",       "Operating"),
-    ("07-remote-deployment","07", "Remote deployment",         "Remote"),
+    # 07 was Remote deployment. Remote mode is implemented but unreleased, so
+    # the chapter lives in unpublished/ — see unpublished/README.md. The gap in
+    # the numbering is deliberate: it keeps the chapter's filename, and every
+    # link to it in git history, valid for when it is published.
     ("08-engine",          "08", "How the engine works",      "Engine"),
     ("09-credentials",     "09", "Credentials & secrets",     "Credentials"),
     ("10-audit",           "10", "Audit logging",             "Audit"),
 ]
 
-TOOL_VERSION = "2.0.0"
+TOOL_VERSION = "1.0.0"
+
+# How many tools the agent sees. Asserted by the "exposes exactly the four
+# tools" case in ../test/agent.test.mjs, and stated on the landing page, so it
+# is a constant here rather than a number typed into the HTML.
+TOOL_COUNT = 4
 
 # The SDK release that carries this migration: the cross-organization methods are
 # removed and the two moved methods land on OrgAPI / WorkspaceAPI from here on.
@@ -687,14 +695,14 @@ def hero_for_index() -> str:
       <a class="btn" href="01-what-it-is.html">How it works</a>
     </div>
     <dl class="hero__facts">
-      <div class="fact fact--new"><dt>Tools your agent sees</dt><dd>3</dd></div>
+      <div class="fact fact--new"><dt>Tools your agent sees</dt><dd>{tools}</dd></div>
       <div class="fact"><dt>Operations reachable</dt><dd>203</dd></div>
       <div class="fact fact--new"><dt>API domains</dt><dd>10</dd></div>
       <div class="fact"><dt>Documented error codes</dt><dd>385</dd></div>
       <div class="fact fact--warn"><dt>Setup time</dt><dd>5 min</dd></div>
     </dl>
   </div>
-</section>""".format(spine=SPINE)
+</section>""".format(spine=SPINE, tools=TOOL_COUNT)
 
 
 def bundle_skills() -> tuple[int, int]:

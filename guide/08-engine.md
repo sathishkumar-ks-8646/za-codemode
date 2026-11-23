@@ -10,7 +10,7 @@ This chapter is for the curious and for anyone reviewing the tool. Nothing here 
 
 ```text
   ┌─ MCP ──────────────────────────────────────────────┐
-  │  what your agent speaks. Three tools.              │
+  │  what your agent speaks. Four tools.               │
   │  @modelcontextprotocol/sdk                         │
   └────────────────────┬───────────────────────────────┘
                        │
@@ -105,7 +105,7 @@ The catalog is tagged by the domain each operation comes from, mirroring `v2.0/o
 | `@utcp/http` | makes the real API calls from the call templates |
 | `@utcp/text` | hands the manual over inline, so nothing is fetched |
 | `isolated-vm` | the V8 isolate itself |
-| `express` | the remote server's HTTP layer |
+| `express` | the HTTP layer, used only by the unreleased multi-user server |
 
 Every `@utcp/*` import lives in a single file, `src/catalog.mjs`. That is deliberate: UTCP is a young project with a small user base, and confining it to one module means it can be replaced without touching anything else. The server uses exactly three of its functions.
 

@@ -9,7 +9,7 @@ Credentials live in your operating system's keychain, not in a file. You put the
 ## 1. Run this, in a terminal
 
 ```bash
-npx zoho-analytics-codemode login
+za-codemode login
 ```
 
 **In a terminal** matters. This is an interactive command — it asks you questions and you type the answers. Your AI agent cannot run it for you, because the server your agent spawns has no terminal attached and so can never prompt for anything. That is the whole reason credentials are set up separately, once, by hand.
@@ -25,7 +25,7 @@ npx zoho-analytics-codemode login
 Six things. Secret answers are not echoed as you type.
 
 ```text
-$ npx zoho-analytics-codemode login
+$ za-codemode login
 
 Zoho Analytics Code Mode — store credentials
 
@@ -129,22 +129,21 @@ Answering yes to writes exposes create, update and **delete** across every group
 {
   "mcpServers": {
     "zoho-analytics-code-mode": {
-      "command": "npx",
-      "args": ["-y", "zoho-analytics-codemode"]
+      "command": "za-codemode"
     }
   }
 }
 ```
 
-Config file locations are in [Install & configure](02-install.md#step-3-add-it-to-your-agent).
+Config file locations, and the form to use if you skipped `npm link`, are in [Install & configure](02-install.md#step-4-add-it-to-your-agent).
 
 ## 5. Several profiles
 
 One organization read-only, another sandbox read-write, a third for schema work:
 
 ```bash
-npx zoho-analytics-codemode login --profile eu-reporting
-npx zoho-analytics-codemode login --profile sandbox
+za-codemode login --profile eu-reporting
+za-codemode login --profile sandbox
 ```
 
 Name the profile in each server entry — still the only thing in `env`:
@@ -153,11 +152,11 @@ Name the profile in each server entry — still the only thing in `env`:
 {
   "mcpServers": {
     "analytics-reporting": {
-      "command": "npx", "args": ["-y", "zoho-analytics-codemode"],
+      "command": "za-codemode",
       "env": { "ZA_PROFILE": "eu-reporting" }
     },
     "analytics-sandbox": {
-      "command": "npx", "args": ["-y", "zoho-analytics-codemode"],
+      "command": "za-codemode",
       "env": { "ZA_PROFILE": "sandbox" }
     }
   }
@@ -165,8 +164,8 @@ Name the profile in each server entry — still the only thing in `env`:
 ```
 
 ```bash
-npx zoho-analytics-codemode status --profile sandbox   # what is stored
-npx zoho-analytics-codemode logout --profile sandbox   # remove it
+za-codemode status --profile sandbox   # what is stored
+za-codemode logout --profile sandbox   # remove it
 ```
 
 ## 6. Scripting it
@@ -174,7 +173,7 @@ npx zoho-analytics-codemode logout --profile sandbox   # remove it
 Every answer has a flag, so a setup script need not be interactive. Anything you do not supply is still asked for, and secrets can be piped on stdin.
 
 ```bash
-npx zoho-analytics-codemode login \
+za-codemode login \
   --profile ci \
   --analytics-url https://analyticsapi.zoho.eu \
   --accounts-url  https://accounts.zoho.eu \
@@ -197,11 +196,11 @@ Each operating system has an encrypted store that unlocks with your login sessio
 
 | ^Platform | Store | Inspect it with |
 |---|---|---|
-| **macOS** | Keychain | Keychain Access → search `za-codemode` |
+| **macOS** | Keychain | Keychain Access → search `zoho-analytics-codemode` |
 | **Windows** | Credential Manager | `rundll32 keymgr.dll,KRShowKeyMgr`, or `cmdkey /list` |
-| **Linux** | Secret Service (gnome-keyring / KWallet) | Seahorse ("Passwords and Keys"), or `secret-tool search service za-codemode` |
+| **Linux** | Secret Service (gnome-keyring / KWallet) | Seahorse ("Passwords and Keys"), or `secret-tool search service zoho-analytics-codemode` |
 
-The entry's service is `za-codemode` and its account is the profile name.
+The entry's service is `zoho-analytics-codemode` — matching `KEYCHAIN_SERVICE` in `src/credentials.mjs`, not the shorter command name — and its account is the profile name.
 
 ## 8. Linux: the session bus
 
@@ -221,7 +220,7 @@ A terminal inside your desktop session has the variable and works normally. Thes
 | ^Situation | What to do instead |
 |---|---|
 | Over SSH, or a bare `systemd` unit | `ANALYTICS_*` environment variables, or `ZA_CREDENTIAL_COMMAND` |
-| Docker, Kubernetes | Environment variables — see [Remote deployment](07-remote-deployment.md) |
+| Docker, Kubernetes | `ANALYTICS_*` environment variables, from your orchestrator's secret store |
 | WSL with no keyring | `sudo apt install gnome-keyring`, or environment variables |
 | Headless server | `ZA_CREDENTIAL_COMMAND` pointing at your secret manager |
 

@@ -3,28 +3,17 @@
 **Zoho Analytics Code Mode** — UTCP code mode behind an MCP front door. Lets an
 AI agent write and run sandboxed code against the Zoho Analytics v2 API.
 
-Published to npm as [`zoho-analytics-codemode`](package.json), in two modes:
+**Not published yet.** Install it from source — `git clone`, `npm install`,
+`npm link` — which puts a `za-codemode` command on your `PATH`. See
+[`guide/02-install.md`](guide/02-install.md). The npm name is reserved as
+`zoho-analytics-codemode` but nothing is published under it while the licence
+is being settled; see [`LICENSE.md`](LICENSE.md).
 
-| Mode | Entrypoint | Users | Auth |
-|---|---|---|---|
-| **Local** | `src/server.mjs` (stdio) | one, on their own machine | refresh token in the agent config |
-| **Remote** | `src/remote.mjs` (HTTP) | many, one instance | OAuth 2.1 browser sign-in, org allowlist |
-
-Remote mode is an OAuth 2.1 protected resource as the MCP specification defines
-one — the same shape as Linear, Stripe, GitHub and Atlassian's hosted servers,
-so any compliant client connects without special handling:
-
-| Requirement | Where |
-|---|---|
-| RFC 9728 protected resource metadata (MUST) | `/.well-known/oauth-protected-resource/mcp` |
-| RFC 8414 / OIDC discovery (MUST, one of) | `/.well-known/oauth-authorization-server`, `/.well-known/openid-configuration` |
-| RFC 7591 dynamic client registration | `/register` |
-| RFC 8707 audience binding (MUST) | every token bound to `<public-url>/mcp`; others refused with 401 |
-| RFC 9207 issuer identification | `iss` on every authorization response, advertised in metadata |
-| OAuth 2.1 + PKCE S256 (MUST) | enforced at `/authorize` |
-
-Its environment variables mirror the self-hosted Zoho Analytics Remote MCP
-Server, so an existing `.env` largely carries over.
+A second, multi-user HTTP mode (`src/remote.mjs`) is implemented and tested but
+**unreleased and undocumented** — it is left out of the guide deliberately,
+because the write path and per-user rate limiting are not ready for a shared
+deployment. Do not deploy it. `guide/unpublished/` holds its chapter for when
+it is.
 
 ```
   AI agent  ──MCP/stdio──▶  this server  ──▶  V8 isolate (model's code)
@@ -55,23 +44,23 @@ record per tool call including the program that ran (sensitive, opt-in via
 JSON Lines, RFC 3339 timestamps, OWASP's when/where/who/what. **Secrets are
 never written** unless `ZA_AUDIT_LOG_SECRETS=true` — redacted by exact value
 and by pattern, including inside the generated program. Size-bounded with
-logrotate-style backups; defaults are 5 files locally and 10 remotely, at
-10 MB each, and every value is configurable. Remote mode also emits to stdout
-for a collector; stdio mode never can, because stdout is the protocol channel.
+logrotate-style backups; the default is 5 files per stream at 10 MB each, and
+every value is configurable. Nothing is written to stdout in stdio mode,
+because stdout is the protocol channel.
 
 Each line carries a hash of the previous line **from the same writer**, so an
 edit or deletion is detectable while agent restarts and concurrent hosts —
 which legitimately share one file — still verify.
 
 ```bash
-npx zoho-analytics-codemode audit    # paths, sizes, and chain verification
+za-codemode audit    # paths, sizes, and chain verification
 ```
 
 ## Credentials stay out of the config file
 
 ```bash
-npx zoho-analytics-codemode login     # interactive; run it in a terminal
-npx zoho-analytics-codemode status    # which credential and scope are in use
+za-codemode login     # interactive; run it in a terminal
+za-codemode status    # which credential and scope are in use
 ```
 
 `login` asks for the credential, **which of the ten tool groups the profile may
@@ -86,7 +75,7 @@ za-cli's TokenCache (version envelope, bound to client ID and data centre, 120 s
 expiry skew, lifetime clamped at 24 h). Measured live: a warm start skips the
 token exchange.
 
-After that an agent's config holds no secrets — just `command` and `args`.
+After that an agent's config holds no secrets — just the command to run.
 Resolution order is environment variables, then `ZA_CREDENTIAL_COMMAND` (for
 1Password / Vault), then the OS keychain by profile; the startup log reports
 which answered. macOS Keychain, Windows Credential Manager, Linux Secret
@@ -129,9 +118,10 @@ visible rather than silently authoritative.
 za-codemode/
 ├── package.json             npm manifest — bin: za-codemode
 ├── .npmrc                   pins the public registry (@utcp/* is not mirrored)
-├── Dockerfile               remote mode; builds isolated-vm, runs as non-root
-├── docker-compose.yml       reference deployment with Redis
-├── .env.example             every remote variable, documented
+├── .github/workflows/ci.yml tests on Node 20 + 22; guide links; HTML in step
+├── Dockerfile               UNRELEASED remote mode; isolated-vm, non-root
+├── docker-compose.yml       UNRELEASED reference deployment with Redis
+├── .env.example             UNRELEASED remote variables, documented
 ├── src/
 │   ├── server.mjs           LOCAL entrypoint — stdio, single user
 │   ├── remote.mjs           REMOTE entrypoint — HTTP, multi-user
@@ -142,13 +132,13 @@ za-codemode/
 │   ├── knowledge.mjs        OKF lookup, search, hints and provenance
 │   ├── auth.mjs             refresh token -> access token, cached
 │   ├── credentials.mjs      resolution: env -> credential command -> keychain
-│   ├── cli.mjs              login / status / logout
+│   ├── cli.mjs              login / status / logout / audit
 │   ├── token-cache.mjs      access-token reuse across process restarts
 │   ├── audit.mjs            two audit streams, rotation, redaction, hash chain
 │   ├── bin.mjs              entry point: no args -> server, args -> CLI
 │   ├── config.mjs           environment parsing and startup validation
 │   ├── quiet.mjs            stdout guard — MUST be the first import
-│   └── remote/
+│   └── remote/              UNRELEASED — built and tested, not documented
 │       ├── http.mjs         express app: OAuth routes, /mcp, /healthz
 │       ├── provider.mjs     OAuth 2.1 authorization server, delegating to Zoho
 │       ├── zoho-oauth.mjs   Zoho Accounts client + organization probing
@@ -159,21 +149,28 @@ za-codemode/
 │   └── build-knowledge.mjs  github.com/zoho/analytics-okf -> knowledge bundle
 ├── manual/                  generated catalog; never hand-edited
 ├── knowledge/               generated OKF bundle; never hand-edited
-├── test/                    offline mocks, 65 tests
+├── test/                    offline mocks, 101 tests
 └── guide/                   the published setup & usage guide (md -> html)
+    └── unpublished/         written but held back; see its README
 ```
 
 ## Working on it
 
 ```bash
 npm install                  # public registry, pinned in .npmrc
+npm link                     # puts `za-codemode` on PATH, for the CLI
 npm test                     # 101 tests, fully offline
 npm run build                # rebuild both artifacts from the published repos
-npm start                    # local mode, stdio
-npm run start:remote         # remote mode, HTTP
+npm start                    # stdio server
 
 cd guide && python3 build.py --check    # validate the guide
+cd guide && python3 build.py            # re-render it — commit the HTML too
 ```
+
+CI runs the tests on Node 20 and 22, validates the guide's links and anchors,
+and fails if the committed `guide/*.html` is out of step with the `.md`. The
+`.html` files are generated *and committed*, so a doc change that touches only
+the Markdown leaves the published guide stale — always re-render.
 
 ## Four invariants
 
@@ -209,7 +206,7 @@ covers both.
 
 | | [MCP Server](https://www.zoho.com/analytics/api/v2/zoho-analytics-mcp-server.html) | This |
 |---|---|---|
-| Tools | 26 curated, task-shaped | 2 |
+| Tools | 26 curated, task-shaped | 4 |
 | Operations reachable | 26 | 203 |
 | Best at | single lookups | multi-step: loops, polling, aggregation |
 | Runs model-written code | no | yes, sandboxed |
@@ -244,18 +241,29 @@ documented pattern returned `{ rowCount: 0 }`.
 
 101 tests pass offline: search quality and domain filtering, name resolution
 (fuzzy matching, ambiguity, misses, columns, variables, enforced refusal),
-result reading, call pacing, local stdio end-to-end, the knowledge tool, the
-full remote OAuth flow (dynamic registration, PKCE, browser redirect through a
-mock Zoho Accounts, bearer-protected MCP, per-user session isolation), and
-organization allowlist enforcement.
+result reading, call pacing, stdio end-to-end, audit streams and hash chaining,
+credential resolution, token caching, the knowledge tool, and — for the
+unreleased mode — the full OAuth flow and organization allowlist enforcement.
 
 Not yet done:
 
+- **The licence is not settled.** No terms are granted yet, which is why nothing
+  is published to npm. See [`LICENSE.md`](LICENSE.md).
+- **Results are not size-capped.** A program is instructed to `return` only its
+  final answer, and nothing enforces it — a program that returns 10,000 rows
+  puts 10,000 rows into the model's context. A token-bounded cap on the tool
+  result, truncating to valid JSON and telling the model to narrow, is the
+  clearest remaining gap.
 - **The write path (`ZA_ALLOW_WRITES=true`) is lightly tested.** Exercise it
   against a non-production organization first.
 - **No per-user rate limiting** of Analytics calls; `ZA_MAX_TOOL_CALLS` is per
   program, not per user per hour.
 - **The knowledge bundle is a snapshot**, not a live view. Its age is reported
   at startup and warned about past 90 days.
+- **`@utcp/sdk` pins `zod` 3.x**, which carries GHSA-mrhx-c7xc-m3w5 with no fix
+  available upstream. `npm audit` reports it; it sits in UTCP's input-validation
+  path.
+- **No `--version`.** Installed from a clone, the commit is the build
+  identifier.
 
 See `guide/06-operating.md` for the full list of known rough edges.

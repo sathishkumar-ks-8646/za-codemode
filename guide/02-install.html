@@ -27,7 +27,6 @@
       <a href="04-security.html">Security</a>
       <a href="05-troubleshooting.html">Troubleshooting</a>
       <a href="06-operating.html">Operating</a>
-      <a href="07-remote-deployment.html">Remote</a>
       <a href="08-engine.html">Engine</a>
       <a href="09-credentials.html">Credentials</a>
       <a href="10-audit.html">Audit</a>
@@ -42,8 +41,8 @@
 
 <div class="deadline-bar">
   <div class="deadline-bar__inner">
-    <span class="chip chip--sdk">za-codemode</span>
-    <p>Install with <strong>npx&nbsp;za-codemode</strong>, version&nbsp;2.0.0.
+    <span class="chip chip--sdk">zoho-analytics-codemode</span>
+    <p>Install with <strong>npx&nbsp;zoho-analytics-codemode</strong>, version&nbsp;1.0.0.
     <a href="02-install.html">Setup in five minutes &rarr;</a></p>
     <span class="chip chip--deadline">Read-only</span>
     <p>Write operations are <strong>disabled by default</strong>. Enable them
@@ -63,7 +62,6 @@
     <a href="04-security.html"><span class="n">04</span><span>Security &amp; governance</span></a>
     <a href="05-troubleshooting.html"><span class="n">05</span><span>Troubleshooting &amp; FAQ</span></a>
     <a href="06-operating.html"><span class="n">06</span><span>Operating &amp; updating</span></a>
-    <a href="07-remote-deployment.html"><span class="n">07</span><span>Remote deployment</span></a>
     <a href="08-engine.html"><span class="n">08</span><span>How the engine works</span></a>
     <a href="09-credentials.html"><span class="n">09</span><span>Credentials &amp; secrets</span></a>
     <a href="10-audit.html"><span class="n">10</span><span>Audit logging</span></a>
@@ -78,24 +76,38 @@
   <div class="spine"><i></i><i></i><i></i><i></i></div>
   <p class="eyebrow">Code Mode &middot; <b>Chapter 02</b></p>
   <h1>Install &amp; configure</h1>
-  <p class="lede">Five minutes. You need Node 20 or newer, and a Zoho Analytics account.</p>
+  <p class="lede">Ten minutes. You need Node 20 or newer, git, and a Zoho Analytics account.</p>
 </header>
 <section id="prerequisites">
 <h2><span class="num">01</span>Prerequisites</h2>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Requirement</th><th>Check</th></tr></thead><tbody><tr><td class="col-narrow">Node.js 20+</td><td><code>node --version</code></td></tr><tr><td class="col-narrow">An MCP-capable agent</td><td>Claude Desktop, Claude Code, Cursor, VS Code, Windsurf</td></tr><tr><td class="col-narrow">A terminal</td><td><code>login</code> is interactive; your agent cannot run it for you</td></tr><tr><td class="col-narrow">A Zoho Analytics organization</td><td>You need its Organization ID — see <a href="#step-1-create-a-self-client">step 2</a></td></tr></tbody></table></div>
-<div class="note note--info"><div class="note__title">Why Node</div><p>The sandbox is a V8 isolate provided by a native module, which installs automatically on first run. There is nothing to compile by hand.</p></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Requirement</th><th>Check</th></tr></thead><tbody><tr><td class="col-narrow">Node.js 20+</td><td><code>node --version</code></td></tr><tr><td class="col-narrow">git</td><td><code>git --version</code></td></tr><tr><td class="col-narrow">An MCP-capable agent</td><td>Claude Desktop, Claude Code, Cursor, VS Code, Windsurf</td></tr><tr><td class="col-narrow">A terminal</td><td><code>login</code> is interactive; your agent cannot run it for you</td></tr><tr><td class="col-narrow">A Zoho Analytics organization</td><td>You need its Organization ID — see <a href="#step-2-create-a-self-client">step 2</a></td></tr></tbody></table></div>
+<div class="note note--info"><div class="note__title">Why Node</div><p>The sandbox is a V8 isolate provided by <code>isolated-vm</code>, a native module. Prebuilt binaries cover macOS on Apple silicon, Linux on x64 and arm64, and Windows on x64, so <code>npm install</code> needs no toolchain on any of those. Elsewhere — an Intel Mac, for instance — it compiles on install and needs Python 3, <code>make</code> and a C++ compiler first.</p></div>
 </section>
-<section id="step-1-create-a-self-client">
-<h2><span class="num">02</span>Step 1 — Create a Self Client</h2>
+<section id="step-1-get-the-code">
+<h2><span class="num">02</span>Step 1 — Get the code</h2>
+<p>This is not on npm yet, so install it from source:</p>
+<pre><code class="lang-bash">git clone https://github.com/sathishkumar-ks-8646/za-codemode.git
+cd za-codemode
+npm install
+npm link</code></pre>
+<p><code>npm link</code> puts a <code>za-codemode</code> command on your <code>PATH</code>, which is what the rest of this guide and your agent's configuration both call. Confirm it:</p>
+<pre><code class="lang-bash">za-codemode help</code></pre>
+<div class="note note--info"><div class="note__title">If npm link is not available to you</div><p>It writes into your global npm prefix, which some managed machines do not allow. Skip it and use the full path instead — everywhere this guide says <code>za-codemode</code>, write <code>node /path/to/za-codemode/src/bin.mjs</code>:</p>
+<pre><code class="lang-bash">node /path/to/za-codemode/src/bin.mjs login</code></pre>
+<p>The agent configuration in <a href="#step-4-add-it-to-your-agent">step 4</a> shows the matching form.</p></div>
+<p>Keep the clone. The server runs from it — deleting the directory breaks the command.</p>
+</section>
+<section id="step-2-create-a-self-client">
+<h2><span class="num">03</span>Step 2 — Create a Self Client</h2>
 <p>You need three OAuth values from Zoho. Create a <strong>Self Client</strong> in the Developer Console:</p>
 <ol><li>Go to <a href="https://api-console.zoho.com">api-console.zoho.com</a> and sign in with the account that owns the data.</li><li>Choose <strong>Add Client → Self Client → Create</strong>.</li><li>Copy the <strong>Client ID</strong> and <strong>Client Secret</strong>.</li><li>Open the <strong>Generate Code</strong> tab and enter this scope: ``<code>text ZohoAnalytics.data.all,ZohoAnalytics.metadata.read,ZohoAnalytics.modeling.read </code>``</li><li>Pick a validity of 10 minutes, give it a description, and click <strong>Create</strong>. Copy the code immediately — it is shown once.</li></ol>
 <p>You also need your <strong>Organization ID</strong>: in Zoho Analytics, go to <strong>Settings → Organization</strong>.</p>
 <div class="note note--warn"><div class="note__title">Scopes decide what the agent can reach</div><p>The scopes above are read-oriented. If you later allow write operations you will need the matching write scopes, and that is worth thinking about before you grant them. See <a href="04-security.html#enabling-write-operations">Security</a>.</p></div>
 </section>
-<section id="step-2-store-them">
-<h2><span class="num">03</span>Step 2 — Store them</h2>
+<section id="step-3-store-them">
+<h2><span class="num">04</span>Step 3 — Store them</h2>
 <p>Run this <strong>in a terminal</strong> — not through your agent. It is interactive, and the server your agent spawns has no terminal to prompt from:</p>
-<pre><code class="lang-bash">npx zoho-analytics-codemode login</code></pre>
+<pre><code class="lang-bash">za-codemode login</code></pre>
 <p>It asks for your data centre, the Client ID and Secret, your Organization ID, and a refresh token — or paste the Generate Code grant from step 1 and it will do the exchange for you.</p>
 <p>It then asks <strong>which groups of tools this profile may use</strong> and whether writes are allowed. Pick the smallest set that answers your questions; read-only is the default and the recommendation.</p>
 <p>Finally it verifies the credential against Zoho before storing anything, so a typo fails here rather than inside your agent days later:</p>
@@ -106,14 +118,22 @@ Stored under "zoho-analytics-codemode" / "default" in the Keychain.
   data access   read-only</code></pre>
 <p>Credentials go into your operating system's keychain — macOS Keychain, Windows Credential Manager, Linux Secret Service. <a href="09-credentials.html">Credentials &amp; profiles</a> covers the whole command, scripting it, multiple profiles, and the one Linux caveat.</p>
 </section>
-<section id="step-3-add-it-to-your-agent">
-<h2><span class="num">04</span>Step 3 — Add it to your agent</h2>
+<section id="step-4-add-it-to-your-agent">
+<h2><span class="num">05</span>Step 4 — Add it to your agent</h2>
 <p><code>login</code> prints this block. Note that it holds no credentials:</p>
 <pre><code class="lang-json">{
   "mcpServers": {
     "zoho-analytics-code-mode": {
-      "command": "npx",
-      "args": ["-y", "zoho-analytics-codemode"]
+      "command": "za-codemode"
+    }
+  }
+}</code></pre>
+<p>If you skipped <code>npm link</code>, name the entry point directly instead — an absolute path, because your agent does not start in your clone:</p>
+<pre><code class="lang-json">{
+  "mcpServers": {
+    "zoho-analytics-code-mode": {
+      "command": "node",
+      "args": ["/path/to/za-codemode/src/bin.mjs"]
     }
   }
 }</code></pre>
@@ -121,8 +141,9 @@ Stored under "zoho-analytics-codemode" / "default" in the Keychain.
 <p>Edit <code>claude_desktop_config.json</code>:</p>
 <ul><li><strong>macOS</strong> <code>~/Library/Application Support/Claude/claude_desktop_config.json</code></li><li><strong>Windows</strong> <code>%APPDATA%\Claude\claude_desktop_config.json</code></li><li><strong>Linux</strong> <code>~/.config/Claude/claude_desktop_config.json</code></li></ul>
 <p>Quit Claude Desktop completely and reopen it. The tools appear in the tools menu.</p>
+<div class="note note--warn"><div class="note__title">Claude Desktop does not read your shell PATH</div><p>On macOS it is launched by the window server, not your shell, so a <code>za-codemode</code> installed by <code>npm link</code> is often invisible to it even though it works in your terminal. If the server fails to start there, use the <code>node</code> + absolute path form above.</p></div>
 <h3 id="claude-code">Claude Code</h3>
-<pre><code class="lang-bash">claude mcp add zoho-analytics-code-mode -- npx -y zoho-analytics-codemode</code></pre>
+<pre><code class="lang-bash">claude mcp add zoho-analytics-code-mode -- za-codemode</code></pre>
 <h3 id="cursor">Cursor</h3>
 <p>Edit <code>~/.cursor/mcp.json</code> (global) or <code>.cursor/mcp.json</code> (per project), using the same <code>mcpServers</code> block.</p>
 <h3 id="vs-code">VS Code</h3>
@@ -131,14 +152,14 @@ Stored under "zoho-analytics-codemode" / "default" in the Keychain.
 <p>If you created a named profile, that is the only thing <code>env</code> needs:</p>
 <pre><code class="lang-json">"env": { "ZA_PROFILE": "eu-reporting" }</code></pre>
 </section>
-<section id="step-4-check-it-works">
-<h2><span class="num">05</span>Step 4 — Check it works</h2>
+<section id="step-5-check-it-works">
+<h2><span class="num">06</span>Step 5 — Check it works</h2>
 <p>Ask your agent:</p>
 <p>&gt; Search the Analytics API for how to list workspaces, then run code to count how many I have.</p>
 <p>A healthy run calls <code>search_analytics_api</code>, then <code>run_analytics_code</code>, and answers with a number. If nothing happens, go to <a href="05-troubleshooting.html">Troubleshooting</a>.</p>
 </section>
 <section id="choosing-what-to-expose">
-<h2><span class="num">06</span>Choosing what to expose</h2>
+<h2><span class="num">07</span>Choosing what to expose</h2>
 <p><code>login</code> asks this, and stores the answer with the profile. Two independent choices decide which of the 203 operations the sandbox can reach.</p>
 <p><strong>Which tool groups</strong> — the ten API domains. Press Enter at the prompt for all of them:</p>
 <div class="table-wrap"><table><thead><tr><th class="col-narrow">Domain</th><th>Ops</th><th>Covers</th></tr></thead><tbody><tr><td class="col-narrow"><code>workspace-management</code></td><td>35</td><td>Workspaces, backups, linking, templates, variables</td></tr><tr><td class="col-narrow"><code>data-modeling-schema</code></td><td>33</td><td>Tables, columns, formulas, query tables, lookups</td></tr><tr><td class="col-narrow"><code>user-groups</code></td><td>26</td><td>Users, groups, roles, portals</td></tr><tr><td class="col-narrow"><code>views-management</code></td><td>26</td><td>Views, folders, tags, trash, copy and move</td></tr><tr><td class="col-narrow"><code>data-operations</code></td><td>20</td><td>Rows, imports, exports, bulk jobs, data sync</td></tr><tr><td class="col-narrow"><code>share-publish</code></td><td>20</td><td>Sharing, permissions, embed URLs, public links, slideshows</td></tr><tr><td class="col-narrow"><code>schedules-alerts</code></td><td>16</td><td>Email schedules and data alerts</td></tr><tr><td class="col-narrow"><code>dsml</code></td><td>11</td><td>AutoML analyses, training, predictions</td></tr><tr><td class="col-narrow"><code>org-management</code></td><td>10</td><td>Organizations, subscriptions, security controls</td></tr><tr><td class="col-narrow"><code>reports-dashboards</code></td><td>6</td><td>Charts, pivots, summaries, dashboards</td></tr></tbody></table></div>
@@ -158,9 +179,9 @@ Stored under "zoho-analytics-codemode" / "default" in the Keychain.
 [za] knowledge — 17 guides, 385 error codes (OKF 2.0.0, generated 2026-10-27, 15d old)</code></pre>
 </section>
 <section id="configuration-reference">
-<h2><span class="num">07</span>Configuration reference</h2>
+<h2><span class="num">08</span>Configuration reference</h2>
 <p>Most people need none of these — <code>login</code> covers the credentials and the tool scope. They exist for containers, CI, and for overriding a stored profile.</p>
-<div class="note note--info"><div class="note__title">Environment beats the keychain</div><p>If an <code>ANALYTICS_*</code> variable is set, it wins. That is deliberate — a container has no keychain — but it also means a stale variable can silently shadow a stored profile. <code>npx zoho-analytics-codemode status</code> reports which source actually answered.</p></div>
+<div class="note note--info"><div class="note__title">Environment beats the keychain</div><p>If an <code>ANALYTICS_*</code> variable is set, it wins. That is deliberate — a container has no keychain — but it also means a stale variable can silently shadow a stored profile. <code>za-codemode status</code> reports which source actually answered.</p></div>
 <p>Every variable the server reads.</p>
 <div class="table-wrap"><table><thead><tr><th class="col-narrow">Variable</th><th>Required</th><th>Default</th><th>Purpose</th></tr></thead><tbody><tr><td class="col-narrow"><code>ZA_PROFILE</code></td><td>no</td><td><code>default</code></td><td>Which stored credential and scope to use</td></tr><tr><td class="col-narrow"><code>ZA_CREDENTIAL_COMMAND</code></td><td>no</td><td>—</td><td>A command printing credentials as JSON, for 1Password / Vault</td></tr><tr><td class="col-narrow"><code>ANALYTICS_CLIENT_ID</code></td><td>no¹</td><td>—</td><td>OAuth client ID</td></tr><tr><td class="col-narrow"><code>ANALYTICS_CLIENT_SECRET</code></td><td>no¹</td><td>—</td><td>OAuth client secret</td></tr><tr><td class="col-narrow"><code>ANALYTICS_REFRESH_TOKEN</code></td><td>no¹</td><td>—</td><td>Used to mint access tokens automatically</td></tr><tr><td class="col-narrow"><code>ANALYTICS_ORG_ID</code></td><td>no¹</td><td>—</td><td>Organization every call is scoped to</td></tr><tr><td class="col-narrow"><code>ANALYTICS_SERVER_URL</code></td><td>no</td><td><code>https://analyticsapi.zoho.com</code></td><td>Your data centre's API host</td></tr><tr><td class="col-narrow"><code>ACCOUNTS_SERVER_URL</code></td><td>no</td><td><code>https://accounts.zoho.com</code></td><td>Your data centre's accounts host</td></tr><tr><td class="col-narrow"><code>ANALYTICS_ACCESS_TOKEN</code></td><td>no</td><td>—</td><td>A static token, for a short test instead of OAuth¹</td></tr><tr><td class="col-narrow"><code>ZA_ALLOW_WRITES</code></td><td>no</td><td>from the profile</td><td>Overrides the profile's write permission</td></tr><tr><td class="col-narrow"><code>ZA_DOMAINS</code></td><td>no</td><td>from the profile</td><td>Overrides the profile's tool groups — see <a href="#choosing-what-to-expose">above</a></td></tr><tr><td class="col-narrow"><code>ZA_MAX_TOOL_CALLS</code></td><td>no</td><td><code>200</code></td><td>API calls allowed in one program</td></tr><tr><td class="col-narrow"><code>ZA_MAX_CALLS_PER_MINUTE</code></td><td>no</td><td><code>55</code></td><td>Sliding-window rate cap, so a loop cannot trip the API frequency limit</td></tr><tr><td class="col-narrow"><code>ZA_MIN_CALL_INTERVAL_MS</code></td><td>no</td><td><code>50</code></td><td>Minimum gap between calls, against microbursts</td></tr><tr><td class="col-narrow"><code>ZA_THROTTLE_RETRIES</code></td><td>no</td><td><code>3</code></td><td>Retries with backoff (6 s, 15 s, 30 s) when the API returns 6045</td></tr><tr><td class="col-narrow"><code>ZA_EXEC_TIMEOUT_MS</code></td><td>no</td><td><code>60000</code></td><td>Wall-clock limit for one program</td></tr><tr><td class="col-narrow"><code>ZA_EXEC_MEMORY_MB</code></td><td>no</td><td><code>256</code></td><td>Memory limit for the sandbox</td></tr><tr><td class="col-narrow"><code>ZA_MANUAL_PATH</code></td><td>no</td><td>bundled</td><td>An alternative operation catalog</td></tr><tr><td class="col-narrow"><code>ZA_KNOWLEDGE_PATH</code></td><td>no</td><td>bundled</td><td>An alternative knowledge bundle</td></tr></tbody></table></div>
 <p>¹ Not required if you used <code>login</code>. Otherwise supply the three OAuth values, or <code>ANALYTICS_ACCESS_TOKEN</code> for a short test — that one expires after an hour and is not renewed.</p>
@@ -176,10 +197,11 @@ Stored under "zoho-analytics-codemode" / "default" in the Keychain.
   <nav>
     <h2>On this page</h2>
     <a href="#prerequisites">Prerequisites</a>
-    <a href="#step-1-create-a-self-client">Step 1 — Create a Self Client</a>
-    <a href="#step-2-store-them">Step 2 — Store them</a>
-    <a href="#step-3-add-it-to-your-agent">Step 3 — Add it to your agent</a>
-    <a href="#step-4-check-it-works">Step 4 — Check it works</a>
+    <a href="#step-1-get-the-code">Step 1 — Get the code</a>
+    <a href="#step-2-create-a-self-client">Step 2 — Create a Self Client</a>
+    <a href="#step-3-store-them">Step 3 — Store them</a>
+    <a href="#step-4-add-it-to-your-agent">Step 4 — Add it to your agent</a>
+    <a href="#step-5-check-it-works">Step 5 — Check it works</a>
     <a href="#choosing-what-to-expose">Choosing what to expose</a>
     <a href="#configuration-reference">Configuration reference</a>
   </nav>
@@ -198,7 +220,6 @@ Stored under "zoho-analytics-codemode" / "default" in the Keychain.
       <a href="04-security.html">04 &nbsp;Security &amp; governance</a>
       <a href="05-troubleshooting.html">05 &nbsp;Troubleshooting &amp; FAQ</a>
       <a href="06-operating.html">06 &nbsp;Operating &amp; updating</a>
-      <a href="07-remote-deployment.html">07 &nbsp;Remote deployment</a>
       <a href="08-engine.html">08 &nbsp;How the engine works</a>
       <a href="09-credentials.html">09 &nbsp;Credentials &amp; secrets</a>
       <a href="10-audit.html">10 &nbsp;Audit logging</a>
@@ -216,8 +237,8 @@ Stored under "zoho-analytics-codemode" / "default" in the Keychain.
       that lets AI agents run sandboxed code against the Analytics v2 API,
       powered by the UTCP code-mode engine.</p>
       <p>Rendered from the Markdown in this folder by <code>build.py</code>.
-      Generated 2026-11-17.</p>
-      <p><strong>za-codemode v2.0.0. Read-only by default.</strong></p>
+      Generated 2026-11-23.</p>
+      <p><strong>zoho-analytics-codemode v1.0.0. Read-only by default.</strong></p>
     </div>
   </div>
 </footer>
