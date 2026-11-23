@@ -81,6 +81,54 @@ navigate out of the file fails the build rather than shipping.
 **Keep it committed and current.** CI builds with `--single` and fails if the
 result differs from what is checked in.
 
+## Publishing it
+
+The public copy lives in a second repository,
+[sathishkumar-ks-8646/static](https://github.com/sathishkumar-ks-8646/static),
+whose GitHub Pages site serves its root. The whole guide sits in a
+`za-codemode/` folder there, so the entry point users are given is:
+
+**https://sathishkumar-ks-8646.github.io/static/za-codemode/**
+
+`index.html` is chapter 00, and every chapter, the one-file edition and the
+assets sit beside it. The one-file edition is also kept at the static repo's
+root, because that URL was handed out before the folder existed.
+
+### Republishing
+
+The copy there is a **snapshot** — it does not follow this repository. After
+any change to the guide, from a clone of `static` beside this one:
+
+```bash
+cd ../za-codemode/guide && python3 build.py --single
+cd ../../static
+rm -rf za-codemode && mkdir za-codemode
+cp ../za-codemode/guide/*.html za-codemode/
+cp -r ../za-codemode/guide/assets za-codemode/assets
+cp ../za-codemode/guide/zoho.svg za-codemode/
+cp za-codemode/za-codemode-how-to-use.html .     # keep the root copy current
+git add -A && git commit -m "Update za-codemode guide" && git push
+```
+
+`rm -rf` first so a chapter deleted here also disappears there. Copying
+`guide/*.html` deliberately does not reach `unpublished/`, which holds the
+chapter for the unreleased remote mode.
+
+Pages rebuilds in about a minute. Verify before announcing anything — a
+`200` from the proxy in front of some networks is not a `200` from Pages:
+
+```bash
+curl -sI https://sathishkumar-ks-8646.github.io/static/za-codemode/ \
+  | awk 'BEGIN{IGNORECASE=1}/^HTTP/{s=$2}END{print s}'
+```
+
+:::info This repository can serve it too
+`.github/workflows/pages.yml` publishes the same site from this repository on
+every push, which removes the manual copy — but it needs Pages switched on in
+this repository's settings, and the public link then changes. The `static`
+repo is the published location until that happens.
+:::
+
 `--check` verifies that every page has an `# H1`, that every internal link
 points at a file that exists, and that every `#anchor` resolves to a real
 heading. It exits non-zero if anything is wrong.
