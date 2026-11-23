@@ -12,7 +12,7 @@ company who has to install the thing and then trust it with their data.
 > footer — change the constant and re-render, never the pages:
 >
 > - `TOOL_VERSION` — **1.0.0**, kept in step with `../package.json`.
-> - `PACKAGE_NAME` — **zoho-analytics-code-mode-mcp**, the name users type into
+> - `PACKAGE_NAME` — **zoho-analytics-codemode**, the name users type into
 >   their agent configuration.
 
 ## What is in here

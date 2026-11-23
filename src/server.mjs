@@ -39,7 +39,7 @@ const config = await loadConfig();
 if (config.problems.length) {
   console.error('\nZoho Analytics Code Execution — cannot start:\n');
   for (const p of config.problems) console.error(`  • ${p}`);
-  console.error('\nRun `npx zoho-analytics-code-mode-mcp status` to see what was found,');
+  console.error('\nRun `npx zoho-analytics-codemode status` to see what was found,');
   console.error('or `login` to store credentials in this machine\'s keychain.\n');
   process.exit(78);                   // EX_CONFIG
 }

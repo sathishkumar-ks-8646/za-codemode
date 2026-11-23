@@ -42,8 +42,8 @@
 
 <div class="deadline-bar">
   <div class="deadline-bar__inner">
-    <span class="chip chip--sdk">zoho-analytics-code-mode-mcp</span>
-    <p>Install with <strong>npx&nbsp;zoho-analytics-code-mode-mcp</strong>, version&nbsp;2.0.0.
+    <span class="chip chip--sdk">za-codemode</span>
+    <p>Install with <strong>npx&nbsp;za-codemode</strong>, version&nbsp;2.0.0.
     <a href="02-install.html">Setup in five minutes &rarr;</a></p>
     <span class="chip chip--deadline">Read-only</span>
     <p>Write operations are <strong>disabled by default</strong>. Enable them
@@ -113,12 +113,12 @@
 </section>
 <section id="step-3-run-it">
 <h2><span class="num">05</span>Step 3 — Run it</h2>
-<pre><code class="lang-bash">docker build -t zoho-analytics-code-mode-mcp:remote .
+<pre><code class="lang-bash">docker build -t za-codemode:remote .
 
 docker run --name zoho-analytics-code-mode \
   --env-file .env \
   -p 4000:4000 \
-  zoho-analytics-code-mode-mcp:remote</code></pre>
+  za-codemode:remote</code></pre>
 <p>Or with Redis, which you need for more than one replica:</p>
 <pre><code class="lang-bash">docker compose up -d</code></pre>
 <p>Put TLS in front of it. <code>MCP_SERVER_PUBLIC_URL</code> must be <code>https</code> outside localhost — the server refuses to start otherwise, because OAuth redirects and bearer tokens must not travel in clear text.</p>
@@ -236,7 +236,7 @@ WWW-Authenticate: Bearer error="invalid_token",
       powered by the UTCP code-mode engine.</p>
       <p>Rendered from the Markdown in this folder by <code>build.py</code>.
       Generated 2026-11-17.</p>
-      <p><strong>zoho-analytics-code-mode-mcp v2.0.0. Read-only by default.</strong></p>
+      <p><strong>za-codemode v2.0.0. Read-only by default.</strong></p>
     </div>
   </div>
 </footer>

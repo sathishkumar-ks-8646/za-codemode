@@ -38,7 +38,7 @@ ZA_AUDIT=off     # nothing
 ```
 
 ```bash
-npx zoho-analytics-code-mode-mcp audit    # where the files are, and verify them
+npx zoho-analytics-codemode audit    # where the files are, and verify them
 ```
 
 ## 3. How much history you get

@@ -64,7 +64,7 @@ TOOL_VERSION = "2.0.0"
 # removed and the two moved methods land on OrgAPI / WorkspaceAPI from here on.
 # Below it, the old methods still exist and still work until REMOVAL_DEADLINE.
 # Like the deadline, this appears on every page and is read from this one constant.
-PACKAGE_NAME = "zoho-analytics-code-mode-mcp"
+PACKAGE_NAME = "zoho-analytics-codemode"
 
 # Everything under agent/ is offered for download on the Agent skills page and
 # bundled into one archive. Order is the order the page lists them in.

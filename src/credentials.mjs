@@ -30,7 +30,7 @@ import { promisify } from 'node:util';
 
 const run = promisify(execFile);
 
-export const KEYCHAIN_SERVICE = 'zoho-analytics-code-mode-mcp';
+export const KEYCHAIN_SERVICE = 'zoho-analytics-codemode';
 export { SCOPE_FIELDS };
 
 /** The fields a complete credential set carries. */
@@ -267,7 +267,7 @@ export async function resolveCredentials(env = process.env) {
     values: {},
     problems: [
       `No credentials found for profile "${profile}". Run:\n`
-      + '      npx zoho-analytics-code-mode-mcp login\n'
+      + '      npx zoho-analytics-codemode login\n'
       + '    to store them in your operating system\'s keychain, or set '
       + 'ANALYTICS_CLIENT_ID / ANALYTICS_CLIENT_SECRET / ANALYTICS_REFRESH_TOKEN.',
     ],

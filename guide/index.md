@@ -51,7 +51,7 @@ Behind them sit **203 operations** across ten API domains, generated from the pu
 Two steps. First, in a terminal:
 
 ```bash
-npx zoho-analytics-code-mode-mcp login
+npx zoho-analytics-codemode login
 ```
 
 It asks for your Zoho credentials, which groups of tools this profile may use, and whether writes are allowed — then stores the lot in your operating system's keychain.
@@ -63,7 +63,7 @@ Second, paste the block it prints into your agent's configuration. It holds no s
   "mcpServers": {
     "zoho-analytics-code-mode": {
       "command": "npx",
-      "args": ["-y", "zoho-analytics-code-mode-mcp"]
+      "args": ["-y", "zoho-analytics-codemode"]
     }
   }
 }

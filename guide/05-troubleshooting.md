@@ -24,7 +24,7 @@ A stdio server that exits is reported by most agents as a bare "failed to start"
 ```bash
 ANALYTICS_CLIENT_ID=... ANALYTICS_CLIENT_SECRET=... \
 ANALYTICS_REFRESH_TOKEN=... ANALYTICS_ORG_ID=... \
-npx -y zoho-analytics-code-mode-mcp
+npx -y zoho-analytics-codemode
 ```
 
 A healthy start prints one line and then waits:

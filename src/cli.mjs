@@ -293,7 +293,7 @@ async function login(args) {
       mcpServers: {
         'zoho-analytics-code-mode': {
           command: 'npx',
-          args: ['-y', 'zoho-analytics-code-mode-mcp'],
+          args: ['-y', 'zoho-analytics-codemode'],
           ...(profile === 'default' ? {} : { env: { ZA_PROFILE: profile } }),
         },
       },
@@ -398,11 +398,11 @@ function help() {
   console.log(`
 Zoho Analytics Code Mode — MCP server for AI agents
 
-  zoho-analytics-code-mode-mcp                 start the MCP server (stdio)
-  zoho-analytics-code-mode-mcp login           store credentials in the OS keychain
-  zoho-analytics-code-mode-mcp status          show which credential is in use
-  zoho-analytics-code-mode-mcp logout          remove stored credentials
-  zoho-analytics-code-mode-mcp audit           where the audit logs are, and verify them
+  za-codemode                 start the MCP server (stdio)
+  za-codemode login           store credentials in the OS keychain
+  za-codemode status          show which credential is in use
+  za-codemode logout          remove stored credentials
+  za-codemode audit           where the audit logs are, and verify them
 
 Options
   --profile <name>      keep several organizations side by side (default "default")

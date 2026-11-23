@@ -143,7 +143,7 @@ export async function loadConfig(env = process.env) {
   }
 
   if (!cred.orgId) {
-    problems.push('No organization ID. Run `npx zoho-analytics-code-mode-mcp login`, '
+    problems.push('No organization ID. Run `npx zoho-analytics-codemode login`, '
       + 'or set ANALYTICS_ORG_ID. Find the ID in the Analytics UI under '
       + 'Settings > Organization.');
   }

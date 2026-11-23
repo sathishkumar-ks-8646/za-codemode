@@ -1,9 +1,9 @@
-# v2-code-execution-mcp
+# za-codemode
 
 **Zoho Analytics Code Mode** — UTCP code mode behind an MCP front door. Lets an
 AI agent write and run sandboxed code against the Zoho Analytics v2 API.
 
-Published to npm as [`zoho-analytics-code-mode-mcp`](package.json), in two modes:
+Published to npm as [`zoho-analytics-codemode`](package.json), in two modes:
 
 | Mode | Entrypoint | Users | Auth |
 |---|---|---|---|
@@ -64,14 +64,14 @@ edit or deletion is detectable while agent restarts and concurrent hosts —
 which legitimately share one file — still verify.
 
 ```bash
-npx zoho-analytics-code-mode-mcp audit    # paths, sizes, and chain verification
+npx zoho-analytics-codemode audit    # paths, sizes, and chain verification
 ```
 
 ## Credentials stay out of the config file
 
 ```bash
-npx zoho-analytics-code-mode-mcp login     # interactive; run it in a terminal
-npx zoho-analytics-code-mode-mcp status    # which credential and scope are in use
+npx zoho-analytics-codemode login     # interactive; run it in a terminal
+npx zoho-analytics-codemode status    # which credential and scope are in use
 ```
 
 `login` asks for the credential, **which of the ten tool groups the profile may
@@ -126,8 +126,8 @@ visible rather than silently authoritative.
 ## Layout
 
 ```
-v2-code-execution-mcp/
-├── package.json             npm manifest — bin: zoho-analytics-code-mode-mcp
+za-codemode/
+├── package.json             npm manifest — bin: za-codemode
 ├── .npmrc                   pins the public registry (@utcp/* is not mirrored)
 ├── Dockerfile               remote mode; builds isolated-vm, runs as non-root
 ├── docker-compose.yml       reference deployment with Redis

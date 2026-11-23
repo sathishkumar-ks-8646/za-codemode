@@ -6,10 +6,10 @@ description: Operating Zoho Analytics Code Mode — updates, API unit cost, runn
 
 ## 1. Updates
 
-With `npx -y zoho-analytics-code-mode-mcp`, the latest published version is fetched when your agent starts the server. To pin a version, name it:
+With `npx -y zoho-analytics-codemode`, the latest published version is fetched when your agent starts the server. To pin a version, name it:
 
 ```json
-"args": ["-y", "zoho-analytics-code-mode-mcp@1.0.0"]
+"args": ["-y", "zoho-analytics-codemode@1.0.0"]
 ```
 
 New Analytics operations arrive with a new release of this package, because the catalog is generated from the published OpenAPI specifications and bundled at build time.

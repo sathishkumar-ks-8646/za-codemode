@@ -1,10 +1,10 @@
 {
-  "name": "zoho-analytics-code-mode-mcp",
+  "name": "zoho-analytics-codemode",
   "version": "2.0.0",
   "description": "UTCP code mode for Zoho Analytics \u2014 an MCP server that lets AI agents write and run sandboxed code against the Analytics v2 API, with the OKF knowledge base built in",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
-  "homepage": "https://github.com/sathishkumar-ks-8646/v2-code-execution-mcp#readme",
+  "homepage": "https://github.com/sathishkumar-ks-8646/za-codemode#readme",
   "keywords": [
     "zoho",
     "analytics",
@@ -16,8 +16,9 @@
     "code-execution"
   ],
   "bin": {
-    "zoho-analytics-code-mode-mcp": "src/bin.mjs",
-    "zoho-analytics-code-mode-mcp-remote": "src/remote.mjs"
+    "zoho-analytics-codemode": "src/bin.mjs",
+    "za-codemode": "src/bin.mjs",
+    "za-codemode-remote": "src/remote.mjs"
   },
   "main": "src/bin.mjs",
   "files": [
@@ -57,9 +58,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sathishkumar-ks-8646/v2-code-execution-mcp.git"
+    "url": "git+https://github.com/sathishkumar-ks-8646/za-codemode.git"
   },
   "bugs": {
-    "url": "https://github.com/sathishkumar-ks-8646/v2-code-execution-mcp/issues"
+    "url": "https://github.com/sathishkumar-ks-8646/za-codemode/issues"
   }
 }

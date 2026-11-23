@@ -89,12 +89,12 @@ It must equal the number of proxies actually in front of this server. Setting it
 ## 5. Step 3 — Run it
 
 ```bash
-docker build -t zoho-analytics-code-mode-mcp:remote .
+docker build -t za-codemode:remote .
 
 docker run --name zoho-analytics-code-mode \
   --env-file .env \
   -p 4000:4000 \
-  zoho-analytics-code-mode-mcp:remote
+  za-codemode:remote
 ```
 
 Or with Redis, which you need for more than one replica:

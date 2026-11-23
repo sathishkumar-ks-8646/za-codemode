@@ -9,7 +9,7 @@ Credentials live in your operating system's keychain, not in a file. You put the
 ## 1. Run this, in a terminal
 
 ```bash
-npx zoho-analytics-code-mode-mcp login
+npx zoho-analytics-codemode login
 ```
 
 **In a terminal** matters. This is an interactive command — it asks you questions and you type the answers. Your AI agent cannot run it for you, because the server your agent spawns has no terminal attached and so can never prompt for anything. That is the whole reason credentials are set up separately, once, by hand.
@@ -25,7 +25,7 @@ npx zoho-analytics-code-mode-mcp login
 Six things. Secret answers are not echoed as you type.
 
 ```text
-$ npx zoho-analytics-code-mode-mcp login
+$ npx zoho-analytics-codemode login
 
 Zoho Analytics Code Mode — store credentials
 
@@ -86,7 +86,7 @@ May this profile CHANGE data — create, update and delete?
 
 Verifying... the credential works.
 
-Stored under "zoho-analytics-code-mode-mcp" / "default" in the Keychain.
+Stored under "zoho-analytics-codemode" / "default" in the Keychain.
   tool groups   data-operations, views-management, reports-dashboards
   data access   read-only
 ```
@@ -130,7 +130,7 @@ Answering yes to writes exposes create, update and **delete** across every group
   "mcpServers": {
     "zoho-analytics-code-mode": {
       "command": "npx",
-      "args": ["-y", "zoho-analytics-code-mode-mcp"]
+      "args": ["-y", "zoho-analytics-codemode"]
     }
   }
 }
@@ -143,8 +143,8 @@ Config file locations are in [Install & configure](02-install.md#step-3-add-it-t
 One organization read-only, another sandbox read-write, a third for schema work:
 
 ```bash
-npx zoho-analytics-code-mode-mcp login --profile eu-reporting
-npx zoho-analytics-code-mode-mcp login --profile sandbox
+npx zoho-analytics-codemode login --profile eu-reporting
+npx zoho-analytics-codemode login --profile sandbox
 ```
 
 Name the profile in each server entry — still the only thing in `env`:
@@ -153,11 +153,11 @@ Name the profile in each server entry — still the only thing in `env`:
 {
   "mcpServers": {
     "analytics-reporting": {
-      "command": "npx", "args": ["-y", "zoho-analytics-code-mode-mcp"],
+      "command": "npx", "args": ["-y", "zoho-analytics-codemode"],
       "env": { "ZA_PROFILE": "eu-reporting" }
     },
     "analytics-sandbox": {
-      "command": "npx", "args": ["-y", "zoho-analytics-code-mode-mcp"],
+      "command": "npx", "args": ["-y", "zoho-analytics-codemode"],
       "env": { "ZA_PROFILE": "sandbox" }
     }
   }
@@ -165,8 +165,8 @@ Name the profile in each server entry — still the only thing in `env`:
 ```
 
 ```bash
-npx zoho-analytics-code-mode-mcp status --profile sandbox   # what is stored
-npx zoho-analytics-code-mode-mcp logout --profile sandbox   # remove it
+npx zoho-analytics-codemode status --profile sandbox   # what is stored
+npx zoho-analytics-codemode logout --profile sandbox   # remove it
 ```
 
 ## 6. Scripting it
@@ -174,7 +174,7 @@ npx zoho-analytics-code-mode-mcp logout --profile sandbox   # remove it
 Every answer has a flag, so a setup script need not be interactive. Anything you do not supply is still asked for, and secrets can be piped on stdin.
 
 ```bash
-npx zoho-analytics-code-mode-mcp login \
+npx zoho-analytics-codemode login \
   --profile ci \
   --analytics-url https://analyticsapi.zoho.eu \
   --accounts-url  https://accounts.zoho.eu \
@@ -197,11 +197,11 @@ Each operating system has an encrypted store that unlocks with your login sessio
 
 | ^Platform | Store | Inspect it with |
 |---|---|---|
-| **macOS** | Keychain | Keychain Access → search `zoho-analytics-code-mode-mcp` |
+| **macOS** | Keychain | Keychain Access → search `za-codemode` |
 | **Windows** | Credential Manager | `rundll32 keymgr.dll,KRShowKeyMgr`, or `cmdkey /list` |
-| **Linux** | Secret Service (gnome-keyring / KWallet) | Seahorse ("Passwords and Keys"), or `secret-tool search service zoho-analytics-code-mode-mcp` |
+| **Linux** | Secret Service (gnome-keyring / KWallet) | Seahorse ("Passwords and Keys"), or `secret-tool search service za-codemode` |
 
-The entry's service is `zoho-analytics-code-mode-mcp` and its account is the profile name.
+The entry's service is `za-codemode` and its account is the profile name.
 
 ## 8. Linux: the session bus
 

@@ -43,7 +43,7 @@ The scopes above are read-oriented. If you later allow write operations you will
 Run this **in a terminal** — not through your agent. It is interactive, and the server your agent spawns has no terminal to prompt from:
 
 ```bash
-npx zoho-analytics-code-mode-mcp login
+npx zoho-analytics-codemode login
 ```
 
 It asks for your data centre, the Client ID and Secret, your Organization ID, and a refresh token — or paste the Generate Code grant from step 1 and it will do the exchange for you.
@@ -55,7 +55,7 @@ Finally it verifies the credential against Zoho before storing anything, so a ty
 ```text
 Verifying... the credential works.
 
-Stored under "zoho-analytics-code-mode-mcp" / "default" in the Keychain.
+Stored under "zoho-analytics-codemode" / "default" in the Keychain.
   tool groups   data-operations, views-management, reports-dashboards
   data access   read-only
 ```
@@ -71,7 +71,7 @@ Credentials go into your operating system's keychain — macOS Keychain, Windows
   "mcpServers": {
     "zoho-analytics-code-mode": {
       "command": "npx",
-      "args": ["-y", "zoho-analytics-code-mode-mcp"]
+      "args": ["-y", "zoho-analytics-codemode"]
     }
   }
 }
@@ -90,7 +90,7 @@ Quit Claude Desktop completely and reopen it. The tools appear in the tools menu
 ### Claude Code
 
 ```bash
-claude mcp add zoho-analytics-code-mode -- npx -y zoho-analytics-code-mode-mcp
+claude mcp add zoho-analytics-code-mode -- npx -y zoho-analytics-codemode
 ```
 
 ### Cursor
@@ -170,7 +170,7 @@ scope. They exist for containers, CI, and for overriding a stored profile.
 :::info Environment beats the keychain
 If an `ANALYTICS_*` variable is set, it wins. That is deliberate — a container
 has no keychain — but it also means a stale variable can silently shadow a
-stored profile. `npx zoho-analytics-code-mode-mcp status` reports which source
+stored profile. `npx zoho-analytics-codemode status` reports which source
 actually answered.
 :::
 
