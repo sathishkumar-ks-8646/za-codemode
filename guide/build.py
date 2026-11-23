@@ -87,6 +87,10 @@ ASSET_LANG = {".md": "markdown", ".json": "json", ".py": "python"}
 # a single document that works from any static URL with nothing beside it.
 SINGLE_FILE = "za-codemode-how-to-use.html"
 
+# Linked from every page's sidebar. An absolute URL because the guide is served
+# from GitHub Pages, where the Markdown sources are not deployed beside it.
+REPO_URL = "https://github.com/sathishkumar-ks-8646/za-codemode"
+
 # --------------------------------------------------------------------------
 # Inline markdown
 # --------------------------------------------------------------------------
@@ -682,8 +686,9 @@ def shell(stem: str, r: Renderer, body: str, meta: dict) -> str:
     <h2>Guide</h2>
 {sidenav}
     <h2>Source</h2>
-    <a href="{stem}.md"><span class="n">md</span><span>This page as Markdown</span></a>
-    <a href="README.md"><span class="n">&#8212;</span><span>Folder README</span></a>
+    <a href="{repo}/blob/main/guide/{stem}.md"><span class="n">md</span><span>This page as Markdown</span></a>
+    <a href="{repo}"><span class="n">&#8212;</span><span>Repository</span></a>
+    <a href="za-codemode-how-to-use.html"><span class="n">1</span><span>Whole guide, one page</span></a>
     </nav>
   </aside>
 
@@ -734,6 +739,7 @@ def shell(stem: str, r: Renderer, body: str, meta: dict) -> str:
         topnav=topnav,
         sidenav=sidenav,
         stem=stem,
+        repo=REPO_URL,
         page_head=page_head,
         body=body,
         prev=prev_link,
@@ -1018,6 +1024,10 @@ def main() -> int:
         )
         for href in re.findall(r'href="([^"]+)"', rendered[stem]):
             links.append((stem, href))
+
+    # The one-file edition is a legitimate link target from every sidebar, but
+    # it has no .md source, so the page loop never registers it.
+    anchors[SINGLE_FILE] = {stem for stem in stems}
 
     # internal link check
     for stem, href in links:

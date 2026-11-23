@@ -1,0 +1,71 @@
+### Publish the guide to GitHub Pages.
+#
+# Gives users two stable links off one deploy:
+#
+#   https://sathishkumar-ks-8646.github.io/za-codemode/
+#       the guide as ten navigable chapters
+#   https://sathishkumar-ks-8646.github.io/za-codemode/za-codemode-how-to-use.html
+#       the same content as one self-contained file
+#
+# The site is built here rather than served from the committed HTML, so a
+# deploy can never publish a stale render. ci.yml separately enforces that the
+# committed copies match, which keeps the repo browsable on GitHub itself.
+#
+# ONE-TIME SETUP: Settings -> Pages -> Build and deployment -> Source:
+# "GitHub Actions". Until that is set, this workflow fails at the configure
+# step with "Pages is not enabled" and nothing is published.
+
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'guide/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish; queue at most one behind it.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build the guide and the one-file edition
+        run: python3 guide/build.py --single
+
+      # Nothing outside guide/ belongs on the public site: unpublished/ holds
+      # the chapter for the unreleased remote mode.
+      - name: Stage the site
+        run: |
+          mkdir -p _site
+          cp guide/*.html _site/
+          cp -r guide/assets _site/assets
+          cp guide/zoho.svg _site/
+          rm -rf _site/unpublished
+          ls -la _site
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
