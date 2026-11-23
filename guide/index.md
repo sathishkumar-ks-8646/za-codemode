@@ -35,13 +35,14 @@ Both make the same API calls. The difference is that the intermediate data — e
 
 ## 3. What your agent sees
 
-Four tools, no matter how large the API is:
+Five tools, no matter how large the API is:
 
 | ^Tool | What it does |
 |---|---|
 | `find_analytics_objects` | Turn "my profit table" into a real workspace and view ID |
 | `search_analytics_api` | Describe a task, get back the exact call signatures for the matching operations |
 | `get_analytics_guide` | Read how something actually works — criteria grammar, job polling, what an error code means |
+| `query_analytics_data` | Read rows, totals or a top-N with the filtering and grouping done **inside Analytics** |
 | `run_analytics_code` | Run JavaScript against those operations in a sandbox, get back the result |
 
 Behind them sit **203 operations** across ten API domains, generated from the published OpenAPI specifications, plus the **OKF knowledge base**: 8 multi-step playbooks, 9 references and 385 documented error codes.
@@ -96,10 +97,11 @@ This is installed from source while the licence is finalised, so there is no `np
 | [08 How the engine works](08-engine.md) | UTCP, code mode, the isolate and the knowledge base |
 | [09 Credentials & profiles](09-credentials.md) | The login command, tool-group scoping, and where secrets are stored |
 | [10 Audit logging](10-audit.md) | Two streams, how much history, and what is never written |
+| [11 Reading data](11-data-engine.md) | Server-side filtering and aggregation, and what it measurably saves |
 
 ## 6. The four things to know before you start
 
-1. **It does not reduce API units.** The same calls are made, so the same units are billed. What it saves is model turns and context.
+1. **It reduces API units only where the request gets smaller.** Metadata calls cost what they always did. Export units are billed per 1000 rows *produced*, so pushing a filter or an aggregate into the request does cut the bill — measured, 128 KB of exported rows became 1.1 KB. Everything else it saves is model turns and context. See [Reading data](11-data-engine.md).
 2. **Write operations are off by default,** and you can narrow further. 76 read-only operations are exposed out of 203, and `ZA_DOMAINS` restricts that to the API domains you actually need. See [Choosing what to expose](02-install.md#choosing-what-to-expose).
 3. **Your agent's model writes the code.** A more capable model writes better code. If results are poor, that is the first thing to check.
 4. **It will not guess which table you meant.** When two views both match your words, it returns both and asks. See [Finding your data](03-using-it.md#finding-your-data).

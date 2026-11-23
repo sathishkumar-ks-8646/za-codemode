@@ -109,6 +109,34 @@ function parseAudit(env, mode, problems) {
   };
 }
 
+/**
+ * How much of a result may reach the model.
+ *
+ * Not a performance setting — a correctness one. A program that returns
+ * 50,000 rows puts 50,000 rows in the context window, and the model then
+ * reasons over whichever prefix survived the host's own truncation without
+ * knowing the rest existed. The cap is enforced where the result leaves the
+ * server, and it says what it dropped.
+ *
+ * The defaults are sized from measured exports: 500 rows of a seven-column
+ * sales table is roughly 85 KB of JSON, so the byte cap binds first on wide
+ * rows and the row cap first on narrow ones. Both are generous enough that a
+ * legitimate aggregate answer — tens of rows — never meets them.
+ */
+function resultCaps(env, problems) {
+  const maxResultRows = Number(env.ZA_MAX_RESULT_ROWS ?? 500);
+  const maxResultBytes = Number(env.ZA_MAX_RESULT_BYTES ?? 120_000);
+
+  for (const [name, value] of [['ZA_MAX_RESULT_ROWS', maxResultRows],
+    ['ZA_MAX_RESULT_BYTES', maxResultBytes]]) {
+    if (!Number.isFinite(value) || value < 1) {
+      problems.push(`${name} must be a positive number, got "${env[name]}".`);
+    }
+  }
+
+  return { maxResultRows, maxResultBytes };
+}
+
 function bool(value, fallback) {
   if (value === undefined) return fallback;
   return value === 'true' || value === '1' || value === 'yes';
@@ -173,8 +201,15 @@ export async function loadConfig(env = process.env) {
     // Measured safe rate on a real org: 53/min ran clean, 105/min tripped.
     maxCallsPerMinute: Number(env.ZA_MAX_CALLS_PER_MINUTE ?? 55),
     throttleRetries: Number(env.ZA_THROTTLE_RETRIES ?? 3),
+    // How long to wait between two status reads of the same export or import
+    // job. Measured on a live organization, a small SQL export completes
+    // between the first and second poll, so a second is the right order of
+    // magnitude — fast enough not to add latency, slow enough not to spend
+    // the call budget on polling.
+    jobPollIntervalMs: Number(env.ZA_JOB_POLL_INTERVAL_MS ?? 1000),
     timeoutMs: Number(env.ZA_EXEC_TIMEOUT_MS ?? 60_000),
     memoryLimitMb: Number(env.ZA_EXEC_MEMORY_MB ?? 256),
+    ...resultCaps(env, problems),
     audit: parseAudit(env, 'local', problems),
     problems,
   };
@@ -266,8 +301,15 @@ export function loadRemoteConfig(env = process.env) {
     // Measured safe rate on a real org: 53/min ran clean, 105/min tripped.
     maxCallsPerMinute: Number(env.ZA_MAX_CALLS_PER_MINUTE ?? 55),
     throttleRetries: Number(env.ZA_THROTTLE_RETRIES ?? 3),
+    // How long to wait between two status reads of the same export or import
+    // job. Measured on a live organization, a small SQL export completes
+    // between the first and second poll, so a second is the right order of
+    // magnitude — fast enough not to add latency, slow enough not to spend
+    // the call budget on polling.
+    jobPollIntervalMs: Number(env.ZA_JOB_POLL_INTERVAL_MS ?? 1000),
     timeoutMs: Number(env.ZA_EXEC_TIMEOUT_MS ?? 60_000),
     memoryLimitMb: Number(env.ZA_EXEC_MEMORY_MB ?? 256),
+    ...resultCaps(env, problems),
     maxSessions: Number(env.ZA_MAX_SESSIONS ?? 100),
     sessionIdleMs: Number(env.ZA_SESSION_IDLE_MS ?? 30 * 60_000),
     audit: parseAudit(env, 'remote', problems),

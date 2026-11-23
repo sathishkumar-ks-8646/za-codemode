@@ -395,6 +395,9 @@ Every variable the server reads.
 | `ZA_THROTTLE_RETRIES` | no | `3` | Retries with backoff (6 s, 15 s, 30 s) when the API returns 6045 |
 | `ZA_EXEC_TIMEOUT_MS` | no | `60000` | Wall-clock limit for one program |
 | `ZA_EXEC_MEMORY_MB` | no | `256` | Memory limit for the sandbox |
+| `ZA_MAX_RESULT_ROWS` | no | `500` | Rows a tool result may carry before it is truncated — see [Reading data](11-data-engine.md#result-caps) |
+| `ZA_MAX_RESULT_BYTES` | no | `120000` | Serialized size a tool result may reach |
+| `ZA_JOB_POLL_INTERVAL_MS` | no | `1000` | Gap between two status reads of the same export job |
 | `ZA_MANUAL_PATH` | no | bundled | An alternative operation catalog |
 | `ZA_KNOWLEDGE_PATH` | no | bundled | An alternative knowledge bundle |
 

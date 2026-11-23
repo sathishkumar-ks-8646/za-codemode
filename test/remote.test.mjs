@@ -221,7 +221,7 @@ test('an authenticated client sees the full tool set', async () => {
   assert.equal(status, 200, body);
   const names = JSON.parse(body).result.tools.map((t) => t.name).sort();
   assert.deepEqual(names, ['find_analytics_objects', 'get_analytics_guide',
-    'run_analytics_code', 'search_analytics_api']);
+    'query_analytics_data', 'run_analytics_code', 'search_analytics_api']);
 });
 
 test('code runs against the signed-in user\'s organization', async () => {

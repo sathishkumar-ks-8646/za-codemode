@@ -60,14 +60,15 @@ PAGES = [
     ("08-engine",          "08", "How the engine works",      "Engine"),
     ("09-credentials",     "09", "Credentials & secrets",     "Credentials"),
     ("10-audit",           "10", "Audit logging",             "Audit"),
+    ("11-data-engine",     "11", "Reading data",              "Reading data"),
 ]
 
 TOOL_VERSION = "1.0.0"
 
-# How many tools the agent sees. Asserted by the "exposes exactly the four
+# How many tools the agent sees. Asserted by the "exposes exactly the five
 # tools" case in ../test/agent.test.mjs, and stated on the landing page, so it
 # is a constant here rather than a number typed into the HTML.
-TOOL_COUNT = 4
+TOOL_COUNT = 5
 
 # The SDK release that carries this migration: the cross-organization methods are
 # removed and the two moved methods land on OrgAPI / WorkspaceAPI from here on.

@@ -1285,6 +1285,7 @@ dl.kv dd { margin: 0; }
 <li><a href="#08-engine"><span class="num">08</span>How the engine works</a></li>
 <li><a href="#09-credentials"><span class="num">09</span>Credentials &amp; secrets</a></li>
 <li><a href="#10-audit"><span class="num">10</span>Audit logging</a></li>
+<li><a href="#11-data-engine"><span class="num">11</span>Reading data</a></li>
       </ol>
     </nav>
 
@@ -1310,8 +1311,8 @@ dl.kv dd { margin: 0; }
 </section>
 <section id="index--what-your-agent-sees">
 <h2><span class="num">03</span>What your agent sees</h2>
-<p>Four tools, no matter how large the API is:</p>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Tool</th><th>What it does</th></tr></thead><tbody><tr><td class="col-narrow"><code>find_analytics_objects</code></td><td>Turn "my profit table" into a real workspace and view ID</td></tr><tr><td class="col-narrow"><code>search_analytics_api</code></td><td>Describe a task, get back the exact call signatures for the matching operations</td></tr><tr><td class="col-narrow"><code>get_analytics_guide</code></td><td>Read how something actually works — criteria grammar, job polling, what an error code means</td></tr><tr><td class="col-narrow"><code>run_analytics_code</code></td><td>Run JavaScript against those operations in a sandbox, get back the result</td></tr></tbody></table></div>
+<p>Five tools, no matter how large the API is:</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Tool</th><th>What it does</th></tr></thead><tbody><tr><td class="col-narrow"><code>find_analytics_objects</code></td><td>Turn "my profit table" into a real workspace and view ID</td></tr><tr><td class="col-narrow"><code>search_analytics_api</code></td><td>Describe a task, get back the exact call signatures for the matching operations</td></tr><tr><td class="col-narrow"><code>get_analytics_guide</code></td><td>Read how something actually works — criteria grammar, job polling, what an error code means</td></tr><tr><td class="col-narrow"><code>query_analytics_data</code></td><td>Read rows, totals or a top-N with the filtering and grouping done <strong>inside Analytics</strong></td></tr><tr><td class="col-narrow"><code>run_analytics_code</code></td><td>Run JavaScript against those operations in a sandbox, get back the result</td></tr></tbody></table></div>
 <p>Behind them sit <strong>203 operations</strong> across ten API domains, generated from the published OpenAPI specifications, plus the <strong>OKF knowledge base</strong>: 8 multi-step playbooks, 9 references and 385 documented error codes.</p>
 </section>
 <section id="index--install-it">
@@ -1337,11 +1338,11 @@ npm link</code></pre>
 </section>
 <section id="index--read-the-guide-in-order">
 <h2><span class="num">05</span>Read the guide in order</h2>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Chapter</th><th>What it covers</th></tr></thead><tbody><tr><td class="col-narrow"><a href="#01-what-it-is">01 What it is</a></td><td>How the sandbox works, where your code runs, and how this relates to the MCP Server</td></tr><tr><td class="col-narrow"><a href="#02-install">02 Install &amp; configure</a></td><td>Credentials, every environment variable, and per-host setup</td></tr><tr><td class="col-narrow"><a href="#03-using-it">03 Using it</a></td><td>What good prompts look like, worked examples, and what to expect</td></tr><tr><td class="col-narrow"><a href="#04-security">04 Security &amp; governance</a></td><td>The sandbox boundary, read-only mode, budgets, and what to tell your security team</td></tr><tr><td class="col-narrow"><a href="#05-troubleshooting">05 Troubleshooting &amp; FAQ</a></td><td>Symptoms, error codes, and answers</td></tr><tr><td class="col-narrow"><a href="#06-operating">06 Operating &amp; updating</a></td><td>Updates, API-unit cost, and running it from source</td></tr><tr><td class="col-narrow"><a href="#08-engine">08 How the engine works</a></td><td>UTCP, code mode, the isolate and the knowledge base</td></tr><tr><td class="col-narrow"><a href="#09-credentials">09 Credentials &amp; profiles</a></td><td>The login command, tool-group scoping, and where secrets are stored</td></tr><tr><td class="col-narrow"><a href="#10-audit">10 Audit logging</a></td><td>Two streams, how much history, and what is never written</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Chapter</th><th>What it covers</th></tr></thead><tbody><tr><td class="col-narrow"><a href="#01-what-it-is">01 What it is</a></td><td>How the sandbox works, where your code runs, and how this relates to the MCP Server</td></tr><tr><td class="col-narrow"><a href="#02-install">02 Install &amp; configure</a></td><td>Credentials, every environment variable, and per-host setup</td></tr><tr><td class="col-narrow"><a href="#03-using-it">03 Using it</a></td><td>What good prompts look like, worked examples, and what to expect</td></tr><tr><td class="col-narrow"><a href="#04-security">04 Security &amp; governance</a></td><td>The sandbox boundary, read-only mode, budgets, and what to tell your security team</td></tr><tr><td class="col-narrow"><a href="#05-troubleshooting">05 Troubleshooting &amp; FAQ</a></td><td>Symptoms, error codes, and answers</td></tr><tr><td class="col-narrow"><a href="#06-operating">06 Operating &amp; updating</a></td><td>Updates, API-unit cost, and running it from source</td></tr><tr><td class="col-narrow"><a href="#08-engine">08 How the engine works</a></td><td>UTCP, code mode, the isolate and the knowledge base</td></tr><tr><td class="col-narrow"><a href="#09-credentials">09 Credentials &amp; profiles</a></td><td>The login command, tool-group scoping, and where secrets are stored</td></tr><tr><td class="col-narrow"><a href="#10-audit">10 Audit logging</a></td><td>Two streams, how much history, and what is never written</td></tr><tr><td class="col-narrow"><a href="#11-data-engine">11 Reading data</a></td><td>Server-side filtering and aggregation, and what it measurably saves</td></tr></tbody></table></div>
 </section>
 <section id="index--the-four-things-to-know-before-you-start">
 <h2><span class="num">06</span>The four things to know before you start</h2>
-<ol><li><strong>It does not reduce API units.</strong> The same calls are made, so the same units are billed. What it saves is model turns and context.</li><li><strong>Write operations are off by default,</strong> and you can narrow further. 76 read-only operations are exposed out of 203, and <code>ZA_DOMAINS</code> restricts that to the API domains you actually need. See <a href="#02-install--choosing-what-to-expose">Choosing what to expose</a>.</li><li><strong>Your agent's model writes the code.</strong> A more capable model writes better code. If results are poor, that is the first thing to check.</li><li><strong>It will not guess which table you meant.</strong> When two views both match your words, it returns both and asks. See <a href="#03-using-it--finding-your-data">Finding your data</a>.</li></ol>
+<ol><li><strong>It reduces API units only where the request gets smaller.</strong> Metadata calls cost what they always did. Export units are billed per 1000 rows <em>produced</em>, so pushing a filter or an aggregate into the request does cut the bill — measured, 128 KB of exported rows became 1.1 KB. Everything else it saves is model turns and context. See <a href="#11-data-engine">Reading data</a>.</li><li><strong>Write operations are off by default,</strong> and you can narrow further. 76 read-only operations are exposed out of 203, and <code>ZA_DOMAINS</code> restricts that to the API domains you actually need. See <a href="#02-install--choosing-what-to-expose">Choosing what to expose</a>.</li><li><strong>Your agent's model writes the code.</strong> A more capable model writes better code. If results are poor, that is the first thing to check.</li><li><strong>It will not guess which table you meant.</strong> When two views both match your words, it returns both and asks. See <a href="#03-using-it--finding-your-data">Finding your data</a>.</li></ol>
 </section>
 <section id="index--conventions-used-in-this-guide">
 <h2><span class="num">07</span>Conventions used in this guide</h2>
@@ -1354,7 +1355,7 @@ npm link</code></pre>
   <div class="spine"><i></i><i></i><i></i><i></i></div>
   <p class="eyebrow">Code Mode &middot; <b>Chapter 01</b></p>
   <h1>What it is</h1>
-  <p class="lede">An MCP server that gives your AI agent four tools: one to find <em>your data</em>, one to find <em>API operations</em>, one to read how they work, and one to run code against them.</p>
+  <p class="lede">An MCP server that gives your AI agent five tools: one to find <em>your data</em>, one to find <em>API operations</em>, one to read how they work, one to read data with the filtering done inside Analytics, and one to run code against all of it.</p>
 </header>
 <p>Under the MCP surface it is <strong>UTCP code mode</strong> — a UTCP manual of 203 operations generated from the published OpenAPI specifications, executed by <code>@utcp/code-mode</code> in a V8 isolate. <a href="#08-engine">Chapter 08</a> covers that in full; this chapter is about what it does.</p>
 <section id="01-what-it-is--the-shape-of-it">
@@ -1362,7 +1363,9 @@ npm link</code></pre>
 <pre><code class="lang-text">  Your AI agent                    This server                  Zoho Analytics
   (Claude Desktop,  ──MCP/stdio──▶  ┌──────────────────┐
    Cursor, VS Code)                 │  search_api      │
+                                    │  find_objs       │
                                     │  get_guide       │
+                                    │  query_data      │
                                     │  run_code        │
                                     │        │         │
                                     │        ▼         │
@@ -1377,8 +1380,8 @@ npm link</code></pre>
                                     └──────────────────┘</code></pre>
 <p>The model's code runs in a <strong>V8 isolate</strong>. It cannot open a socket, read a file or import a module. When it calls <code>za.exportDataView(...)</code>, that is not an HTTP request — it is a callback out of the isolate into the server process, which makes the real call with credentials the sandbox never sees.</p>
 </section>
-<section id="01-what-it-is--the-four-tools">
-<h2><span class="num">02</span>The four tools</h2>
+<section id="01-what-it-is--the-five-tools">
+<h2><span class="num">02</span>The five tools</h2>
 <h3 id="01-what-it-is--find-analytics-objects"><code>find_analytics_objects</code></h3>
 <p>The first problem is not <em>which endpoint</em> — it is <em>which table</em>. A user says "my profit table" and the table is called <code>Sales_Profit_by_Country</code>. A model left to itself writes <code>viewName === 'profit'</code>, matches nothing, and reports that the table does not exist.</p>
 <p>So names are resolved before code is written:</p>
@@ -1424,30 +1427,38 @@ await za.exportDataView({
 &gt; get_analytics_guide("how do I export a large table")   // a question
 &gt; get_analytics_guide("8080")   // an error code</code></pre>
 <p>Two things happen without the agent asking. Search results for export-job operations end with a pointer to the asynchronous-export playbook, and any error code in a failed run is annotated with its documented meaning and resolution.</p>
+<h3 id="01-what-it-is--query-analytics-data"><code>query_analytics_data</code></h3>
+<p>Data questions do not need a program, and they should not need all the rows either. This tool takes the question in parts — a filter, the columns, a grouping, a limit — and has <strong>Zoho Analytics</strong> do the work:</p>
+<pre><code class="lang-text">&gt; query_analytics_data({ workspaceId: WS, viewId: VIEW,
+                         groupBy: ["Region"],
+                         metrics: [{ fn: "sum", column: "Sales", as: "Total" }] })
+
+{ "rows": [ { "Region": "East", "Total": "598893.32" }, ... ],
+  "rowCount": 3,
+  "sql": "SELECT \"Region\", sum(\"Sales\") AS \"Total\" FROM \"Table\" GROUP BY \"Region\"",
+  "pushedDown": "SQL run inside Analytics: ..." }</code></pre>
+<p>Measured against a 755-row table, the question <em>"what did the West sell?"</em> costs 128 KB of exported rows and 35 KB of model context when the rows are filtered in code, and <strong>1.1 KB and 573 bytes</strong> when the filter and the sum are pushed down. Export units are billed per 1000 rows produced, so that is a quota saving as well as a context one.</p>
+<p>Quoting is handled, a filter naming a column the view does not have is refused with the real column names rather than dropped, and every answer says what the server actually did. <a href="#11-data-engine">Chapter 11</a> is the full reference.</p>
 <h3 id="01-what-it-is--run-analytics-code"><code>run_analytics_code</code></h3>
 <p>The agent writes plain JavaScript and the server runs it:</p>
-<pre><code class="lang-javascript">const ws = await za.getOrgWorkspaces({ 'ZANALYTICS-ORGID': ORG_ID });
+<pre><code class="lang-javascript">const found = await find.views('Sales');
 let total = 0;
 
-for (const w of ws.data.workspaces) {
-  const views = await za.getViews({
-    'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': w.workspaceId, CONFIG: '{}',
+for (const v of found.matches) {
+  const out = await data.rows({
+    workspaceId: v.workspaceId, viewId: v.viewId,
+    filters: [{ column: 'Region', value: 'East' }],
+    columns: ['Sales'],
   });
-  for (const v of views.data.views.filter((v) =&gt; v.viewName.includes('Sales'))) {
-    const out = await za.exportDataView({
-      'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': w.workspaceId, 'view-id': v.viewId,
-      CONFIG: JSON.stringify({ responseFormat: 'json', criteria: `"Sales"."Region"='East'` }),
-    });
-    total += rows.sum(rows.of(out), 'Sales').total;
-  }
+  total += rows.sum(out.rows, 'Sales').total;
 }
 
-return { total };</code></pre>
-<p>One tool call. The rows stay in the sandbox; only <code>{ total }</code> comes back.</p>
+return { total, viewsCovered: found.matches.length };</code></pre>
+<p>One tool call, and no whole-table export anywhere: <code>data.rows</code> filters and projects inside Analytics, so each call brings back the one column that matters for the rows that match. Those rows stay in the sandbox; only <code>{ total }</code> reaches the model.</p>
 </section>
 <section id="01-what-it-is--what-the-sandbox-provides">
 <h2><span class="num">04</span>What the sandbox provides</h2>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Available</th><th>Not available</th></tr></thead><tbody><tr><td class="col-narrow"><code>za</code> — every exposed operation as an async method</td><td><code>require</code>, <code>import</code></td></tr><tr><td class="col-narrow"><code>ORG_ID</code> — your organization ID as a constant</td><td><code>fetch</code>, <code>XMLHttpRequest</code></td></tr><tr><td class="col-narrow"><code>console.log</code> — progress notes, returned alongside the result</td><td><code>process</code>, <code>Buffer</code></td></tr><tr><td class="col-narrow">The JavaScript standard library</td><td>Filesystem, child processes, sockets</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Available</th><th>Not available</th></tr></thead><tbody><tr><td class="col-narrow"><code>za</code> — every exposed operation as an async method</td><td><code>require</code>, <code>import</code></td></tr><tr><td class="col-narrow"><code>ORG_ID</code> — your organization ID as a constant</td><td><code>fetch</code>, <code>XMLHttpRequest</code></td></tr><tr><td class="col-narrow"><code>find.*</code> — name resolution that refuses to guess</td><td><code>process</code>, <code>Buffer</code></td></tr><tr><td class="col-narrow"><code>data.*</code> — filtering and aggregation pushed to the server</td><td><code>setTimeout</code>, <code>setInterval</code></td></tr><tr><td class="col-narrow"><code>rows.*</code> — result readers that cope with formatted values</td><td>Filesystem, child processes, sockets</td></tr><tr><td class="col-narrow"><code>console.log</code> — progress notes, returned alongside the result</td><td></td></tr><tr><td class="col-narrow">The JavaScript standard library</td><td></td></tr></tbody></table></div>
 <p><code>za</code> is the only way out of the isolate. That is enforced by the isolate itself, not by a policy that could be prompted around.</p>
 </section>
 <section id="01-what-it-is--where-everything-runs">
@@ -1459,12 +1470,12 @@ return { total };</code></pre>
 <section id="01-what-it-is--how-this-relates-to-the-zoho-analytics-mcp-server">
 <h2><span class="num">06</span>How this relates to the Zoho Analytics MCP Server</h2>
 <p>They are complementary, and many people will want both.</p>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow"></th><th><a href="https://www.zoho.com/analytics/api/v2/zoho-analytics-mcp-server.html">MCP Server</a></th><th>Code Execution (this tool)</th></tr></thead><tbody><tr><td class="col-narrow">Tools</td><td>26 curated, task-shaped</td><td>4</td></tr><tr><td class="col-narrow">Operations reachable</td><td>26</td><td class="is-new">203, across 10 domains</td></tr><tr><td class="col-narrow">Ships the documentation</td><td>no</td><td class="is-new">8 playbooks, 385 error codes</td></tr><tr><td class="col-narrow">Best at</td><td>single lookups — one cheap call</td><td>multi-step work: loops, polling, aggregation</td></tr><tr><td class="col-narrow">Executes model-written code</td><td>no</td><td class="is-new">yes, sandboxed</td></tr><tr><td class="col-narrow">Also available hosted</td><td>yes, at <code>mcp.zoho.com</code></td><td>not yet</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow"></th><th><a href="https://www.zoho.com/analytics/api/v2/zoho-analytics-mcp-server.html">MCP Server</a></th><th>Code Execution (this tool)</th></tr></thead><tbody><tr><td class="col-narrow">Tools</td><td>26 curated, task-shaped</td><td>5</td></tr><tr><td class="col-narrow">Operations reachable</td><td>26</td><td class="is-new">203, across 10 domains</td></tr><tr><td class="col-narrow">Ships the documentation</td><td>no</td><td class="is-new">8 playbooks, 385 error codes</td></tr><tr><td class="col-narrow">Best at</td><td>single lookups — one cheap call</td><td>multi-step work: loops, polling, aggregation</td></tr><tr><td class="col-narrow">Executes model-written code</td><td>no</td><td class="is-new">yes, sandboxed</td></tr><tr><td class="col-narrow">Also available hosted</td><td>yes, at <code>mcp.zoho.com</code></td><td>not yet</td></tr></tbody></table></div>
 <p>Install both and your agent picks per task: a named tool for <em>"list my workspaces"</em>, code for <em>"total East-region sales across every workspace since July"</em>. Install only this one and everything is reachable, just with a little more ceremony for simple questions.</p>
 </section>
 <section id="01-what-it-is--what-it-does-not-do">
 <h2><span class="num">07</span>What it does not do</h2>
-<ul><li><strong>It does not reduce API consumption.</strong> The same operations are called, so the same API units are billed. The saving is in model turns and context, not quota.</li><li><strong>It does not supply an AI model.</strong> Your agent brings that.</li><li><strong>It does not write to your data by default.</strong> See <a href="#04-security">Security</a>.</li></ul>
+<ul><li><strong>It does not reduce API consumption by existing.</strong> The same operations are called, so the same API units are billed — <em>unless</em> the request itself gets smaller. Export units are charged per 1000 rows produced, so pushing a filter or an aggregate into the request does cut the bill: measured, the same question went from 128 KB of exported rows to 1.1 KB. That is what <a href="#11-data-engine">Reading data</a> is for. Everything else saves model turns and context, not quota.</li><li><strong>It does not supply an AI model.</strong> Your agent brings that.</li><li><strong>It does not write to your data by default.</strong> See <a href="#04-security">Security</a>.</li></ul>
 </section>
 </article>
 
@@ -1639,7 +1650,7 @@ Stored under "zoho-analytics-codemode" / "default" in the Keychain.
 <p>Most people need none of these — <code>login</code> covers the credentials and the tool scope. They exist for containers, CI, and for overriding a stored profile.</p>
 <div class="note note--info"><div class="note__title">Environment beats the keychain</div><p>If an <code>ANALYTICS_*</code> variable is set, it wins. That is deliberate — a container has no keychain — but it also means a stale variable can silently shadow a stored profile. <code>za-codemode status</code> reports which source actually answered.</p></div>
 <p>Every variable the server reads.</p>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Variable</th><th>Required</th><th>Default</th><th>Purpose</th></tr></thead><tbody><tr><td class="col-narrow"><code>ZA_PROFILE</code></td><td>no</td><td><code>default</code></td><td>Which stored credential and scope to use</td></tr><tr><td class="col-narrow"><code>ZA_CREDENTIAL_COMMAND</code></td><td>no</td><td>—</td><td>A command printing credentials as JSON, for 1Password / Vault</td></tr><tr><td class="col-narrow"><code>ANALYTICS_CLIENT_ID</code></td><td>no¹</td><td>—</td><td>OAuth client ID</td></tr><tr><td class="col-narrow"><code>ANALYTICS_CLIENT_SECRET</code></td><td>no¹</td><td>—</td><td>OAuth client secret</td></tr><tr><td class="col-narrow"><code>ANALYTICS_REFRESH_TOKEN</code></td><td>no¹</td><td>—</td><td>Used to mint access tokens automatically</td></tr><tr><td class="col-narrow"><code>ANALYTICS_ORG_ID</code></td><td>no¹</td><td>—</td><td>Organization every call is scoped to</td></tr><tr><td class="col-narrow"><code>ANALYTICS_SERVER_URL</code></td><td>no</td><td><code>https://analyticsapi.zoho.com</code></td><td>Your data centre's API host</td></tr><tr><td class="col-narrow"><code>ACCOUNTS_SERVER_URL</code></td><td>no</td><td><code>https://accounts.zoho.com</code></td><td>Your data centre's accounts host</td></tr><tr><td class="col-narrow"><code>ANALYTICS_ACCESS_TOKEN</code></td><td>no</td><td>—</td><td>A static token, for a short test instead of OAuth¹</td></tr><tr><td class="col-narrow"><code>ZA_ALLOW_WRITES</code></td><td>no</td><td>from the profile</td><td>Overrides the profile's write permission</td></tr><tr><td class="col-narrow"><code>ZA_DOMAINS</code></td><td>no</td><td>from the profile</td><td>Overrides the profile's tool groups — see <a href="#02-install--choosing-what-to-expose">above</a></td></tr><tr><td class="col-narrow"><code>ZA_MAX_TOOL_CALLS</code></td><td>no</td><td><code>200</code></td><td>API calls allowed in one program</td></tr><tr><td class="col-narrow"><code>ZA_MAX_CALLS_PER_MINUTE</code></td><td>no</td><td><code>55</code></td><td>Sliding-window rate cap, so a loop cannot trip the API frequency limit</td></tr><tr><td class="col-narrow"><code>ZA_MIN_CALL_INTERVAL_MS</code></td><td>no</td><td><code>50</code></td><td>Minimum gap between calls, against microbursts</td></tr><tr><td class="col-narrow"><code>ZA_THROTTLE_RETRIES</code></td><td>no</td><td><code>3</code></td><td>Retries with backoff (6 s, 15 s, 30 s) when the API returns 6045</td></tr><tr><td class="col-narrow"><code>ZA_EXEC_TIMEOUT_MS</code></td><td>no</td><td><code>60000</code></td><td>Wall-clock limit for one program</td></tr><tr><td class="col-narrow"><code>ZA_EXEC_MEMORY_MB</code></td><td>no</td><td><code>256</code></td><td>Memory limit for the sandbox</td></tr><tr><td class="col-narrow"><code>ZA_MANUAL_PATH</code></td><td>no</td><td>bundled</td><td>An alternative operation catalog</td></tr><tr><td class="col-narrow"><code>ZA_KNOWLEDGE_PATH</code></td><td>no</td><td>bundled</td><td>An alternative knowledge bundle</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Variable</th><th>Required</th><th>Default</th><th>Purpose</th></tr></thead><tbody><tr><td class="col-narrow"><code>ZA_PROFILE</code></td><td>no</td><td><code>default</code></td><td>Which stored credential and scope to use</td></tr><tr><td class="col-narrow"><code>ZA_CREDENTIAL_COMMAND</code></td><td>no</td><td>—</td><td>A command printing credentials as JSON, for 1Password / Vault</td></tr><tr><td class="col-narrow"><code>ANALYTICS_CLIENT_ID</code></td><td>no¹</td><td>—</td><td>OAuth client ID</td></tr><tr><td class="col-narrow"><code>ANALYTICS_CLIENT_SECRET</code></td><td>no¹</td><td>—</td><td>OAuth client secret</td></tr><tr><td class="col-narrow"><code>ANALYTICS_REFRESH_TOKEN</code></td><td>no¹</td><td>—</td><td>Used to mint access tokens automatically</td></tr><tr><td class="col-narrow"><code>ANALYTICS_ORG_ID</code></td><td>no¹</td><td>—</td><td>Organization every call is scoped to</td></tr><tr><td class="col-narrow"><code>ANALYTICS_SERVER_URL</code></td><td>no</td><td><code>https://analyticsapi.zoho.com</code></td><td>Your data centre's API host</td></tr><tr><td class="col-narrow"><code>ACCOUNTS_SERVER_URL</code></td><td>no</td><td><code>https://accounts.zoho.com</code></td><td>Your data centre's accounts host</td></tr><tr><td class="col-narrow"><code>ANALYTICS_ACCESS_TOKEN</code></td><td>no</td><td>—</td><td>A static token, for a short test instead of OAuth¹</td></tr><tr><td class="col-narrow"><code>ZA_ALLOW_WRITES</code></td><td>no</td><td>from the profile</td><td>Overrides the profile's write permission</td></tr><tr><td class="col-narrow"><code>ZA_DOMAINS</code></td><td>no</td><td>from the profile</td><td>Overrides the profile's tool groups — see <a href="#02-install--choosing-what-to-expose">above</a></td></tr><tr><td class="col-narrow"><code>ZA_MAX_TOOL_CALLS</code></td><td>no</td><td><code>200</code></td><td>API calls allowed in one program</td></tr><tr><td class="col-narrow"><code>ZA_MAX_CALLS_PER_MINUTE</code></td><td>no</td><td><code>55</code></td><td>Sliding-window rate cap, so a loop cannot trip the API frequency limit</td></tr><tr><td class="col-narrow"><code>ZA_MIN_CALL_INTERVAL_MS</code></td><td>no</td><td><code>50</code></td><td>Minimum gap between calls, against microbursts</td></tr><tr><td class="col-narrow"><code>ZA_THROTTLE_RETRIES</code></td><td>no</td><td><code>3</code></td><td>Retries with backoff (6 s, 15 s, 30 s) when the API returns 6045</td></tr><tr><td class="col-narrow"><code>ZA_EXEC_TIMEOUT_MS</code></td><td>no</td><td><code>60000</code></td><td>Wall-clock limit for one program</td></tr><tr><td class="col-narrow"><code>ZA_EXEC_MEMORY_MB</code></td><td>no</td><td><code>256</code></td><td>Memory limit for the sandbox</td></tr><tr><td class="col-narrow"><code>ZA_MAX_RESULT_ROWS</code></td><td>no</td><td><code>500</code></td><td>Rows a tool result may carry before it is truncated — see <a href="#11-data-engine--result-caps">Reading data</a></td></tr><tr><td class="col-narrow"><code>ZA_MAX_RESULT_BYTES</code></td><td>no</td><td><code>120000</code></td><td>Serialized size a tool result may reach</td></tr><tr><td class="col-narrow"><code>ZA_JOB_POLL_INTERVAL_MS</code></td><td>no</td><td><code>1000</code></td><td>Gap between two status reads of the same export job</td></tr><tr><td class="col-narrow"><code>ZA_MANUAL_PATH</code></td><td>no</td><td>bundled</td><td>An alternative operation catalog</td></tr><tr><td class="col-narrow"><code>ZA_KNOWLEDGE_PATH</code></td><td>no</td><td>bundled</td><td>An alternative knowledge bundle</td></tr></tbody></table></div>
 <p>¹ Not required if you used <code>login</code>. Otherwise supply the three OAuth values, or <code>ANALYTICS_ACCESS_TOKEN</code> for a short test — that one expires after an hour and is not renewed.</p>
 <div class="note note--warn"><div class="note__title">Only if you set credentials by environment</div><p>A config file is plain text on your machine, and a Zoho refresh token does not expire. If you put credentials in one, treat the file as a secret: do not commit it, and use a dedicated Self Client so it can be revoked on its own. <code>login</code> avoids the question entirely.</p></div>
 </section>
@@ -1655,7 +1666,8 @@ Stored under "zoho-analytics-codemode" / "default" in the Keychain.
 <section id="03-using-it--the-normal-flow">
 <h2><span class="num">01</span>The normal flow</h2>
 <p>Every task follows the same shape, and your agent does it on its own:</p>
-<ol><li><strong><code>find_analytics_objects</code></strong> — whenever you name a table, view or workspace, it resolves that name to a real ID first.</li><li><strong><code>search_analytics_api</code></strong> — it describes the operation it needs and gets back signatures.</li><li><strong><code>get_analytics_guide</code></strong> — <em>optional</em>, when it needs to know how something behaves.</li><li><strong><code>run_analytics_code</code></strong> — it writes a program and gets back the result.</li></ol>
+<ol><li><strong><code>find_analytics_objects</code></strong> — whenever you name a table, view or workspace, it resolves that name to a real ID first.</li><li><strong><code>query_analytics_data</code></strong> — if the question is <em>about the data</em> (rows matching a filter, a total, a breakdown, a top-N, a count), this answers it on its own, with the work done inside Analytics.</li><li><strong><code>search_analytics_api</code></strong> — otherwise it describes the operation it needs and gets back signatures.</li><li><strong><code>get_analytics_guide</code></strong> — <em>optional</em>, when it needs to know how something behaves.</li><li><strong><code>run_analytics_code</code></strong> — it writes a program and gets back the result.</li></ol>
+<p>Steps 3 to 5 are for everything a single data read cannot answer: several questions at once, a sweep across workspaces, or anything that is not a read.</p>
 </section>
 <section id="03-using-it--finding-your-data">
 <h2><span class="num">02</span>Finding your data</h2>
@@ -1698,30 +1710,30 @@ rows.groupSum(list, 'Region', 'Sales')      // { West: {...}, East: {...} }</cod
 <section id="03-using-it--worked-example-a-total-across-workspaces">
 <h2><span class="num">04</span>Worked example — a total across workspaces</h2>
 <p>&gt; <strong>You:</strong> What were our East-region sales from July onwards, across every workspace?</p>
-<p>The agent searches, then writes something like:</p>
-<pre><code class="lang-javascript">const CRITERIA = `"Sales"."Region"='East' and "Sales"."Date"&gt;='2026-07-01'`;
-const ws = await za.getOrgWorkspaces({ 'ZANALYTICS-ORGID': ORG_ID });
+<p>The agent resolves the views, then has Analytics do the arithmetic:</p>
+<pre><code class="lang-javascript">const found = await find.views('Sales', { exhaustive: true });
 const totals = {};
 
-for (const w of ws.data.workspaces) {
-  const views = await za.getViews({
-    'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': w.workspaceId, CONFIG: '{}',
+for (const v of found.matches) {
+  const out = await data.aggregate({
+    workspaceId: v.workspaceId,
+    table: v.viewName,
+    by: ['Region'],
+    metrics: [{ fn: 'sum', column: 'Sales', as: 'Total' }],
+    filters: [
+      { column: 'Region', value: 'East' },
+      { column: 'Date', op: 'gte', value: '2026-07-01' },
+    ],
   });
-  for (const v of views.data.views.filter((v) =&gt; v.viewName.includes('Sales'))) {
-    const out = await za.exportDataView({
-      'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': w.workspaceId, 'view-id': v.viewId,
-      CONFIG: JSON.stringify({ responseFormat: 'json', criteria: CRITERIA }),
-    });
-    const list = rows.of(out);          // flat array, not out.data.rows
-    if (list.length) {
-      totals[w.workspaceName] =
-        (totals[w.workspaceName] ?? 0) + rows.sum(list, 'Sales').total;
-    }
+  for (const row of out.rows) {
+    totals[v.workspaceName] = (totals[v.workspaceName] ?? 0) + rows.num(row.Total);
   }
 }
 
 return { totals, grandTotal: Object.values(totals).reduce((a, b) =&gt; a + b, 0) };</code></pre>
-<p>One tool call. The response is a handful of numbers; no row ever reaches the model.</p>
+<p>One tool call, and <strong>no row is ever exported</strong>. Each workspace contributes a single aggregate row, computed by Analytics; <code>rows.num</code> is still needed because even an aggregate comes back as a string.</p>
+<div class="note note--good"><div class="note__title">Why not export and sum in the loop?</div><p>Both give the same number. Only one of them bills export units for every row it then throws away — measured, 128 KB of exported rows against 1.1 KB for the aggregate. See <a href="#11-data-engine--measured">Reading data</a>.</p></div>
+<p>If a view is a chart, pivot or summary rather than a table, SQL cannot name it; <code>data.rows</code> with the same <code>filters</code> is the route, and the view applies its own aggregation. The engine makes that choice itself and says which it took.</p>
 </section>
 <section id="03-using-it--worked-example-an-export-that-has-to-be-polled">
 <h2><span class="num">05</span>Worked example — an export that has to be polled</h2>
@@ -1772,7 +1784,7 @@ return { rowCount: rows.of(out).length };</code></pre>
 </section>
 <section id="03-using-it--limits-you-will-meet">
 <h2><span class="num">10</span>Limits you will meet</h2>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Limit</th><th>Default</th><th>What happens</th><th>Change it with</th></tr></thead><tbody><tr><td class="col-narrow">API calls per program</td><td>200</td><td>Program stops with a budget error</td><td><code>ZA_MAX_TOOL_CALLS</code></td></tr><tr><td class="col-narrow">Program runtime</td><td>60 s</td><td>Timed out; use an async export job</td><td><code>ZA_EXEC_TIMEOUT_MS</code></td></tr><tr><td class="col-narrow">Sandbox memory</td><td>256 MB</td><td>Out of memory; aggregate in chunks</td><td><code>ZA_EXEC_MEMORY_MB</code></td></tr><tr><td class="col-narrow">Write operations</td><td>hidden</td><td><code>not a function</code></td><td><code>ZA_ALLOW_WRITES</code> — read <a href="#04-security">Security</a> first</td></tr><tr><td class="col-narrow">API call rate</td><td>55 per minute</td><td>loops are paced; no 6045</td><td><code>ZA_MAX_CALLS_PER_MINUTE</code></td></tr><tr><td class="col-narrow">API domains</td><td>all ten</td><td><code>not a function</code></td><td><code>ZA_DOMAINS</code> — see <a href="#02-install--choosing-what-to-expose">Choosing what to expose</a></td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Limit</th><th>Default</th><th>What happens</th><th>Change it with</th></tr></thead><tbody><tr><td class="col-narrow">API calls per program</td><td>200</td><td>Program stops with a budget error</td><td><code>ZA_MAX_TOOL_CALLS</code></td></tr><tr><td class="col-narrow">Program runtime</td><td>60 s</td><td>Timed out; use an async export job</td><td><code>ZA_EXEC_TIMEOUT_MS</code></td></tr><tr><td class="col-narrow">Sandbox memory</td><td>256 MB</td><td>Out of memory; aggregate in chunks</td><td><code>ZA_EXEC_MEMORY_MB</code></td></tr><tr><td class="col-narrow">Write operations</td><td>hidden</td><td><code>not a function</code></td><td><code>ZA_ALLOW_WRITES</code> — read <a href="#04-security">Security</a> first</td></tr><tr><td class="col-narrow">API call rate</td><td>55 per minute</td><td>loops are paced; no 6045</td><td><code>ZA_MAX_CALLS_PER_MINUTE</code></td></tr><tr><td class="col-narrow">API domains</td><td>all ten</td><td><code>not a function</code></td><td><code>ZA_DOMAINS</code> — see <a href="#02-install--choosing-what-to-expose">Choosing what to expose</a></td></tr><tr><td class="col-narrow">Rows in a result</td><td>500</td><td>Truncated, and the result says so</td><td><code>ZA_MAX_RESULT_ROWS</code></td></tr><tr><td class="col-narrow">Size of a result</td><td>120 KB</td><td>Truncated to valid JSON, and said</td><td><code>ZA_MAX_RESULT_BYTES</code></td></tr><tr><td class="col-narrow">Export job poll gap</td><td>1 s</td><td>Polls are spaced; the budget lasts</td><td><code>ZA_JOB_POLL_INTERVAL_MS</code></td></tr></tbody></table></div>
 </section>
 <section id="03-using-it--a-caution-about-numbers">
 <h2><span class="num">11</span>A caution about numbers</h2>
@@ -1894,14 +1906,14 @@ npm link</code></pre>
 </section>
 <section id="05-troubleshooting--limits-and-timeouts">
 <h2><span class="num">05</span>Limits and timeouts</h2>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Message</th><th>Meaning</th><th>Options</th></tr></thead><tbody><tr><td class="col-narrow">"API call budget exhausted after 200 calls"</td><td>The program looped too far</td><td>Narrow the task; filter with <code>CONFIG</code> criteria instead of fetching everything; or raise <code>ZA_MAX_TOOL_CALLS</code></td></tr><tr><td class="col-narrow">Timed out</td><td>Longer than 60 s</td><td>Use <code>createExportJob*</code> + <code>getExportJobDetails</code> instead of a blocking export; or raise <code>ZA_EXEC_TIMEOUT_MS</code></td></tr><tr><td class="col-narrow">Out of memory</td><td>Accumulated too many rows</td><td>Aggregate per view instead of collecting everything first; or raise <code>ZA_EXEC_MEMORY_MB</code></td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Message</th><th>Meaning</th><th>Options</th></tr></thead><tbody><tr><td class="col-narrow">"API call budget exhausted after 200 calls"</td><td>The program looped too far</td><td>Narrow the task; push the filter to the server with <code>query_analytics_data</code> or <code>data.rows</code> instead of fetching everything; or raise <code>ZA_MAX_TOOL_CALLS</code></td></tr><tr><td class="col-narrow">Timed out</td><td>Longer than 60 s</td><td>Use <code>data.query()</code> or <code>data.export()</code>, which run the job and poll it for you; or raise <code>ZA_EXEC_TIMEOUT_MS</code></td></tr><tr><td class="col-narrow">Out of memory</td><td>Accumulated too many rows</td><td>Aggregate inside Analytics (<code>groupBy</code> + <code>metrics</code>) rather than collecting rows first; or raise <code>ZA_EXEC_MEMORY_MB</code></td></tr><tr><td class="col-narrow">"Showing 500 of N rows"</td><td>The result hit <code>ZA_MAX_RESULT_ROWS</code></td><td>Ask a narrower question. The answer is <strong>not</strong> the first 500 rows of the real one — see <a href="#11-data-engine--result-caps">Reading data</a></td></tr><tr><td class="col-narrow"><code>ReferenceError: setTimeout is not defined</code></td><td>The program tried to sleep</td><td>The isolate has no timers. Use <code>data.awaitJob()</code>, which polls without one; the server spaces the polls</td></tr></tbody></table></div>
 <p>Raising a limit is usually the wrong first move. Each one is normally telling you the program is fetching data it does not need.</p>
 </section>
 <section id="05-troubleshooting--you-have-no-data-but-you-definitely-do">
 <h2><span class="num">06</span>"You have no data" but you definitely do</h2>
-<p>Almost always one of two things, both of which the <code>rows</code> helpers exist to prevent:</p>
-<ul><li>The program read <code>out.data.rows</code>. Export returns a <strong>flat array</strong> in <code>data</code>; <code>data.rows</code> is <code>undefined</code>, and <code>?? []</code> turns that into an empty result.</li><li>The program summed <code>Number(row.Sales)</code> on <code>"$1,682.39"</code>, which is <code>NaN</code>.</li></ul>
-<p>Ask your agent to show the code. If it is not using <code>rows.of()</code> and <code>rows.sum()</code>, tell it to.</p>
+<p>Almost always one of three things, all of which the helpers exist to prevent:</p>
+<ul><li>The program read <code>out.data.rows</code>. Export returns a <strong>flat array</strong> in <code>data</code>; <code>data.rows</code> is <code>undefined</code>, and <code>?? []</code> turns that into an empty result.</li><li>The program summed <code>Number(row.Sales)</code> on <code>"$1,682.39"</code>, which is <code>NaN</code>.</li><li>The filter compared a formatted value: <code>r.Sales &gt; 1000</code> on <code>"$1,682.39"</code> compares strings. Server-side <code>criteria</code> compares the underlying number, which is one more reason to push it down.</li></ul>
+<p>Ask your agent to show the code. If it is not using <code>rows.of()</code>, <code>rows.sum()</code> or the <code>data.*</code> helpers, tell it to.</p>
 </section>
 <section id="05-troubleshooting--the-answers-look-wrong">
 <h2><span class="num">07</span>The answers look wrong</h2>
@@ -1913,7 +1925,8 @@ npm link</code></pre>
 <h3 id="05-troubleshooting--q-does-this-replace-the-zoho-analytics-mcp-server">Q. Does this replace the Zoho Analytics MCP Server?</h3>
 <p>No. They complement each other: 26 named tools for single lookups, this for multi-step work. Install both. See <a href="#01-what-it-is--how-this-relates-to-the-zoho-analytics-mcp-server">the comparison</a>.</p>
 <h3 id="05-troubleshooting--q-does-it-reduce-my-api-unit-consumption">Q. Does it reduce my API unit consumption?</h3>
-<p>No. The same operations are called, so the same units are billed. What it reduces is model turns and context — in a measured multi-workspace export, 19 model turns became 1.</p>
+<p>For data reads, yes — if you let it. Export units are billed per 1000 rows <em>produced</em>, so a filter or an aggregate inside the request cuts them: measured on a live 755-row table, the same question produced 128,116 bytes of export when the rows were filtered in code and 1,183 bytes when the <code>GROUP BY</code> ran inside Analytics. That is what <code>query_analytics_data</code> and the <code>data.*</code> helpers are for — see <a href="#11-data-engine">Reading data</a>.</p>
+<p>For everything else, no. The same metadata operations are called, so the same units are billed. What that reduces is model turns and context — in a measured multi-workspace export, 19 model turns became 1.</p>
 <h3 id="05-troubleshooting--q-do-i-need-an-openai-or-anthropic-api-key">Q. Do I need an OpenAI or Anthropic API key?</h3>
 <p>No. Your agent supplies the model. This server contains no AI.</p>
 <h3 id="05-troubleshooting--q-where-does-my-data-go">Q. Where does my data go?</h3>
@@ -1952,10 +1965,11 @@ npm install          # in case a dependency moved</code></pre>
 <section id="06-operating--what-it-costs">
 <h2><span class="num">02</span>What it costs</h2>
 <p>Two separate budgets, often confused.</p>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Budget</th><th>Who bills it</th><th>Effect of this tool</th></tr></thead><tbody><tr><td class="col-narrow"><strong>Analytics API units</strong></td><td>Zoho</td><td><strong>Unchanged.</strong> Same operations, same units</td></tr><tr><td class="col-narrow"><strong>Model tokens</strong></td><td>Your AI provider</td><td><strong>Substantially lower.</strong> Fewer turns, and intermediate data never enters context</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Budget</th><th>Who bills it</th><th>Effect of this tool</th></tr></thead><tbody><tr><td class="col-narrow"><strong>Analytics API units</strong></td><td>Zoho</td><td><strong>Unchanged for metadata, lower for data reads.</strong> Export units are billed per 1000 rows <em>produced</em>, so a pushed-down filter or aggregate cuts them</td></tr><tr><td class="col-narrow"><strong>Model tokens</strong></td><td>Your AI provider</td><td><strong>Substantially lower.</strong> Fewer turns, and intermediate data never enters context</td></tr></tbody></table></div>
 <p>In a measured multi-workspace export the same work took 19 model turns one call at a time versus 1 with a program — and 2,092 bytes of intermediate data became 101. Both paths made the same API calls.</p>
+<p>For data reads the API bill moves too. Measured on a live 755-row table, <em>"what did the West sell?"</em> produced 128,116 bytes of export when the rows were filtered in code and 1,183 bytes when the <code>GROUP BY</code> ran inside Analytics — see <a href="#11-data-engine--measured">Reading data</a>.</p>
 <p><code>run_analytics_code</code> reports <code>apiCalls</code> on every execution, so you can see unit consumption directly.</p>
-<div class="note note--info"><div class="note__title">Keeping units down</div><p>Filter server-side. A <code>CONFIG</code> with <code>criteria</code> is applied by Analytics before rows are sent; filtering in the sandbox instead means paying for everything and discarding most of it.</p></div>
+<div class="note note--info"><div class="note__title">Keeping units down</div><p>Filter server-side, and prefer <code>query_analytics_data</code> or the <code>data.*</code> helpers over a hand-written export: they put <code>criteria</code>, <code>selectedColumns</code> and the aggregate into the request, which is where Analytics applies them before producing a single row. Filtering in the sandbox instead means paying for everything and discarding most of it.</p></div>
 </section>
 <section id="06-operating--running-from-source">
 <h2><span class="num">03</span>Running from source</h2>
@@ -1998,6 +2012,7 @@ node tools/build-knowledge.mjs --verify &lt;okf-dir&gt;   # has a checkout drift
 <pre><code class="lang-text">test/agent.test.mjs        end-to-end over real MCP stdio against the mock
 test/resolve.test.mjs      name resolution: fuzzy matching, ambiguity, refusal
 test/search.test.mjs       search quality — API and user vocabulary
+test/data-engine.test.mjs  pushdown, routing, quoting, refusals and result caps
 test/audit.test.mjs        two streams, rotation, redaction, hash chain
 test/credentials.test.mjs  env -&gt; credential command -&gt; keychain resolution
 test/token-cache.test.mjs  access-token reuse across process restarts
@@ -2005,7 +2020,7 @@ test/orgs.test.mjs         organization allowlist enforcement
 test/remote.test.mjs       the full OAuth 2.1 flow (unreleased mode)
 test/mock-analytics.mjs    the mock API — enforces org scoping, returns real shapes
 test/mock-accounts.mjs     the mock token endpoint</code></pre>
-<p><code>agent.test.mjs</code> asserts the properties that matter: exactly four tools, signatures stay small, a multi-step program returns only its answer, <code>ORG_ID</code> is present, <strong>the sandbox is sealed</strong>, write operations are hidden, the org header and <code>Bearer</code> prefix reach the API correctly, and a failed program yields an actionable error.</p>
+<p><code>agent.test.mjs</code> asserts the properties that matter: exactly five tools, signatures stay small, a multi-step program returns only its answer, <code>ORG_ID</code> is present, <strong>the sandbox is sealed</strong>, write operations are hidden, the org header and <code>Bearer</code> prefix reach the API correctly, and a failed program yields an actionable error.</p>
 <p>Two tests to keep green above all others:</p>
 <ul><li><strong>"the sandbox is sealed"</strong> — asserts that <code>require</code>, <code>fetch</code>, <code>process</code>, <code>Buffer</code> and <code>XMLHttpRequest</code> are all unreachable from executing code. <a href="#04-security--what-the-sandbox-cannot-do">Security</a> is only true while this passes.</li><li><strong>"catching the refusal does NOT let the program substitute"</strong> — asserts that a program which swallows a failed name resolution still fails the whole execution. Analysing <code>sum_of_revenue</code> when the user said <code>sum_of_cost</code> is the worst outcome this tool can produce.</li></ul>
 <div class="note note--info"><div class="note__title">The mock mirrors the API, not the documentation</div><p><code>mock-analytics.mjs</code> returns the shapes live Analytics actually sends — rows as a flat array in <code>data</code>, numbers as formatted strings like <code>"$1,682.39"</code> — because an earlier version returned the documented shapes instead and hid two defects that each produced a <em>plausible wrong number</em>. If you extend it, copy a real response.</p></div>
@@ -2013,7 +2028,7 @@ test/mock-accounts.mjs     the mock token endpoint</code></pre>
 <section id="06-operating--known-rough-edges">
 <h2><span class="num">07</span>Known rough edges</h2>
 <p>Honest notes for anyone maintaining this.</p>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Edge</th><th>Detail</th></tr></thead><tbody><tr><td class="col-narrow"><strong>Results are not size-capped</strong></td><td>A program is told to <code>return</code> only its final answer, and that instruction is the only thing keeping a large result out of your context. Nothing truncates it. Ask for aggregates, and see <a href="#03-using-it--what-makes-a-good-request">Using it</a></td></tr><tr><td class="col-narrow"><strong>Write path is lightly tested</strong></td><td><code>ZA_ALLOW_WRITES=true</code> exposes all 203 operations; only the read-only set is covered by tests. Exercise it against a non-production organization first</td></tr><tr><td class="col-narrow"><strong>Not on npm</strong></td><td>Installed from source while the licence is finalised, so there is no <code>npx</code> one-liner and no <code>--version</code> flag. The commit is the build identifier</td></tr><tr><td class="col-narrow">The process does not exit cleanly</td><td><code>isolated-vm</code> worker threads outlive <code>process.exit()</code>. Tests force exit; agents kill the child on quit, so it does not matter in normal use</td></tr><tr><td class="col-narrow">No per-user rate limiting</td><td><code>ZA_MAX_TOOL_CALLS</code> is per program, not per user per hour</td></tr><tr><td class="col-narrow">Search is lexical</td><td>Synonym expansion plus field-weighted scoring, no embeddings. It handles API vocabulary well and paraphrase adequately</td></tr><tr><td class="col-narrow">The knowledge bundle is a snapshot</td><td>Regenerated by <code>npm run build:knowledge</code>; it does not follow github.com/zoho/analytics-okf automatically. Its age is reported at startup and warned about past 90 days</td></tr><tr><td class="col-narrow">A transitive dependency is flagged</td><td><code>@utcp/sdk</code> pins <code>zod</code> 3.x, which carries GHSA-mrhx-c7xc-m3w5. No fix is available upstream; it is in UTCP's input-validation path, and <code>npm audit</code> will report it</td></tr><tr><td class="col-narrow">UTCP is a thin dependency</td><td>All of it is fenced inside <code>src/catalog.mjs</code> precisely so it can be replaced without touching the rest</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Edge</th><th>Detail</th></tr></thead><tbody><tr><td class="col-narrow"><code>tableCriteriaList</code> is ignored</td><td>The SQL export job documents a per-table filter and <code>7836</code> for a table the statement does not reference. Measured live, it returns 200 and unfiltered rows. Row selection for that path goes in the <code>WHERE</code> clause; see <a href="#11-data-engine--three-things-the-api-does-that-the-documentation-does-not-say">Reading data</a></td></tr><tr><td class="col-narrow">Column pre-flight costs a call</td><td><code>data.rows</code> reads the view's columns before spending an export on a filter that names a wrong one. One extra metadata call per execution, cached within it — worth it against a wasted export, but it is a call</td></tr><tr><td class="col-narrow"><strong>Write path is lightly tested</strong></td><td><code>ZA_ALLOW_WRITES=true</code> exposes all 203 operations; only the read-only set is covered by tests. Exercise it against a non-production organization first</td></tr><tr><td class="col-narrow"><strong>Not on npm</strong></td><td>Installed from source while the licence is finalised, so there is no <code>npx</code> one-liner and no <code>--version</code> flag. The commit is the build identifier</td></tr><tr><td class="col-narrow">The process does not exit cleanly</td><td><code>isolated-vm</code> worker threads outlive <code>process.exit()</code>. Tests force exit; agents kill the child on quit, so it does not matter in normal use</td></tr><tr><td class="col-narrow">No per-user rate limiting</td><td><code>ZA_MAX_TOOL_CALLS</code> is per program, not per user per hour</td></tr><tr><td class="col-narrow">Search is lexical</td><td>Synonym expansion plus field-weighted scoring, no embeddings. It handles API vocabulary well and paraphrase adequately</td></tr><tr><td class="col-narrow">The knowledge bundle is a snapshot</td><td>Regenerated by <code>npm run build:knowledge</code>; it does not follow github.com/zoho/analytics-okf automatically. Its age is reported at startup and warned about past 90 days</td></tr><tr><td class="col-narrow">A transitive dependency is flagged</td><td><code>@utcp/sdk</code> pins <code>zod</code> 3.x, which carries GHSA-mrhx-c7xc-m3w5. No fix is available upstream; it is in UTCP's input-validation path, and <code>npm audit</code> will report it</td></tr><tr><td class="col-narrow">UTCP is a thin dependency</td><td>All of it is fenced inside <code>src/catalog.mjs</code> precisely so it can be replaced without touching the rest</td></tr></tbody></table></div>
 </section>
 <section id="06-operating--where-things-live">
 <h2><span class="num">08</span>Where things live</h2>
@@ -2021,9 +2036,11 @@ test/mock-accounts.mjs     the mock token endpoint</code></pre>
 ├── src/
 │   ├── bin.mjs             entry point: no args -&gt; server, args -&gt; CLI
 │   ├── server.mjs          the stdio MCP server
-│   ├── tools.mjs           the four tools
+│   ├── tools.mjs           the five tools
 │   ├── catalog.mjs         the operation catalog and sandbox — the only UTCP usage
 │   ├── sandbox-prelude.mjs `find` (name resolver) and `rows` (result readers)
+│   ├── sandbox-data.mjs    `data` (the pushdown engine) — same file, second half
+│   ├── data-engine.mjs     host side: routing, program building, result caps
 │   ├── search.mjs          query expansion and ranking
 │   ├── knowledge.mjs       the OKF knowledge base: lookup, search, hints
 │   ├── auth.mjs            refresh token -&gt; access token
@@ -2055,7 +2072,7 @@ test/mock-accounts.mjs     the mock token endpoint</code></pre>
 <section id="08-engine--the-three-layers">
 <h2><span class="num">01</span>The three layers</h2>
 <pre><code class="lang-text">  ┌─ MCP ──────────────────────────────────────────────┐
-  │  what your agent speaks. Four tools.               │
+  │  what your agent speaks. Five tools.               │
   │  @modelcontextprotocol/sdk                         │
   └────────────────────┬───────────────────────────────┘
                        │
@@ -2094,9 +2111,18 @@ test/mock-accounts.mjs     the mock token endpoint</code></pre>
 <p><code>@utcp/code-mode</code> is the implementation here. It takes the registered UTCP manual, generates a type-annotated signature per operation, and binds each one as a method on a <code>za</code> global inside an <a href="https://github.com/laverdet/isolated-vm"><code>isolated-vm</code></a> V8 isolate.</p>
 <p>When the model's code calls <code>za.exportDataView(...)</code>, that is <strong>not</strong> an HTTP request. It is a callback out of the isolate into the server process, which reads that operation's call template, substitutes the variables, and makes the real call. The isolate has no network of its own — see <a href="#04-security--what-the-sandbox-cannot-do">Security</a>.</p>
 <div class="note note--warn"><div class="note__title">The program is plain JavaScript, not TypeScript</div><p>The signatures are type-annotated so a model can see each argument's shape, but there is <strong>no compiler anywhere in the chain</strong> — the code string goes straight into V8. A type annotation, an <code>interface</code> or an <code>as</code> cast is a syntax error, and V8's message never mentions types. The server detects that case and says so rather than passing the raw error back. Modern JavaScript is fine: <code>async</code>/<code>await</code>, optional chaining, destructuring, spread.</p></div>
+<div class="note note--warn"><div class="note__title">And it has no timers</div><p><code>setTimeout</code> and <code>setInterval</code> do not exist in the isolate, so a program cannot sleep — which matters most for polling an export job, where reaching for one is a <code>ReferenceError</code> deep inside the export. It does not need to: the tool bridge uses <code>applySyncPromise</code>, which <strong>blocks the isolate</strong> until the host-side call settles. A delay taken in the server process is therefore the loop's delay, which is why job polling is paced here rather than there (<code>ZA_JOB_POLL_INTERVAL_MS</code>).</p></div>
+</section>
+<section id="08-engine--what-the-sandbox-is-given-before-the-models-code">
+<h2><span class="num">04</span>What the sandbox is given before the model's code</h2>
+<p>Three objects are evaluated ahead of every program, each of them an answer to a specific way generated code goes wrong.</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Object</th><th>Lives in</th><th>The failure it prevents</th></tr></thead><tbody><tr><td class="col-narrow"><code>find</code></td><td><code>src/sandbox-prelude.mjs</code></td><td><code>viewName === 'profit'</code> matching nothing, and the model reporting that your table does not exist</td></tr><tr><td class="col-narrow"><code>rows</code></td><td><code>src/sandbox-prelude.mjs</code></td><td><code>out.data.rows</code> being <code>undefined</code> for a flat array, and <code>Number("$1,682.39")</code> being <code>NaN</code></td></tr><tr><td class="col-narrow"><code>data</code></td><td><code>src/sandbox-data.mjs</code></td><td>Exporting a whole table and filtering it in JavaScript — the costly way to get a right answer</td></tr></tbody></table></div>
+<p><code>data</code> is the engine for reads. It owns one implementation of criteria quoting, one <code>SELECT</code> builder, and one export-job polling loop, and the <code>query_analytics_data</code> tool reaches them by running a generated program through the <em>same</em> sandbox rather than by reimplementing any of it on the host. That is why a tool call and a hand-written program get identical quoting, identical pacing, identical budgets and identical audit records.</p>
+<p>What stays on the host is only what cannot run inside the isolate: <code>src/data-engine.mjs</code> routes a request to the view export or the SQL job, builds the program, and caps the result — the cap being outside the sandbox precisely because a program cannot be trusted to bound its own answer.</p>
+<p><a href="#11-data-engine">Reading data</a> is the user-facing reference.</p>
 </section>
 <section id="08-engine--where-the-accuracy-comes-from">
-<h2><span class="num">04</span>Where the accuracy comes from</h2>
+<h2><span class="num">05</span>Where the accuracy comes from</h2>
 <p>Signatures tell a model <em>what it can call</em>. They do not tell it that criteria strings follow a particular SQL-like grammar, that <code>CONFIG</code> must be stringified and URL-encoded, or that a bulk export is three calls and a poll. Those are the things generated code gets wrong.</p>
 <p>So the <strong>OKF knowledge base</strong> ships with the server and is exposed as <code>get_analytics_guide</code>. Its source of truth is the published bundle at <strong><a href="https://github.com/zoho/analytics-okf">github.com/zoho/analytics-okf</a></strong> — <code>npm run build:knowledge</code> reads that repository's root <code>manifest.json</code> to resolve the current version, then its <code>llms.txt</code> link index, exactly as that repository instructs. It is not built from any local checkout:</p>
 <div class="table-wrap"><table><thead><tr><th class="col-narrow">Content</th><th>Count</th><th>What it is for</th></tr></thead><tbody><tr><td class="col-narrow">Playbooks</td><td>8</td><td>Multi-step recipes: asynchronous export, large import, resolving identifiers, sharing with row filters, scheduling email, managing users, AutoML, multi-tenant embedding</td></tr><tr><td class="col-narrow">References</td><td>9</td><td>Criteria grammar, request conventions, job polling, identifiers, response envelope, export and import enums, HTTP statuses, rate limits</td></tr><tr><td class="col-narrow">Error codes</td><td>385</td><td>Every documented code, with its meaning, resolution and whether it is retryable</td></tr></tbody></table></div>
@@ -2104,25 +2130,25 @@ test/mock-accounts.mjs     the mock token endpoint</code></pre>
 <ul><li><strong>Search points at the playbook.</strong> Ask for export-job operations and the result ends with <em>"Before writing code, consider reading: <code>get_analytics_guide("export-data-asynchronously")</code>"</em>.</li><li><strong>Failures are annotated.</strong> Any four-digit code in an error message gets its documented meaning and resolution attached, so the model can correct itself rather than guess.</li></ul>
 </section>
 <section id="08-engine--the-ten-api-domains">
-<h2><span class="num">05</span>The ten API domains</h2>
+<h2><span class="num">06</span>The ten API domains</h2>
 <p>The catalog is tagged by the domain each operation comes from, mirroring <code>v2.0/oas/&lt;domain&gt;-grouped-api.json</code>:</p>
 <div class="table-wrap"><table><thead><tr><th class="col-narrow">Domain</th><th>Operations</th><th>Covers</th></tr></thead><tbody><tr><td class="col-narrow"><code>workspace-management</code></td><td>35</td><td>Workspaces, backups, linking, templates, variables</td></tr><tr><td class="col-narrow"><code>data-modeling-schema</code></td><td>33</td><td>Tables, columns, formulas, query tables, lookups</td></tr><tr><td class="col-narrow"><code>user-groups</code></td><td>26</td><td>Users, groups, roles, portals</td></tr><tr><td class="col-narrow"><code>views-management</code></td><td>26</td><td>Views, folders, tags, trash, copy and move</td></tr><tr><td class="col-narrow"><code>data-operations</code></td><td>20</td><td>Rows, imports, exports, bulk jobs, data sync</td></tr><tr><td class="col-narrow"><code>share-publish</code></td><td>20</td><td>Sharing, permissions, embed URLs, public links, slideshows</td></tr><tr><td class="col-narrow"><code>schedules-alerts</code></td><td>16</td><td>Email schedules and data alerts</td></tr><tr><td class="col-narrow"><code>dsml</code></td><td>11</td><td>AutoML analyses, training, predictions</td></tr><tr><td class="col-narrow"><code>org-management</code></td><td>10</td><td>Organizations, subscriptions, security controls</td></tr><tr><td class="col-narrow"><code>reports-dashboards</code></td><td>6</td><td>Charts, pivots, summaries, dashboards</td></tr></tbody></table></div>
 <p><code>ZA_DOMAINS</code> restricts a deployment to any subset, and <code>search_analytics_api</code> takes an optional <code>domain</code> argument. See <a href="#02-install--choosing-what-to-expose">Choosing what to expose</a>.</p>
 </section>
 <section id="08-engine--dependencies-and-why-they-are-contained">
-<h2><span class="num">06</span>Dependencies, and why they are contained</h2>
+<h2><span class="num">07</span>Dependencies, and why they are contained</h2>
 <div class="table-wrap"><table><thead><tr><th class="col-narrow">Package</th><th>Role</th></tr></thead><tbody><tr><td class="col-narrow"><code>@modelcontextprotocol/sdk</code></td><td>the MCP server, OAuth 2.1, HTTP transport</td></tr><tr><td class="col-narrow"><code>@utcp/code-mode</code></td><td>the sandbox and the tool bridge</td></tr><tr><td class="col-narrow"><code>@utcp/http</code></td><td>makes the real API calls from the call templates</td></tr><tr><td class="col-narrow"><code>@utcp/text</code></td><td>hands the manual over inline, so nothing is fetched</td></tr><tr><td class="col-narrow"><code>isolated-vm</code></td><td>the V8 isolate itself</td></tr><tr><td class="col-narrow"><code>express</code></td><td>the HTTP layer, used only by the unreleased multi-user server</td></tr></tbody></table></div>
 <p>Every <code>@utcp/*</code> import lives in a single file, <code>src/catalog.mjs</code>. That is deliberate: UTCP is a young project with a small user base, and confining it to one module means it can be replaced without touching anything else. The server uses exactly three of its functions.</p>
 <div class="note note--info"><div class="note__title">Search deliberately does not use UTCP</div><p>UTCP's own tool search is plain word matching, and it failed on the way people actually phrase things — <em>"how much revenue did we make"</em> returned unrelated operations. <code>search_analytics_api</code> uses its own index with synonym expansion and field weighting, folding UTCP's results in only as a ranking bonus. UTCP owns the calling, not the finding.</p></div>
 </section>
 <section id="08-engine--what-running-it-against-a-real-organization-changed">
-<h2><span class="num">07</span>What running it against a real organization changed</h2>
-<p>Four things only a live API could reveal, each now covered by a test:</p>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Found</th><th>Why it mattered</th></tr></thead><tbody><tr><td class="col-narrow"><code>expires_in</code> is <strong>milliseconds</strong> (<code>3600000</code>) alongside <code>expires_in_sec</code> (<code>3600</code>)</td><td>Taking it at face value made a one-hour token look valid for 41 days, so it was never refreshed and every call failed with 8535 an hour in</td></tr><tr><td class="col-narrow">An 81-workspace name sweep trips <strong>error 6045</strong></td><td>The limit is a <em>rate over a window</em>, not a gap between calls — measured: 53/min ran clean, 105/min tripped after 27 calls, 188/min after 5. A fixed delay was the wrong shape; calls now go through a sliding window capped at 55/min, with 6 s / 15 s / 30 s backoff</td></tr><tr><td class="col-narrow">A rate-limited sweep cannot finish in time</td><td>Covering 25 of 81 workspaces and reporting "no such view" is a false negative. An unfinished search now says so instead of claiming absence</td></tr><tr><td class="col-narrow">Export returns rows as a <strong>flat array</strong> in <code>data</code></td><td><code>data.rows</code> is <code>undefined</code>, which <code>?? []</code> turns into a confident "no data" for a table with 755 rows</td></tr><tr><td class="col-narrow">Values are <strong>formatted strings</strong> (<code>"$1,682.39"</code>)</td><td><code>Number()</code> gives <code>NaN</code>, so sums silently come out as 0</td></tr></tbody></table></div>
+<h2><span class="num">08</span>What running it against a real organization changed</h2>
+<p>Things only a live API could reveal, each now covered by a test:</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Found</th><th>Why it mattered</th></tr></thead><tbody><tr><td class="col-narrow"><code>expires_in</code> is <strong>milliseconds</strong> (<code>3600000</code>) alongside <code>expires_in_sec</code> (<code>3600</code>)</td><td>Taking it at face value made a one-hour token look valid for 41 days, so it was never refreshed and every call failed with 8535 an hour in</td></tr><tr><td class="col-narrow">An 81-workspace name sweep trips <strong>error 6045</strong></td><td>The limit is a <em>rate over a window</em>, not a gap between calls — measured: 53/min ran clean, 105/min tripped after 27 calls, 188/min after 5. A fixed delay was the wrong shape; calls now go through a sliding window capped at 55/min, with 6 s / 15 s / 30 s backoff</td></tr><tr><td class="col-narrow">A rate-limited sweep cannot finish in time</td><td>Covering 25 of 81 workspaces and reporting "no such view" is a false negative. An unfinished search now says so instead of claiming absence</td></tr><tr><td class="col-narrow">Export returns rows as a <strong>flat array</strong> in <code>data</code></td><td><code>data.rows</code> is <code>undefined</code>, which <code>?? []</code> turns into a confident "no data" for a table with 755 rows</td></tr><tr><td class="col-narrow">Values are <strong>formatted strings</strong> (<code>"$1,682.39"</code>)</td><td><code>Number()</code> gives <code>NaN</code>, so sums silently come out as 0</td></tr><tr><td class="col-narrow"><code>tableCriteriaList</code> on the SQL export job is <strong>silently ignored</strong></td><td>Documented as one filter per table, with <code>7836</code> for a table the statement does not reference. Measured: HTTP 200 and unfiltered rows. Row selection for that path belongs in the <code>WHERE</code> clause</td></tr><tr><td class="col-narrow">A <code>SELECT</code> cannot name a chart, pivot, summary or dashboard</td><td>The server answers <code>7409</code>, <em>"the table does not exist in this workspace"</em>, which reads as a missing object rather than as the wrong route. The engine asks the view's type first and falls back to the view export with <code>criteria</code></td></tr><tr><td class="col-narrow"><code>jobCode</code> is a <strong>string</strong> (<code>"1004"</code>), and the download has <strong>no envelope</strong></td><td>Polling on the human <code>jobStatus</code> text alone is fragile, and the downloaded file is <code>{"data": [...]}</code> with no <code>status</code> wrapper</td></tr></tbody></table></div>
 <p>The last two are the dangerous pair: neither raises an error, both produce a plausible wrong answer. They survived every mock-based test because the mock returned the shape the documentation <em>claimed</em>, not the shape the API <em>sends</em> — so <code>test/mock-analytics.mjs</code> was corrected to match the real responses, which is what makes those tests meaningful.</p>
 </section>
 <section id="08-engine--where-the-catalog-comes-from">
-<h2><span class="num">08</span>Where the catalog comes from</h2>
+<h2><span class="num">09</span>Where the catalog comes from</h2>
 <pre><code class="lang-bash">npm run build:manual      # v2.0/oas/*.json -&gt; manual/analytics.utcp.json
 npm run build:knowledge   # github.com/zoho/analytics-okf -&gt; knowledge/knowledge.json
 npm run build             # both
@@ -2401,6 +2427,128 @@ const t = '1000.deadbeef….0123';         const t = '[redacted]';</code></pre>
 <ul><li><strong>No per-user rate limiting of Analytics calls.</strong> <code>ZA_MAX_TOOL_CALLS</code> is per program, not per user per hour.</li><li><strong>No access log for the audit files themselves.</strong> OWASP asks for an audit trail of the audit trail; that belongs to your filesystem auditing, not here.</li><li><strong>No built-in retention by age.</strong> Rotation is by size. If you need "90 days", size the files for your volume and check with <code>audit</code>.</li><li><strong>Local mode is self-auditing.</strong> See the note in <a href="#10-audit--tamper-detection">§6</a>.</li></ul>
 </section>
 </article>
+
+<article class="chapter" id="11-data-engine">
+<header class="page-head">
+  <div class="spine"><i></i><i></i><i></i><i></i></div>
+  <p class="eyebrow">Code Mode &middot; <b>Chapter 11</b></p>
+  <h1>Reading data</h1>
+  <p class="lede">Asking for the West region's total sales used to cost 128 KB of exported rows and 35 KB of model context. It now costs 1.1 KB and 573 bytes. This chapter is how, and when it does not.</p>
+</header>
+<section id="11-data-engine--the-failure-this-fixes">
+<h2><span class="num">01</span>The failure this fixes</h2>
+<p>Give a model one export operation and a question, and it writes the obvious thing:</p>
+<pre><code class="lang-javascript">const out = await za.exportDataView({
+  'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': WS, 'view-id': VIEW,
+  CONFIG: JSON.stringify({ responseFormat: 'json' }),
+});
+const west = rows.of(out).filter((r) =&gt; r.Region === 'West');   // ← the problem</code></pre>
+<p>The answer is right. Everything about getting it is wrong:</p>
+<ul><li><strong>The API exported every row.</strong> Export units are billed per 1000 rows of output — 3 units per 1000 for CSV, JSON, XML and XLS. Filtering afterwards does not refund them.</li><li><strong>The rows crossed into the sandbox, then into the model.</strong> A 755-row table is 128 KB; a million-row table is around 170 MB and will not finish inside the execution timeout.</li><li><strong>The filter is in the wrong language.</strong> <code>r.Region === 'West'</code> is a JavaScript string comparison over values the API returns pre-formatted (<code>"$1,682.39"</code>), which is also how <code>Number()</code> silently becomes <code>NaN</code>.</li></ul>
+<p>Zoho Analytics has two places to put the filter instead, and both are server-side.</p>
+</section>
+<section id="11-data-engine--the-two-levers">
+<h2><span class="num">02</span>The two levers</h2>
+<div class="tabs" data-tab-group="pushdown"><div class="tabs__list" role="tablist" aria-orientation="horizontal"><button class="tabs__tab" role="tab" type="button" id="11-data-engine--tabs-11-data-engine-4-t0" aria-controls="11-data-engine--tabs-11-data-engine-4-p0" aria-selected="true" tabindex="0" data-tab-label="criteria">criteria</button><button class="tabs__tab" role="tab" type="button" id="11-data-engine--tabs-11-data-engine-4-t1" aria-controls="11-data-engine--tabs-11-data-engine-4-p1" aria-selected="false" tabindex="-1" data-tab-label="SQL">SQL</button></div><div class="tabs__panels"><div class="tabs__panel" role="tabpanel" id="11-data-engine--tabs-11-data-engine-4-p0" aria-labelledby="11-data-engine--tabs-11-data-engine-4-t0" data-active="true"><p class="tabs__panel-label">criteria</p><p><code>criteria</code> is a <code>WHERE</code>-clause expression in <code>CONFIG</code>, honoured by the synchronous view export and by both export jobs. Column names in double quotes, string literals in single quotes:</p>
+<pre><code class="lang-json">{ "responseFormat": "json",
+  "criteria": "\"Region\"='West' and \"Sales\"&gt;1000",
+  "selectedColumns": ["Region", "Sales"] }</code></pre>
+<p>Measured live, this works on <strong>every view type</strong>. On a chart, pivot or summary view it filters the underlying rows <em>before</em> the view's own aggregation, so a summary view with one criteria answers in a single row.</p>
+<p>What it cannot do: limit the row count, group, or compute an aggregate. The synchronous export has no limit attribute at all.</p></div><div class="tabs__panel" role="tabpanel" id="11-data-engine--tabs-11-data-engine-4-p1" aria-labelledby="11-data-engine--tabs-11-data-engine-4-t1"><p class="tabs__panel-label">SQL</p><p><code>sqlQuery</code> in the bulk export job takes a full <code>SELECT</code>, so <code>WHERE</code>, <code>GROUP BY</code>, <code>ORDER BY</code>, <code>LIMIT</code> and the aggregate functions all run inside Analytics:</p>
+<pre><code class="lang-sql">SELECT "Region", sum("Sales") AS "Total"
+FROM "Table" WHERE "Date" &gt;= '01-Jan-2026'
+GROUP BY "Region" ORDER BY "Total" DESC LIMIT 10</code></pre>
+<p>This is the path that turns a million rows into three. It costs two extra round trips — create the job, poll it, download — which pays for itself the moment it removes rows.</p>
+<p>Only <code>SELECT</code> is accepted; anything else is refused with <code>7402</code> before a job exists.</p></div></div></div>
+</section>
+<section id="11-data-engine--query-analytics-data">
+<h2><span class="num">03</span><code>query_analytics_data</code></h2>
+<p>The fifth tool. It answers a data question without the agent writing any code, by taking the question in parts and deciding which lever to pull.</p>
+<pre><code class="lang-text">&gt; query_analytics_data({
+    workspaceId: "35130000013380001",
+    viewId:      "35130000013380003",
+    groupBy:     ["Region"],
+    metrics:     [{ fn: "sum", column: "Sales", as: "Total" }]
+  })
+
+{ "rows": [ { "Region": "East",    "Total": "598893.32" },
+            { "Region": "West",    "Total": "392075.70" },
+            { "Region": "Central", "Total": "308978.04" } ],
+  "rowCount": 3,
+  "sql": "SELECT \"Region\", sum(\"Sales\") AS \"Total\" FROM \"Table\" GROUP BY \"Region\"",
+  "path": "sql",
+  "pushedDown": "SQL run inside Analytics: SELECT \"Region\", sum(\"Sales\")…",
+  "apiCalls": 4 }</code></pre>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Field</th><th>What it does</th></tr></thead><tbody><tr><td class="col-narrow"><code>workspaceId</code></td><td>Required. Resolve it with <code>find_analytics_objects</code>.</td></tr><tr><td class="col-narrow"><code>viewId</code></td><td>The view, table, report or dashboard to read.</td></tr><tr><td class="col-narrow"><code>table</code></td><td>Table name, for the SQL path, when you already know it — saves the id-to-name lookup.</td></tr><tr><td class="col-narrow"><code>filters</code></td><td><code>[{ column, op, value }]</code>. Row selection, applied by the server.</td></tr><tr><td class="col-narrow"><code>columns</code></td><td>Only these columns are exported.</td></tr><tr><td class="col-narrow"><code>groupBy</code> + <code>metrics</code></td><td>Aggregate inside Analytics. <code>[{ fn: "sum", column: "Sales" }]</code>.</td></tr><tr><td class="col-narrow"><code>orderBy</code>, <code>limit</code>, <code>offset</code></td><td>Pushed into the SQL.</td></tr><tr><td class="col-narrow"><code>mode</code></td><td><code>auto</code> (default), <code>view</code>, <code>sql</code>, <code>count</code>, <code>preview</code>.</td></tr><tr><td class="col-narrow"><code>sql</code></td><td>A <code>SELECT</code> you wrote yourself, when the structured fields cannot express it.</td></tr><tr><td class="col-narrow"><code>format</code></td><td><code>json</code> or <code>csv</code>.</td></tr></tbody></table></div>
+<h3 id="11-data-engine--operators">Operators</h3>
+<p><code>eq</code> (default), <code>ne</code>, <code>gt</code>, <code>gte</code>, <code>lt</code>, <code>lte</code>, <code>in</code>, <code>notIn</code>, <code>like</code>, <code>contains</code>, <code>startsWith</code>, <code>endsWith</code>, <code>between</code>, <code>isNull</code>, <code>notNull</code>.</p>
+<div class="note note--good"><div class="note__title">Quoting is not your problem</div><p>Values go in as values. <code>O'Brien</code> becomes <code>'O''Brien'</code>, a column called <code>Order Date</code> becomes <code>"Order Date"</code>, and a number stays unquoted so <code>&gt;</code> compares numbers rather than text. Every criteria bug seen in generated code was a quoting bug, so there is exactly one implementation of it and nothing else is allowed to build the expression.</p></div>
+<h3 id="11-data-engine--pusheddown"><code>pushedDown</code></h3>
+<p>Every answer says what the server did. Without it the model cannot tell a small answer from a small table, so it never learns to push the next filter down either. It also admits when something <strong>was not</strong> pushed down — a <code>limit</code> on the view path, for instance, which the synchronous export cannot apply.</p>
+</section>
+<section id="11-data-engine--data-inside-run-analytics-code">
+<h2><span class="num">04</span><code>data.*</code> inside <code>run_analytics_code</code></h2>
+<p>The same engine, for the questions the tool cannot express. It is predefined in the sandbox beside <code>find</code> and <code>rows</code>.</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Call</th><th>What it does</th></tr></thead><tbody><tr><td class="col-narrow"><code>data.rows({ workspaceId, viewId, filters, columns, limit })</code></td><td>View export with <code>criteria</code> and <code>selectedColumns</code>. One API call.</td></tr><tr><td class="col-narrow"><code>data.query({ workspaceId, table, columns, metrics, groupBy, filters, orderBy, limit })</code></td><td>The SQL export job: create, poll, download.</td></tr><tr><td class="col-narrow"><code>data.count({ workspaceId, table, filters })</code></td><td><code>SELECT count(*)</code> — how many match, fetching none.</td></tr><tr><td class="col-narrow"><code>data.aggregate({ workspaceId, table, by, measure })</code></td><td><code>data.query</code> with the aggregate spelled out.</td></tr><tr><td class="col-narrow"><code>data.preview({ workspaceId, viewId, limit })</code></td><td>A bounded look at the shape, with the limit pushed down where possible.</td></tr><tr><td class="col-narrow"><code>data.export({ workspaceId, viewId, filters, columns })</code></td><td>Asynchronous view export, for what the synchronous one refuses.</td></tr><tr><td class="col-narrow"><code>data.awaitJob(workspaceId, jobId)</code></td><td>Poll a job to completion and download it.</td></tr><tr><td class="col-narrow"><code>data.columns(workspaceId, viewId)</code></td><td>The view's columns, cached.</td></tr><tr><td class="col-narrow"><code>data.view(workspaceId, viewId)</code></td><td>Name, type and owning workspace.</td></tr><tr><td class="col-narrow"><code>data.tableFor(workspaceId, viewId)</code></td><td>The table name SQL needs.</td></tr><tr><td class="col-narrow"><code>data.criteria(filters)</code> / <code>data.sql(spec)</code></td><td>The builders on their own.</td></tr></tbody></table></div>
+<pre><code class="lang-javascript">// "Which three regions sold most, and how many rows is that over?"
+const table  = await data.tableFor(WS, VIEW);
+const total  = await data.count({ workspaceId: WS, table });
+const top    = await data.query({
+  workspaceId: WS, table,
+  groupBy: ['Region'],
+  metrics: [{ fn: 'sum', column: 'Sales', as: 'Total' }],
+  orderBy: [{ column: 'Total', dir: 'desc' }], limit: 3,
+});
+return { totalRows: total.rowCount, byRegion: top.rows };</code></pre>
+<p>199 bytes back to the model, 1.7 KB out of the API, for a question over 755 rows.</p>
+</section>
+<section id="11-data-engine--which-path-and-why">
+<h2><span class="num">05</span>Which path, and why</h2>
+<p><code>mode: "auto"</code> picks from the shape of the request:</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">The request has</th><th>Path</th><th>Calls</th></tr></thead><tbody><tr><td class="col-narrow">filters and/or columns only</td><td>view export</td><td>1 (+1 to check the columns)</td></tr><tr><td class="col-narrow"><code>groupBy</code>, <code>metrics</code>, <code>orderBy</code>, <code>distinct</code>, or <code>sql</code></td><td>SQL export job</td><td>3</td></tr><tr><td class="col-narrow"><code>limit</code> with a <code>table</code></td><td>SQL export job</td><td>3</td></tr><tr><td class="col-narrow"><code>mode: "count"</code></td><td>SQL export job</td><td>3</td></tr></tbody></table></div>
+<p>Then the program checks one thing the router cannot know before it calls: <strong>whether SQL can name this view at all.</strong></p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">View type</th><th>Nameable in a <code>SELECT</code></th><th>How it is read</th></tr></thead><tbody><tr><td class="col-narrow">Table</td><td>yes</td><td>either path</td></tr><tr><td class="col-narrow">Query Table</td><td>yes</td><td>either path</td></tr><tr><td class="col-narrow">Chart, Pivot, Summary, Tabular</td><td><strong>no</strong> — <code>7409</code></td><td>view export with <code>criteria</code>; the view does its own aggregation</td></tr><tr><td class="col-narrow">Dashboard</td><td><strong>no</strong></td><td>asynchronous view export</td></tr></tbody></table></div>
+<p>A chart asked for a <code>groupBy</code> is therefore routed to the view export, with <code>sqlNotPossible</code> saying why — rather than returning <code>7409</code>, "the table does not exist in this workspace", which reads as a missing object instead of the wrong route.</p>
+</section>
+<section id="11-data-engine--what-it-refuses">
+<h2><span class="num">06</span>What it refuses</h2>
+<div class="note note--warn"><div class="note__title">A filter is never quietly dropped</div><p>A <code>criteria</code> naming a column the view does not have fails with <code>7330</code> after a wasted round trip, and the error names the column but not the alternatives. So the columns are checked first, and a mismatch <strong>stops</strong>:</p>
+<pre><code class="lang-text">STOPPED: the filter names "Revenue", which is not a column of this view.
+Columns: Date, Region, Product Category, Product, Customer Name, Sales, Cost.
+Fix the filter — do not drop it and filter in code.</code></pre>
+<p>The same reasoning as the name resolver in <a href="#01-what-it-is">chapter 01</a>: answering about the wrong column is worse than not answering.</p></div>
+<p>Three more refusals, for the same reason:</p>
+<ul><li><strong>Not a <code>SELECT</code>.</strong> Refused by the tool before it is sent, and by the server with <code>7402</code> if it ever got there. This tool reads.</li><li><strong>A view from another workspace.</strong> Reading view X under workspace Y is how one tenant gets answered with another tenant's numbers, so the pair is verified and mismatches stop.</li><li><strong>An unknown operator.</strong> Named, with the list of real ones — not treated as <code>eq</code>.</li></ul>
+</section>
+<section id="11-data-engine--result-caps">
+<h2><span class="num">07</span>Result caps</h2>
+<p>Pushdown is what makes answers small. The cap is the backstop for when it was not used.</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Variable</th><th>Default</th><th>What it bounds</th></tr></thead><tbody><tr><td class="col-narrow"><code>ZA_MAX_RESULT_ROWS</code></td><td>500</td><td>Rows in a tool result</td></tr><tr><td class="col-narrow"><code>ZA_MAX_RESULT_BYTES</code></td><td>120000</td><td>Serialized size of a tool result</td></tr><tr><td class="col-narrow"><code>ZA_JOB_POLL_INTERVAL_MS</code></td><td>1000</td><td>Gap between two status reads of the same job</td></tr></tbody></table></div>
+<p>A truncated result is <strong>loud</strong>: it carries <code>truncated: true</code>, <code>rowsOmitted</code>, and a sentence saying what to ask for instead. A silently shortened list is a wrong answer, because the model would reason over 200 of 50,000 rows believing it had them all.</p>
+<p>A result above 100 rows is additionally flagged in <code>pushedDown</code> — the export was narrowed, the context was not, and if the question was a total then <code>groupBy</code> + <code>metrics</code> answers it in three rows.</p>
+</section>
+<section id="11-data-engine--measured">
+<h2><span class="num">08</span>Measured</h2>
+<p>Against a live organization: one 755-row, seven-column sales table, same question each time (<em>"what did the West sell?"</em>), both costs recorded — bytes the API produced, and bytes that reached the model.</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Strategy</th><th>From the API</th><th>To the model</th></tr></thead><tbody><tr><td class="col-narrow">Export the table, filter in code</td><td>128116</td><td>35141</td></tr><tr><td class="col-narrow"><code>criteria</code> pushed to the server</td><td>38199</td><td>35485</td></tr><tr><td class="col-narrow"><code>criteria</code> + <code>columns</code></td><td>6764</td><td>4002</td></tr><tr><td class="col-narrow"><code>groupBy</code> + <code>sum</code> inside Analytics</td><td class="is-new">1183</td><td class="is-new">573</td></tr><tr><td class="col-narrow"><code>mode: "count"</code></td><td>1067</td><td>368</td></tr><tr><td class="col-narrow">Top 5 by sales</td><td>1288</td><td>663</td></tr><tr><td class="col-narrow"><code>mode: "preview"</code>, 5 rows</td><td>1914</td><td>1340</td></tr></tbody></table></div>
+<p>Two readings worth having:</p>
+<p><strong>Criteria alone barely helps the model.</strong> It cut the export by 70% and the context by nothing, because 207 matching rows is still 35 KB. Filtering is not the same as answering — if the question is a total, ask for the total.</p>
+<p><strong>Preview was the worst offender before this.</strong> Five rows of a 755-row table through the view export moved all 128 KB and threw 750 rows away. It now pushes a <code>LIMIT</code> down wherever SQL can name the view: 1.9 KB.</p>
+</section>
+<section id="11-data-engine--three-things-the-api-does-that-the-documentation-does-not-say">
+<h2><span class="num">09</span>Three things the API does that the documentation does not say</h2>
+<p>All three were established by probing a live instance, and all three change what the code has to do.</p>
+<div class="note note--danger"><div class="note__title"><code>tableCriteriaList</code> is silently ignored</div><p>The SQL export job documents a <code>tableCriteriaList</code>, one filter per table the statement touches, and <code>7836</code> for a filter naming a table the statement does not reference. Measured: sending exactly that returns <strong>HTTP 200 and unfiltered rows</strong>.</p>
+<p>So row selection for the SQL path goes in the <code>WHERE</code> clause, which does work. <code>tableCriteriaList</code> is passed through only if a caller insists, and the caveat travels with the result.</p></div>
+<p><strong>The sandbox has no timers.</strong> <code>setTimeout</code> is not defined in the isolate, so a polling loop cannot sleep — reaching for one is a <code>ReferenceError</code> deep inside an export, which reads as "the export broke". It does not need to: the tool bridge blocks the isolate until the host-side call settles, so the pacing is done in the server process, spacing consecutive status reads of one job by <code>ZA_JOB_POLL_INTERVAL_MS</code>.</p>
+<p><strong>The download has no envelope.</strong> Job progress is <code>jobCode</code>, a <em>string</em> (<code>"1002"</code> running, <code>"1004"</code> done), beside a human <code>jobStatus</code>; the downloaded file is <code>{"data": [...]}</code> with no <code>status</code> wrapper. Aggregate values come back as raw numeric strings (<code>"392075.70000000024"</code>) while raw column values stay formatted (<code>"$1,682.39"</code>) — <code>rows.num</code> handles both, and nothing else should.</p>
+</section>
+<section id="11-data-engine--when-to-still-write-code">
+<h2><span class="num">10</span>When to still write code</h2>
+<p>The engine covers reads. Use <code>run_analytics_code</code> for:</p>
+<ul><li><strong>Several questions in one turn</strong> — the engine is one request per call, a program is one call for all of them.</li><li><strong>Work across many workspaces</strong> — a sweep, with <code>find.views</code> to locate the data first.</li><li><strong>Anything that is not a read</strong> — imports, schedules, sharing, metadata changes.</li><li><strong>Post-processing the engine cannot express</strong> — pivoting, joining results from two workspaces, formatting for a report. Fetch the aggregates with <code>data.*</code>, then combine them in the sandbox.</li></ul>
+</section>
+</article>
   </main>
 </div>
 
@@ -2410,7 +2558,7 @@ const t = '1000.deadbeef….0123';         const t = '[redacted]';</code></pre>
       <p>Setup and usage guide for Zoho Analytics Code Mode, the MCP server
       that lets AI agents run sandboxed code against the Analytics v2 API,
       powered by the UTCP code-mode engine.</p>
-      <p>One-file edition, generated 2026-11-23 from the Markdown in
+      <p>One-file edition, generated 2026-11-24 from the Markdown in
       <a href="https://github.com/sathishkumar-ks-8646/za-codemode">github.com/sathishkumar-ks-8646/za-codemode</a>.</p>
       <p><strong>zoho-analytics-codemode v1.0.0. Read-only by default.</strong></p>
     </div>

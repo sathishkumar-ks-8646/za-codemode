@@ -14,8 +14,15 @@
  *
  * This is a string rather than a module because it has to be evaluated inside
  * the isolate, which cannot import anything.
+ *
+ * The second half of the prelude — the `data` engine, which pushes filters
+ * and aggregation down to the server instead of downloading whole tables —
+ * lives in sandbox-data.mjs and is concatenated below. Same reason for the
+ * split as for `find`: one file per thing the sandbox is bad at without help.
  */
-export const PRELUDE = String.raw`
+import { DATA_PRELUDE } from './sandbox-data.mjs';
+
+const RESOLVER_PRELUDE = String.raw`
 const __cache = { workspaces: null, views: new Map(), columns: new Map(), meta: new Map() };
 
 /** Workspace-scoped metadata that has a plain list operation. */
@@ -426,3 +433,5 @@ const find = {
   },
 };
 `;
+
+export const PRELUDE = RESOLVER_PRELUDE + DATA_PRELUDE;

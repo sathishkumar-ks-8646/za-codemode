@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>What it is &mdash; Zoho Analytics Code Mode for AI agents</title>
-<meta name="description" content="How Zoho Analytics Code Mode works — the four tools, the sandbox boundary, where your code actually runs, and how it relates to the existing Zoho Analytics MCP Server.">
+<meta name="description" content="How Zoho Analytics Code Mode works — the five tools, the sandbox boundary, where your code actually runs, and how it relates to the existing Zoho Analytics MCP Server.">
 <link rel="stylesheet" href="assets/migration.css">
 <script src="assets/migration.js" defer></script>
 </head>
@@ -30,6 +30,7 @@
       <a href="08-engine.html">Engine</a>
       <a href="09-credentials.html">Credentials</a>
       <a href="10-audit.html">Audit</a>
+      <a href="11-data-engine.html">Reading data</a>
     </nav>
     <button class="icon-btn nav-toggle" id="nav-toggle" type="button"
             aria-expanded="false" aria-controls="sidebar"
@@ -65,6 +66,7 @@
     <a href="08-engine.html"><span class="n">08</span><span>How the engine works</span></a>
     <a href="09-credentials.html"><span class="n">09</span><span>Credentials &amp; secrets</span></a>
     <a href="10-audit.html"><span class="n">10</span><span>Audit logging</span></a>
+    <a href="11-data-engine.html"><span class="n">11</span><span>Reading data</span></a>
     <h2>Source</h2>
     <a href="https://github.com/sathishkumar-ks-8646/za-codemode/blob/main/guide/01-what-it-is.md"><span class="n">md</span><span>This page as Markdown</span></a>
     <a href="https://github.com/sathishkumar-ks-8646/za-codemode"><span class="n">&#8212;</span><span>Repository</span></a>
@@ -77,7 +79,7 @@
   <div class="spine"><i></i><i></i><i></i><i></i></div>
   <p class="eyebrow">Code Mode &middot; <b>Chapter 01</b></p>
   <h1>What it is</h1>
-  <p class="lede">An MCP server that gives your AI agent four tools: one to find <em>your data</em>, one to find <em>API operations</em>, one to read how they work, and one to run code against them.</p>
+  <p class="lede">An MCP server that gives your AI agent five tools: one to find <em>your data</em>, one to find <em>API operations</em>, one to read how they work, one to read data with the filtering done inside Analytics, and one to run code against all of it.</p>
 </header>
 <p>Under the MCP surface it is <strong>UTCP code mode</strong> — a UTCP manual of 203 operations generated from the published OpenAPI specifications, executed by <code>@utcp/code-mode</code> in a V8 isolate. <a href="08-engine.html">Chapter 08</a> covers that in full; this chapter is about what it does.</p>
 <section id="the-shape-of-it">
@@ -85,7 +87,9 @@
 <pre><code class="lang-text">  Your AI agent                    This server                  Zoho Analytics
   (Claude Desktop,  ──MCP/stdio──▶  ┌──────────────────┐
    Cursor, VS Code)                 │  search_api      │
+                                    │  find_objs       │
                                     │  get_guide       │
+                                    │  query_data      │
                                     │  run_code        │
                                     │        │         │
                                     │        ▼         │
@@ -100,8 +104,8 @@
                                     └──────────────────┘</code></pre>
 <p>The model's code runs in a <strong>V8 isolate</strong>. It cannot open a socket, read a file or import a module. When it calls <code>za.exportDataView(...)</code>, that is not an HTTP request — it is a callback out of the isolate into the server process, which makes the real call with credentials the sandbox never sees.</p>
 </section>
-<section id="the-four-tools">
-<h2><span class="num">02</span>The four tools</h2>
+<section id="the-five-tools">
+<h2><span class="num">02</span>The five tools</h2>
 <h3 id="find-analytics-objects"><code>find_analytics_objects</code></h3>
 <p>The first problem is not <em>which endpoint</em> — it is <em>which table</em>. A user says "my profit table" and the table is called <code>Sales_Profit_by_Country</code>. A model left to itself writes <code>viewName === 'profit'</code>, matches nothing, and reports that the table does not exist.</p>
 <p>So names are resolved before code is written:</p>
@@ -147,30 +151,38 @@ await za.exportDataView({
 &gt; get_analytics_guide("how do I export a large table")   // a question
 &gt; get_analytics_guide("8080")   // an error code</code></pre>
 <p>Two things happen without the agent asking. Search results for export-job operations end with a pointer to the asynchronous-export playbook, and any error code in a failed run is annotated with its documented meaning and resolution.</p>
+<h3 id="query-analytics-data"><code>query_analytics_data</code></h3>
+<p>Data questions do not need a program, and they should not need all the rows either. This tool takes the question in parts — a filter, the columns, a grouping, a limit — and has <strong>Zoho Analytics</strong> do the work:</p>
+<pre><code class="lang-text">&gt; query_analytics_data({ workspaceId: WS, viewId: VIEW,
+                         groupBy: ["Region"],
+                         metrics: [{ fn: "sum", column: "Sales", as: "Total" }] })
+
+{ "rows": [ { "Region": "East", "Total": "598893.32" }, ... ],
+  "rowCount": 3,
+  "sql": "SELECT \"Region\", sum(\"Sales\") AS \"Total\" FROM \"Table\" GROUP BY \"Region\"",
+  "pushedDown": "SQL run inside Analytics: ..." }</code></pre>
+<p>Measured against a 755-row table, the question <em>"what did the West sell?"</em> costs 128 KB of exported rows and 35 KB of model context when the rows are filtered in code, and <strong>1.1 KB and 573 bytes</strong> when the filter and the sum are pushed down. Export units are billed per 1000 rows produced, so that is a quota saving as well as a context one.</p>
+<p>Quoting is handled, a filter naming a column the view does not have is refused with the real column names rather than dropped, and every answer says what the server actually did. <a href="11-data-engine.html">Chapter 11</a> is the full reference.</p>
 <h3 id="run-analytics-code"><code>run_analytics_code</code></h3>
 <p>The agent writes plain JavaScript and the server runs it:</p>
-<pre><code class="lang-javascript">const ws = await za.getOrgWorkspaces({ 'ZANALYTICS-ORGID': ORG_ID });
+<pre><code class="lang-javascript">const found = await find.views('Sales');
 let total = 0;
 
-for (const w of ws.data.workspaces) {
-  const views = await za.getViews({
-    'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': w.workspaceId, CONFIG: '{}',
+for (const v of found.matches) {
+  const out = await data.rows({
+    workspaceId: v.workspaceId, viewId: v.viewId,
+    filters: [{ column: 'Region', value: 'East' }],
+    columns: ['Sales'],
   });
-  for (const v of views.data.views.filter((v) =&gt; v.viewName.includes('Sales'))) {
-    const out = await za.exportDataView({
-      'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': w.workspaceId, 'view-id': v.viewId,
-      CONFIG: JSON.stringify({ responseFormat: 'json', criteria: `"Sales"."Region"='East'` }),
-    });
-    total += rows.sum(rows.of(out), 'Sales').total;
-  }
+  total += rows.sum(out.rows, 'Sales').total;
 }
 
-return { total };</code></pre>
-<p>One tool call. The rows stay in the sandbox; only <code>{ total }</code> comes back.</p>
+return { total, viewsCovered: found.matches.length };</code></pre>
+<p>One tool call, and no whole-table export anywhere: <code>data.rows</code> filters and projects inside Analytics, so each call brings back the one column that matters for the rows that match. Those rows stay in the sandbox; only <code>{ total }</code> reaches the model.</p>
 </section>
 <section id="what-the-sandbox-provides">
 <h2><span class="num">04</span>What the sandbox provides</h2>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Available</th><th>Not available</th></tr></thead><tbody><tr><td class="col-narrow"><code>za</code> — every exposed operation as an async method</td><td><code>require</code>, <code>import</code></td></tr><tr><td class="col-narrow"><code>ORG_ID</code> — your organization ID as a constant</td><td><code>fetch</code>, <code>XMLHttpRequest</code></td></tr><tr><td class="col-narrow"><code>console.log</code> — progress notes, returned alongside the result</td><td><code>process</code>, <code>Buffer</code></td></tr><tr><td class="col-narrow">The JavaScript standard library</td><td>Filesystem, child processes, sockets</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Available</th><th>Not available</th></tr></thead><tbody><tr><td class="col-narrow"><code>za</code> — every exposed operation as an async method</td><td><code>require</code>, <code>import</code></td></tr><tr><td class="col-narrow"><code>ORG_ID</code> — your organization ID as a constant</td><td><code>fetch</code>, <code>XMLHttpRequest</code></td></tr><tr><td class="col-narrow"><code>find.*</code> — name resolution that refuses to guess</td><td><code>process</code>, <code>Buffer</code></td></tr><tr><td class="col-narrow"><code>data.*</code> — filtering and aggregation pushed to the server</td><td><code>setTimeout</code>, <code>setInterval</code></td></tr><tr><td class="col-narrow"><code>rows.*</code> — result readers that cope with formatted values</td><td>Filesystem, child processes, sockets</td></tr><tr><td class="col-narrow"><code>console.log</code> — progress notes, returned alongside the result</td><td></td></tr><tr><td class="col-narrow">The JavaScript standard library</td><td></td></tr></tbody></table></div>
 <p><code>za</code> is the only way out of the isolate. That is enforced by the isolate itself, not by a policy that could be prompted around.</p>
 </section>
 <section id="where-everything-runs">
@@ -182,12 +194,12 @@ return { total };</code></pre>
 <section id="how-this-relates-to-the-zoho-analytics-mcp-server">
 <h2><span class="num">06</span>How this relates to the Zoho Analytics MCP Server</h2>
 <p>They are complementary, and many people will want both.</p>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow"></th><th><a href="https://www.zoho.com/analytics/api/v2/zoho-analytics-mcp-server.html">MCP Server</a></th><th>Code Execution (this tool)</th></tr></thead><tbody><tr><td class="col-narrow">Tools</td><td>26 curated, task-shaped</td><td>4</td></tr><tr><td class="col-narrow">Operations reachable</td><td>26</td><td class="is-new">203, across 10 domains</td></tr><tr><td class="col-narrow">Ships the documentation</td><td>no</td><td class="is-new">8 playbooks, 385 error codes</td></tr><tr><td class="col-narrow">Best at</td><td>single lookups — one cheap call</td><td>multi-step work: loops, polling, aggregation</td></tr><tr><td class="col-narrow">Executes model-written code</td><td>no</td><td class="is-new">yes, sandboxed</td></tr><tr><td class="col-narrow">Also available hosted</td><td>yes, at <code>mcp.zoho.com</code></td><td>not yet</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow"></th><th><a href="https://www.zoho.com/analytics/api/v2/zoho-analytics-mcp-server.html">MCP Server</a></th><th>Code Execution (this tool)</th></tr></thead><tbody><tr><td class="col-narrow">Tools</td><td>26 curated, task-shaped</td><td>5</td></tr><tr><td class="col-narrow">Operations reachable</td><td>26</td><td class="is-new">203, across 10 domains</td></tr><tr><td class="col-narrow">Ships the documentation</td><td>no</td><td class="is-new">8 playbooks, 385 error codes</td></tr><tr><td class="col-narrow">Best at</td><td>single lookups — one cheap call</td><td>multi-step work: loops, polling, aggregation</td></tr><tr><td class="col-narrow">Executes model-written code</td><td>no</td><td class="is-new">yes, sandboxed</td></tr><tr><td class="col-narrow">Also available hosted</td><td>yes, at <code>mcp.zoho.com</code></td><td>not yet</td></tr></tbody></table></div>
 <p>Install both and your agent picks per task: a named tool for <em>"list my workspaces"</em>, code for <em>"total East-region sales across every workspace since July"</em>. Install only this one and everything is reachable, just with a little more ceremony for simple questions.</p>
 </section>
 <section id="what-it-does-not-do">
 <h2><span class="num">07</span>What it does not do</h2>
-<ul><li><strong>It does not reduce API consumption.</strong> The same operations are called, so the same API units are billed. The saving is in model turns and context, not quota.</li><li><strong>It does not supply an AI model.</strong> Your agent brings that.</li><li><strong>It does not write to your data by default.</strong> See <a href="04-security.html">Security</a>.</li></ul>
+<ul><li><strong>It does not reduce API consumption by existing.</strong> The same operations are called, so the same API units are billed — <em>unless</em> the request itself gets smaller. Export units are charged per 1000 rows produced, so pushing a filter or an aggregate into the request does cut the bill: measured, the same question went from 128 KB of exported rows to 1.1 KB. That is what <a href="11-data-engine.html">Reading data</a> is for. Everything else saves model turns and context, not quota.</li><li><strong>It does not supply an AI model.</strong> Your agent brings that.</li><li><strong>It does not write to your data by default.</strong> See <a href="04-security.html">Security</a>.</li></ul>
 </section>
     <nav class="pager" aria-label="Chapter">
       <a href="index.html"><span class="pager__side">Previous</span>&larr; Start here</a>
@@ -199,7 +211,7 @@ return { total };</code></pre>
   <nav>
     <h2>On this page</h2>
     <a href="#the-shape-of-it">The shape of it</a>
-    <a href="#the-four-tools">The four tools</a>
+    <a href="#the-five-tools">The five tools</a>
     <a href="#what-the-sandbox-provides">What the sandbox provides</a>
     <a href="#where-everything-runs">Where everything runs</a>
     <a href="#how-this-relates-to-the-zoho-analytics-mcp-server">How this relates to the Zoho Analytics MCP Server</a>
@@ -223,6 +235,7 @@ return { total };</code></pre>
       <a href="08-engine.html">08 &nbsp;How the engine works</a>
       <a href="09-credentials.html">09 &nbsp;Credentials &amp; secrets</a>
       <a href="10-audit.html">10 &nbsp;Audit logging</a>
+      <a href="11-data-engine.html">11 &nbsp;Reading data</a>
     </div>
     <div>
       <h2>Reference</h2>
@@ -237,7 +250,7 @@ return { total };</code></pre>
       that lets AI agents run sandboxed code against the Analytics v2 API,
       powered by the UTCP code-mode engine.</p>
       <p>Rendered from the Markdown in this folder by <code>build.py</code>.
-      Generated 2026-11-23.</p>
+      Generated 2026-11-24.</p>
       <p><strong>zoho-analytics-codemode v1.0.0. Read-only by default.</strong></p>
     </div>
   </div>

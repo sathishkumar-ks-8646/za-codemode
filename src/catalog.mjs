@@ -46,6 +46,22 @@ const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
  * Recovery after a trip is about five seconds.
  */
 const THROTTLE_CODES = [6045, 6044, 6046];
+
+/**
+ * Job-status polls, which the host has to pace because the sandbox cannot.
+ *
+ * The isolate has no timers — `setTimeout` is not defined in it — so a
+ * polling loop inside a program cannot wait between calls. It does not need
+ * to: the tool bridge blocks the isolate until the host-side call settles, so
+ * a delay taken here IS the loop's delay. Spacing the polls of one job is
+ * therefore done in this process, which is also where every other form of
+ * pacing already lives.
+ *
+ * Without it a job that takes three seconds is polled sixty times at the
+ * 50 ms call interval, which spends a third of the per-program call budget
+ * learning nothing.
+ */
+const JOB_STATUS_OPS = new Set(['getExportJobDetails', 'getImportJobDetails']);
 const THROTTLE_PATTERN = new RegExp(
   '(' + THROTTLE_CODES.join('|') + ')|EXCEEDING_USR_PLN_API_FREQ|too many requests|\\b429\\b', 'i');
 
@@ -83,6 +99,7 @@ export class Catalog {
   #lastCallAt = 0;
   #audit;
   #window = [];
+  #jobPolledAt = new Map();          // job id -> when its status was last read
 
   constructor({ config, tokens, manualPath, audit }) {
     this.#config = config;
@@ -257,6 +274,12 @@ export class Catalog {
   async execute(code, options = {}) {
     await this.#ensureRegistered();
 
+    // Poll timings are only meaningful within one program, and a long-lived
+    // server would otherwise accumulate one entry per job it ever saw. A job
+    // carried over from an earlier execution simply gets its first poll
+    // immediately, which is what should happen anyway.
+    this.#jobPolledAt.clear();
+
     // Per-execution budget: generated code loops, and every call bills API
     // units. Enforced by wrapping the client's own dispatch.
     let calls = 0;
@@ -274,6 +297,20 @@ export class Catalog {
       // operation and its identifiers go in; the rows that come back do not.
       const started = Date.now();
       const operation = String(name).replace(/^za\./, '');
+
+      // Space repeated status reads of the same job. The first one is never
+      // delayed — a job that finished while the create call was in flight
+      // should be collected immediately.
+      if (JOB_STATUS_OPS.has(operation)) {
+        const jobId = String(args?.['job-id'] ?? '');
+        const previous = this.#jobPolledAt.get(jobId);
+        if (previous !== undefined) {
+          const wait = this.#config.jobPollIntervalMs - (Date.now() - previous);
+          if (wait > 0) await sleep(wait);
+        }
+        this.#jobPolledAt.set(jobId, Date.now());
+      }
+
       try {
         const result = await this.#throttled(() => original(name, args));
         this.#audit?.apiCall({

@@ -30,6 +30,7 @@
       <a href="08-engine.html">Engine</a>
       <a href="09-credentials.html">Credentials</a>
       <a href="10-audit.html">Audit</a>
+      <a href="11-data-engine.html">Reading data</a>
     </nav>
     <button class="icon-btn nav-toggle" id="nav-toggle" type="button"
             aria-expanded="false" aria-controls="sidebar"
@@ -65,6 +66,7 @@
     <a href="08-engine.html"><span class="n">08</span><span>How the engine works</span></a>
     <a href="09-credentials.html"><span class="n">09</span><span>Credentials &amp; secrets</span></a>
     <a href="10-audit.html"><span class="n">10</span><span>Audit logging</span></a>
+    <a href="11-data-engine.html"><span class="n">11</span><span>Reading data</span></a>
     <h2>Source</h2>
     <a href="https://github.com/sathishkumar-ks-8646/za-codemode/blob/main/guide/06-operating.md"><span class="n">md</span><span>This page as Markdown</span></a>
     <a href="https://github.com/sathishkumar-ks-8646/za-codemode"><span class="n">&#8212;</span><span>Repository</span></a>
@@ -92,10 +94,11 @@ npm install          # in case a dependency moved</code></pre>
 <section id="what-it-costs">
 <h2><span class="num">02</span>What it costs</h2>
 <p>Two separate budgets, often confused.</p>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Budget</th><th>Who bills it</th><th>Effect of this tool</th></tr></thead><tbody><tr><td class="col-narrow"><strong>Analytics API units</strong></td><td>Zoho</td><td><strong>Unchanged.</strong> Same operations, same units</td></tr><tr><td class="col-narrow"><strong>Model tokens</strong></td><td>Your AI provider</td><td><strong>Substantially lower.</strong> Fewer turns, and intermediate data never enters context</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Budget</th><th>Who bills it</th><th>Effect of this tool</th></tr></thead><tbody><tr><td class="col-narrow"><strong>Analytics API units</strong></td><td>Zoho</td><td><strong>Unchanged for metadata, lower for data reads.</strong> Export units are billed per 1000 rows <em>produced</em>, so a pushed-down filter or aggregate cuts them</td></tr><tr><td class="col-narrow"><strong>Model tokens</strong></td><td>Your AI provider</td><td><strong>Substantially lower.</strong> Fewer turns, and intermediate data never enters context</td></tr></tbody></table></div>
 <p>In a measured multi-workspace export the same work took 19 model turns one call at a time versus 1 with a program — and 2,092 bytes of intermediate data became 101. Both paths made the same API calls.</p>
+<p>For data reads the API bill moves too. Measured on a live 755-row table, <em>"what did the West sell?"</em> produced 128,116 bytes of export when the rows were filtered in code and 1,183 bytes when the <code>GROUP BY</code> ran inside Analytics — see <a href="11-data-engine.html#measured">Reading data</a>.</p>
 <p><code>run_analytics_code</code> reports <code>apiCalls</code> on every execution, so you can see unit consumption directly.</p>
-<div class="note note--info"><div class="note__title">Keeping units down</div><p>Filter server-side. A <code>CONFIG</code> with <code>criteria</code> is applied by Analytics before rows are sent; filtering in the sandbox instead means paying for everything and discarding most of it.</p></div>
+<div class="note note--info"><div class="note__title">Keeping units down</div><p>Filter server-side, and prefer <code>query_analytics_data</code> or the <code>data.*</code> helpers over a hand-written export: they put <code>criteria</code>, <code>selectedColumns</code> and the aggregate into the request, which is where Analytics applies them before producing a single row. Filtering in the sandbox instead means paying for everything and discarding most of it.</p></div>
 </section>
 <section id="running-from-source">
 <h2><span class="num">03</span>Running from source</h2>
@@ -138,6 +141,7 @@ node tools/build-knowledge.mjs --verify &lt;okf-dir&gt;   # has a checkout drift
 <pre><code class="lang-text">test/agent.test.mjs        end-to-end over real MCP stdio against the mock
 test/resolve.test.mjs      name resolution: fuzzy matching, ambiguity, refusal
 test/search.test.mjs       search quality — API and user vocabulary
+test/data-engine.test.mjs  pushdown, routing, quoting, refusals and result caps
 test/audit.test.mjs        two streams, rotation, redaction, hash chain
 test/credentials.test.mjs  env -&gt; credential command -&gt; keychain resolution
 test/token-cache.test.mjs  access-token reuse across process restarts
@@ -145,7 +149,7 @@ test/orgs.test.mjs         organization allowlist enforcement
 test/remote.test.mjs       the full OAuth 2.1 flow (unreleased mode)
 test/mock-analytics.mjs    the mock API — enforces org scoping, returns real shapes
 test/mock-accounts.mjs     the mock token endpoint</code></pre>
-<p><code>agent.test.mjs</code> asserts the properties that matter: exactly four tools, signatures stay small, a multi-step program returns only its answer, <code>ORG_ID</code> is present, <strong>the sandbox is sealed</strong>, write operations are hidden, the org header and <code>Bearer</code> prefix reach the API correctly, and a failed program yields an actionable error.</p>
+<p><code>agent.test.mjs</code> asserts the properties that matter: exactly five tools, signatures stay small, a multi-step program returns only its answer, <code>ORG_ID</code> is present, <strong>the sandbox is sealed</strong>, write operations are hidden, the org header and <code>Bearer</code> prefix reach the API correctly, and a failed program yields an actionable error.</p>
 <p>Two tests to keep green above all others:</p>
 <ul><li><strong>"the sandbox is sealed"</strong> — asserts that <code>require</code>, <code>fetch</code>, <code>process</code>, <code>Buffer</code> and <code>XMLHttpRequest</code> are all unreachable from executing code. <a href="04-security.html#what-the-sandbox-cannot-do">Security</a> is only true while this passes.</li><li><strong>"catching the refusal does NOT let the program substitute"</strong> — asserts that a program which swallows a failed name resolution still fails the whole execution. Analysing <code>sum_of_revenue</code> when the user said <code>sum_of_cost</code> is the worst outcome this tool can produce.</li></ul>
 <div class="note note--info"><div class="note__title">The mock mirrors the API, not the documentation</div><p><code>mock-analytics.mjs</code> returns the shapes live Analytics actually sends — rows as a flat array in <code>data</code>, numbers as formatted strings like <code>"$1,682.39"</code> — because an earlier version returned the documented shapes instead and hid two defects that each produced a <em>plausible wrong number</em>. If you extend it, copy a real response.</p></div>
@@ -153,7 +157,7 @@ test/mock-accounts.mjs     the mock token endpoint</code></pre>
 <section id="known-rough-edges">
 <h2><span class="num">07</span>Known rough edges</h2>
 <p>Honest notes for anyone maintaining this.</p>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Edge</th><th>Detail</th></tr></thead><tbody><tr><td class="col-narrow"><strong>Results are not size-capped</strong></td><td>A program is told to <code>return</code> only its final answer, and that instruction is the only thing keeping a large result out of your context. Nothing truncates it. Ask for aggregates, and see <a href="03-using-it.html#what-makes-a-good-request">Using it</a></td></tr><tr><td class="col-narrow"><strong>Write path is lightly tested</strong></td><td><code>ZA_ALLOW_WRITES=true</code> exposes all 203 operations; only the read-only set is covered by tests. Exercise it against a non-production organization first</td></tr><tr><td class="col-narrow"><strong>Not on npm</strong></td><td>Installed from source while the licence is finalised, so there is no <code>npx</code> one-liner and no <code>--version</code> flag. The commit is the build identifier</td></tr><tr><td class="col-narrow">The process does not exit cleanly</td><td><code>isolated-vm</code> worker threads outlive <code>process.exit()</code>. Tests force exit; agents kill the child on quit, so it does not matter in normal use</td></tr><tr><td class="col-narrow">No per-user rate limiting</td><td><code>ZA_MAX_TOOL_CALLS</code> is per program, not per user per hour</td></tr><tr><td class="col-narrow">Search is lexical</td><td>Synonym expansion plus field-weighted scoring, no embeddings. It handles API vocabulary well and paraphrase adequately</td></tr><tr><td class="col-narrow">The knowledge bundle is a snapshot</td><td>Regenerated by <code>npm run build:knowledge</code>; it does not follow github.com/zoho/analytics-okf automatically. Its age is reported at startup and warned about past 90 days</td></tr><tr><td class="col-narrow">A transitive dependency is flagged</td><td><code>@utcp/sdk</code> pins <code>zod</code> 3.x, which carries GHSA-mrhx-c7xc-m3w5. No fix is available upstream; it is in UTCP's input-validation path, and <code>npm audit</code> will report it</td></tr><tr><td class="col-narrow">UTCP is a thin dependency</td><td>All of it is fenced inside <code>src/catalog.mjs</code> precisely so it can be replaced without touching the rest</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Edge</th><th>Detail</th></tr></thead><tbody><tr><td class="col-narrow"><code>tableCriteriaList</code> is ignored</td><td>The SQL export job documents a per-table filter and <code>7836</code> for a table the statement does not reference. Measured live, it returns 200 and unfiltered rows. Row selection for that path goes in the <code>WHERE</code> clause; see <a href="11-data-engine.html#three-things-the-api-does-that-the-documentation-does-not-say">Reading data</a></td></tr><tr><td class="col-narrow">Column pre-flight costs a call</td><td><code>data.rows</code> reads the view's columns before spending an export on a filter that names a wrong one. One extra metadata call per execution, cached within it — worth it against a wasted export, but it is a call</td></tr><tr><td class="col-narrow"><strong>Write path is lightly tested</strong></td><td><code>ZA_ALLOW_WRITES=true</code> exposes all 203 operations; only the read-only set is covered by tests. Exercise it against a non-production organization first</td></tr><tr><td class="col-narrow"><strong>Not on npm</strong></td><td>Installed from source while the licence is finalised, so there is no <code>npx</code> one-liner and no <code>--version</code> flag. The commit is the build identifier</td></tr><tr><td class="col-narrow">The process does not exit cleanly</td><td><code>isolated-vm</code> worker threads outlive <code>process.exit()</code>. Tests force exit; agents kill the child on quit, so it does not matter in normal use</td></tr><tr><td class="col-narrow">No per-user rate limiting</td><td><code>ZA_MAX_TOOL_CALLS</code> is per program, not per user per hour</td></tr><tr><td class="col-narrow">Search is lexical</td><td>Synonym expansion plus field-weighted scoring, no embeddings. It handles API vocabulary well and paraphrase adequately</td></tr><tr><td class="col-narrow">The knowledge bundle is a snapshot</td><td>Regenerated by <code>npm run build:knowledge</code>; it does not follow github.com/zoho/analytics-okf automatically. Its age is reported at startup and warned about past 90 days</td></tr><tr><td class="col-narrow">A transitive dependency is flagged</td><td><code>@utcp/sdk</code> pins <code>zod</code> 3.x, which carries GHSA-mrhx-c7xc-m3w5. No fix is available upstream; it is in UTCP's input-validation path, and <code>npm audit</code> will report it</td></tr><tr><td class="col-narrow">UTCP is a thin dependency</td><td>All of it is fenced inside <code>src/catalog.mjs</code> precisely so it can be replaced without touching the rest</td></tr></tbody></table></div>
 </section>
 <section id="where-things-live">
 <h2><span class="num">08</span>Where things live</h2>
@@ -161,9 +165,11 @@ test/mock-accounts.mjs     the mock token endpoint</code></pre>
 ├── src/
 │   ├── bin.mjs             entry point: no args -&gt; server, args -&gt; CLI
 │   ├── server.mjs          the stdio MCP server
-│   ├── tools.mjs           the four tools
+│   ├── tools.mjs           the five tools
 │   ├── catalog.mjs         the operation catalog and sandbox — the only UTCP usage
 │   ├── sandbox-prelude.mjs `find` (name resolver) and `rows` (result readers)
+│   ├── sandbox-data.mjs    `data` (the pushdown engine) — same file, second half
+│   ├── data-engine.mjs     host side: routing, program building, result caps
 │   ├── search.mjs          query expansion and ranking
 │   ├── knowledge.mjs       the OKF knowledge base: lookup, search, hints
 │   ├── auth.mjs            refresh token -&gt; access token
@@ -219,6 +225,7 @@ test/mock-accounts.mjs     the mock token endpoint</code></pre>
       <a href="08-engine.html">08 &nbsp;How the engine works</a>
       <a href="09-credentials.html">09 &nbsp;Credentials &amp; secrets</a>
       <a href="10-audit.html">10 &nbsp;Audit logging</a>
+      <a href="11-data-engine.html">11 &nbsp;Reading data</a>
     </div>
     <div>
       <h2>Reference</h2>
@@ -233,7 +240,7 @@ test/mock-accounts.mjs     the mock token endpoint</code></pre>
       that lets AI agents run sandboxed code against the Analytics v2 API,
       powered by the UTCP code-mode engine.</p>
       <p>Rendered from the Markdown in this folder by <code>build.py</code>.
-      Generated 2026-11-23.</p>
+      Generated 2026-11-24.</p>
       <p><strong>zoho-analytics-codemode v1.0.0. Read-only by default.</strong></p>
     </div>
   </div>

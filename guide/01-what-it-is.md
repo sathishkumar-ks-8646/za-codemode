@@ -1,10 +1,10 @@
 ---
-description: How Zoho Analytics Code Mode works — the four tools, the sandbox boundary, where your code actually runs, and how it relates to the existing Zoho Analytics MCP Server.
+description: How Zoho Analytics Code Mode works — the five tools, the sandbox boundary, where your code actually runs, and how it relates to the existing Zoho Analytics MCP Server.
 ---
 
 # What it is
 
-An MCP server that gives your AI agent four tools: one to find *your data*, one to find *API operations*, one to read how they work, and one to run code against them.
+An MCP server that gives your AI agent five tools: one to find *your data*, one to find *API operations*, one to read how they work, one to read data with the filtering done inside Analytics, and one to run code against all of it.
 
 Under the MCP surface it is **UTCP code mode** — a UTCP manual of 203 operations generated from the published OpenAPI specifications, executed by `@utcp/code-mode` in a V8 isolate. [Chapter 08](08-engine.md) covers that in full; this chapter is about what it does.
 
@@ -14,7 +14,9 @@ Under the MCP surface it is **UTCP code mode** — a UTCP manual of 203 operatio
   Your AI agent                    This server                  Zoho Analytics
   (Claude Desktop,  ──MCP/stdio──▶  ┌──────────────────┐
    Cursor, VS Code)                 │  search_api      │
+                                    │  find_objs       │
                                     │  get_guide       │
+                                    │  query_data      │
                                     │  run_code        │
                                     │        │         │
                                     │        ▼         │
@@ -31,7 +33,7 @@ Under the MCP surface it is **UTCP code mode** — a UTCP manual of 203 operatio
 
 The model's code runs in a **V8 isolate**. It cannot open a socket, read a file or import a module. When it calls `za.exportDataView(...)`, that is not an HTTP request — it is a callback out of the isolate into the server process, which makes the real call with credentials the sandbox never sees.
 
-## 2. The four tools
+## 2. The five tools
 
 ### `find_analytics_objects`
 
@@ -111,31 +113,46 @@ Signatures say *what* to call. They do not say that criteria strings use a parti
 
 Two things happen without the agent asking. Search results for export-job operations end with a pointer to the asynchronous-export playbook, and any error code in a failed run is annotated with its documented meaning and resolution.
 
+### `query_analytics_data`
+
+Data questions do not need a program, and they should not need all the rows either. This tool takes the question in parts — a filter, the columns, a grouping, a limit — and has **Zoho Analytics** do the work:
+
+```text
+> query_analytics_data({ workspaceId: WS, viewId: VIEW,
+                         groupBy: ["Region"],
+                         metrics: [{ fn: "sum", column: "Sales", as: "Total" }] })
+
+{ "rows": [ { "Region": "East", "Total": "598893.32" }, ... ],
+  "rowCount": 3,
+  "sql": "SELECT \"Region\", sum(\"Sales\") AS \"Total\" FROM \"Table\" GROUP BY \"Region\"",
+  "pushedDown": "SQL run inside Analytics: ..." }
+```
+
+Measured against a 755-row table, the question *"what did the West sell?"* costs 128 KB of exported rows and 35 KB of model context when the rows are filtered in code, and **1.1 KB and 573 bytes** when the filter and the sum are pushed down. Export units are billed per 1000 rows produced, so that is a quota saving as well as a context one.
+
+Quoting is handled, a filter naming a column the view does not have is refused with the real column names rather than dropped, and every answer says what the server actually did. [Chapter 11](11-data-engine.md) is the full reference.
+
 ### `run_analytics_code`
 
 The agent writes plain JavaScript and the server runs it:
 
 ```javascript
-const ws = await za.getOrgWorkspaces({ 'ZANALYTICS-ORGID': ORG_ID });
+const found = await find.views('Sales');
 let total = 0;
 
-for (const w of ws.data.workspaces) {
-  const views = await za.getViews({
-    'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': w.workspaceId, CONFIG: '{}',
+for (const v of found.matches) {
+  const out = await data.rows({
+    workspaceId: v.workspaceId, viewId: v.viewId,
+    filters: [{ column: 'Region', value: 'East' }],
+    columns: ['Sales'],
   });
-  for (const v of views.data.views.filter((v) => v.viewName.includes('Sales'))) {
-    const out = await za.exportDataView({
-      'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': w.workspaceId, 'view-id': v.viewId,
-      CONFIG: JSON.stringify({ responseFormat: 'json', criteria: `"Sales"."Region"='East'` }),
-    });
-    total += rows.sum(rows.of(out), 'Sales').total;
-  }
+  total += rows.sum(out.rows, 'Sales').total;
 }
 
-return { total };
+return { total, viewsCovered: found.matches.length };
 ```
 
-One tool call. The rows stay in the sandbox; only `{ total }` comes back.
+One tool call, and no whole-table export anywhere: `data.rows` filters and projects inside Analytics, so each call brings back the one column that matters for the rows that match. Those rows stay in the sandbox; only `{ total }` reaches the model.
 
 ## 4. What the sandbox provides
 
@@ -143,8 +160,11 @@ One tool call. The rows stay in the sandbox; only `{ total }` comes back.
 |---|---|
 | `za` — every exposed operation as an async method | `require`, `import` |
 | `ORG_ID` — your organization ID as a constant | `fetch`, `XMLHttpRequest` |
-| `console.log` — progress notes, returned alongside the result | `process`, `Buffer` |
-| The JavaScript standard library | Filesystem, child processes, sockets |
+| `find.*` — name resolution that refuses to guess | `process`, `Buffer` |
+| `data.*` — filtering and aggregation pushed to the server | `setTimeout`, `setInterval` |
+| `rows.*` — result readers that cope with formatted values | Filesystem, child processes, sockets |
+| `console.log` — progress notes, returned alongside the result | |
+| The JavaScript standard library | |
 
 `za` is the only way out of the isolate. That is enforced by the isolate itself, not by a policy that could be prompted around.
 
@@ -169,7 +189,7 @@ They are complementary, and many people will want both.
 
 | ^ | [MCP Server](https://www.zoho.com/analytics/api/v2/zoho-analytics-mcp-server.html) | Code Execution (this tool) |
 |---|---|---|
-| Tools | 26 curated, task-shaped | 4 |
+| Tools | 26 curated, task-shaped | 5 |
 | Operations reachable | 26 | ++203, across 10 domains++ |
 | Ships the documentation | no | ++8 playbooks, 385 error codes++ |
 | Best at | single lookups — one cheap call | multi-step work: loops, polling, aggregation |
@@ -180,6 +200,6 @@ Install both and your agent picks per task: a named tool for *"list my workspace
 
 ## 7. What it does not do
 
-- **It does not reduce API consumption.** The same operations are called, so the same API units are billed. The saving is in model turns and context, not quota.
+- **It does not reduce API consumption by existing.** The same operations are called, so the same API units are billed — *unless* the request itself gets smaller. Export units are charged per 1000 rows produced, so pushing a filter or an aggregate into the request does cut the bill: measured, the same question went from 128 KB of exported rows to 1.1 KB. That is what [Reading data](11-data-engine.md) is for. Everything else saves model turns and context, not quota.
 - **It does not supply an AI model.** Your agent brings that.
 - **It does not write to your data by default.** See [Security](04-security.md).

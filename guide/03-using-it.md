@@ -1,5 +1,5 @@
 ---
-description: How to get good results from Zoho Analytics Code Mode — worked examples, what makes a good prompt, and how the four tools work together.
+description: How to get good results from Zoho Analytics Code Mode — worked examples, what makes a good prompt, and how the five tools work together.
 ---
 
 # Using it
@@ -11,9 +11,12 @@ You do not call the tools yourself. You ask your agent a question, and it decide
 Every task follows the same shape, and your agent does it on its own:
 
 1. **`find_analytics_objects`** — whenever you name a table, view or workspace, it resolves that name to a real ID first.
-2. **`search_analytics_api`** — it describes the operation it needs and gets back signatures.
-3. **`get_analytics_guide`** — *optional*, when it needs to know how something behaves.
-4. **`run_analytics_code`** — it writes a program and gets back the result.
+2. **`query_analytics_data`** — if the question is *about the data* (rows matching a filter, a total, a breakdown, a top-N, a count), this answers it on its own, with the work done inside Analytics.
+3. **`search_analytics_api`** — otherwise it describes the operation it needs and gets back signatures.
+4. **`get_analytics_guide`** — *optional*, when it needs to know how something behaves.
+5. **`run_analytics_code`** — it writes a program and gets back the result.
+
+Steps 3 to 5 are for everything a single data read cannot answer: several questions at once, a sweep across workspaces, or anything that is not a read.
 
 ## 2. Finding your data
 
@@ -95,34 +98,44 @@ On a real table of 755 rows, the correct code returns **$1,299,947 across three 
 
 > **You:** What were our East-region sales from July onwards, across every workspace?
 
-The agent searches, then writes something like:
+The agent resolves the views, then has Analytics do the arithmetic:
 
 ```javascript
-const CRITERIA = `"Sales"."Region"='East' and "Sales"."Date">='2026-07-01'`;
-const ws = await za.getOrgWorkspaces({ 'ZANALYTICS-ORGID': ORG_ID });
+const found = await find.views('Sales', { exhaustive: true });
 const totals = {};
 
-for (const w of ws.data.workspaces) {
-  const views = await za.getViews({
-    'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': w.workspaceId, CONFIG: '{}',
+for (const v of found.matches) {
+  const out = await data.aggregate({
+    workspaceId: v.workspaceId,
+    table: v.viewName,
+    by: ['Region'],
+    metrics: [{ fn: 'sum', column: 'Sales', as: 'Total' }],
+    filters: [
+      { column: 'Region', value: 'East' },
+      { column: 'Date', op: 'gte', value: '2026-07-01' },
+    ],
   });
-  for (const v of views.data.views.filter((v) => v.viewName.includes('Sales'))) {
-    const out = await za.exportDataView({
-      'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': w.workspaceId, 'view-id': v.viewId,
-      CONFIG: JSON.stringify({ responseFormat: 'json', criteria: CRITERIA }),
-    });
-    const list = rows.of(out);          // flat array, not out.data.rows
-    if (list.length) {
-      totals[w.workspaceName] =
-        (totals[w.workspaceName] ?? 0) + rows.sum(list, 'Sales').total;
-    }
+  for (const row of out.rows) {
+    totals[v.workspaceName] = (totals[v.workspaceName] ?? 0) + rows.num(row.Total);
   }
 }
 
 return { totals, grandTotal: Object.values(totals).reduce((a, b) => a + b, 0) };
 ```
 
-One tool call. The response is a handful of numbers; no row ever reaches the model.
+One tool call, and **no row is ever exported**. Each workspace contributes a single
+aggregate row, computed by Analytics; `rows.num` is still needed because even an
+aggregate comes back as a string.
+
+:::good Why not export and sum in the loop?
+Both give the same number. Only one of them bills export units for every row it
+then throws away — measured, 128 KB of exported rows against 1.1 KB for the
+aggregate. See [Reading data](11-data-engine.md#measured).
+:::
+
+If a view is a chart, pivot or summary rather than a table, SQL cannot name it;
+`data.rows` with the same `filters` is the route, and the view applies its own
+aggregation. The engine makes that choice itself and says which it took.
 
 ## 5. Worked example — an export that has to be polled
 
@@ -208,6 +221,9 @@ Most of the time you will not need to: the search results already point at the r
 | Write operations | hidden | `not a function` | `ZA_ALLOW_WRITES` — read [Security](04-security.md) first |
 | API call rate | 55 per minute | loops are paced; no 6045 | `ZA_MAX_CALLS_PER_MINUTE` |
 | API domains | all ten | `not a function` | `ZA_DOMAINS` — see [Choosing what to expose](02-install.md#choosing-what-to-expose) |
+| Rows in a result | 500 | Truncated, and the result says so | `ZA_MAX_RESULT_ROWS` |
+| Size of a result | 120 KB | Truncated to valid JSON, and said | `ZA_MAX_RESULT_BYTES` |
+| Export job poll gap | 1 s | Polls are spaced; the budget lasts | `ZA_JOB_POLL_INTERVAL_MS` |
 
 ## 11. A caution about numbers
 

@@ -33,6 +33,7 @@
     "build:manual": "node tools/build-manual.mjs",
     "test": "node --test \"test/*.test.mjs\"",
     "test:agent": "node test/agent.test.mjs",
+    "live-check": "node tools/live-check.mjs",
     "start:remote": "node src/remote.mjs",
     "build:knowledge": "node tools/build-knowledge.mjs",
     "build": "npm run build:manual && npm run build:knowledge",

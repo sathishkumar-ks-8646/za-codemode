@@ -26,17 +26,43 @@ it is.
                        Zoho Analytics REST API
 ```
 
-The agent sees **four tools**:
+The agent sees **five tools**:
 
 | Tool | What it does |
 |---|---|
 | `find_analytics_objects` | resolves "my profit table" / "the sum variable" to real IDs |
 | `search_analytics_api` | finds operations, returns type-annotated signatures |
 | `get_analytics_guide` | OKF playbooks, references and 385 error codes |
+| `query_analytics_data` | reads rows, totals and top-Ns with the filtering done **inside Analytics** |
 | `run_analytics_code` | runs plain JavaScript in a sealed V8 isolate |
 
 **203 operations** across ten API domains, as a UTCP manual. 76 read-only ones
 are exposed by default; `ZA_DOMAINS` narrows further.
+
+## Reading data without reading all of it
+
+`criteria` and `selectedColumns` go in the request, and a `SELECT` with
+`GROUP BY` / `ORDER BY` / `LIMIT` runs in the bulk export job — so the filter
+and the arithmetic happen in Analytics rather than in the model. Measured on a
+live 755-row, seven-column table, same question each time:
+
+| Strategy | Bytes the API produced | Bytes reaching the model |
+|---|---|---|
+| export the table, filter in code | 128116 | 35141 |
+| `criteria` pushed to the server | 38199 | 35485 |
+| `criteria` + `columns` | 6764 | 4002 |
+| `groupBy` + `sum` inside Analytics | **1183** | **573** |
+| `count` only | 1067 | 368 |
+| 5-row preview | 1914 | 1340 |
+
+Export units are billed per 1000 rows *produced*, so the first column is a
+quota saving as well as a context one. `node tools/live-check.mjs <postman-env.json>`
+reproduces the table against your own organization.
+
+The engine is `data.*` in the sandbox and `query_analytics_data` as a tool —
+one implementation, reached two ways. `guide/11-data-engine.md` is the
+reference; three things it had to work around are in **Verified against a live
+organization** below.
 
 ## Audit logging
 
@@ -133,6 +159,8 @@ za-codemode/
 │   ├── tools.mjs            the four tools, shared by both entrypoints
 │   ├── catalog.mjs          operation catalog + sandbox — the ONLY UTCP usage
 │   ├── sandbox-prelude.mjs  `find` (name resolver) + `rows` (result readers)
+│   ├── sandbox-data.mjs     `data` — criteria/SQL builders, pushdown, job polling
+│   ├── data-engine.mjs      host side: path routing, program building, result caps
 │   ├── search.mjs           query expansion, field-weighted ranking, signatures
 │   ├── knowledge.mjs        OKF lookup, search, hints and provenance
 │   ├── auth.mjs             refresh token -> access token, cached
@@ -151,10 +179,11 @@ za-codemode/
 │       └── store.mjs        session storage: memory or Redis
 ├── tools/
 │   ├── build-manual.mjs     github.com/zoho/analytics-oas -> UTCP catalog
-│   └── build-knowledge.mjs  github.com/zoho/analytics-okf -> knowledge bundle
+│   ├── build-knowledge.mjs  github.com/zoho/analytics-okf -> knowledge bundle
+│   └── live-check.mjs       drives the real server at a real org; prints read costs
 ├── manual/                  generated catalog; never hand-edited
 ├── knowledge/               generated OKF bundle; never hand-edited
-├── test/                    offline mocks, 101 tests
+├── test/                    offline mocks, 135 tests
 └── guide/                   the published setup & usage guide (md -> html)
     └── unpublished/         written but held back; see its README
 ```
@@ -164,7 +193,7 @@ za-codemode/
 ```bash
 npm install                  # public registry, pinned in .npmrc
 npm link                     # puts `za-codemode` on PATH, for the CLI
-npm test                     # 101 tests, fully offline
+npm test                     # 135 tests, fully offline
 npm run build                # rebuild both artifacts from the published repos
 npm start                    # stdio server
 
@@ -177,7 +206,7 @@ and fails if the committed `guide/*.html` is out of step with the `.md`. The
 `.html` files are generated *and committed*, so a doc change that touches only
 the Markdown leaves the published guide stale — always re-render.
 
-## Four invariants
+## Five invariants
 
 **`src/quiet.mjs` must stay the first import of `server.mjs`.** An MCP stdio
 server's stdout *is* the JSON-RPC channel, and the UTCP SDK logs progress with
@@ -199,6 +228,16 @@ rail. `test/resolve.test.mjs` pins that case specifically. Analysing
 `sum_of_revenue` when the user said `sum_of_cost` is the worst outcome this
 tool can produce.
 
+**A filter is pushed down or refused — never dropped.** `data.rows()` reads the
+view's columns before it spends an export, and a filter naming a column the view
+does not have stops with the real column names attached rather than being
+quietly removed and reapplied in JavaScript. The same reasoning as the resolver:
+a right-looking answer computed over the wrong rows is the expensive failure,
+and a filter that silently stopped filtering produces exactly that. The
+builders in `src/sandbox-data.mjs` are also the only supported way to get a
+value into a criteria or a `SELECT`, so there is one implementation of quoting
+to be right about. `test/data-engine.test.mjs` pins both.
+
 **Call templates are exercised against a mock that enforces org scoping.** The
 mock used to answer any request, which hid two bugs that would have broken every
 call against live Analytics: UTCP's `headers` map sends `"{ARG}"` literally
@@ -211,7 +250,7 @@ covers both.
 
 | | [MCP Server](https://www.zoho.com/analytics/api/v2/zoho-analytics-mcp-server.html) | This |
 |---|---|---|
-| Tools | 26 curated, task-shaped | 4 |
+| Tools | 26 curated, task-shaped | 5 |
 | Operations reachable | 26 | 203 |
 | Best at | single lookups | multi-step: loops, polling, aggregation |
 | Runs model-written code | no | yes, sandboxed |
@@ -223,8 +262,9 @@ a clean opt-out.
 
 ## Verified against a live organization
 
-Run against a real Zoho Analytics org (81 workspaces, a 755-row table). Six
-defects surfaced that mock-based tests had not caught — all fixed and pinned:
+Run against a real Zoho Analytics org (81 workspaces, a 755-row table). Nine
+defects and documentation mismatches surfaced that mock-based tests had not
+caught — all fixed and pinned:
 
 | Defect | Consequence |
 |---|---|
@@ -234,6 +274,9 @@ defects surfaced that mock-based tests had not caught — all fixed and pinned:
 | Export returns rows as a **flat array** in `data` | `data.rows` is `undefined` → `?? []` → a confident "no data" for a 755-row table |
 | Values are **formatted strings** (`"$1,682.39"`) | `Number()` → `NaN` → sums silently come out 0 |
 | Org header sent as the literal `{ZANALYTICS-ORGID}`, auth without `Bearer ` | Every call would have failed; UTCP needs `header_fields`, and sends `api_key` verbatim |
+| `tableCriteriaList` on the SQL export job is **silently ignored** | Documented as one filter per referenced table, with 7836 for a table the statement does not touch. Measured: HTTP 200 and unfiltered rows. Row selection for that path goes in the `WHERE` clause |
+| A `SELECT` cannot name a chart, pivot, summary or dashboard | 7409, "the table does not exist in this workspace" — reads as a missing object rather than the wrong route. The engine checks the view type first and falls back to the view export with `criteria` |
+| The isolate has **no `setTimeout`** | A polling loop cannot sleep; reaching for one is a `ReferenceError` inside an export. The tool bridge blocks the isolate anyway, so job polling is paced in the host process (`ZA_JOB_POLL_INTERVAL_MS`) |
 
 The two shape bugs mattered most: neither throws, both produce a plausible
 wrong number. They survived every mock test because the mock returned the
@@ -244,21 +287,23 @@ documented pattern returned `{ rowCount: 0 }`.
 
 ## Status
 
-101 tests pass offline: search quality and domain filtering, name resolution
+135 tests pass offline: search quality and domain filtering, name resolution
 (fuzzy matching, ambiguity, misses, columns, variables, enforced refusal),
 result reading, call pacing, stdio end-to-end, audit streams and hash chaining,
-credential resolution, token caching, the knowledge tool, and — for the
-unreleased mode — the full OAuth flow and organization allowlist enforcement.
+credential resolution, token caching, the knowledge tool, the data engine
+(pushdown routing, criteria and SQL quoting, refusals, result caps), and — for
+the unreleased mode — the full OAuth flow and organization allowlist
+enforcement.
+
+`tools/live-check.mjs` is the live counterpart: it drives the real server over stdio
+against an organization named by a Postman environment file and prints the
+bytes each read strategy costs, on both sides. Not part of `npm test` —
+it needs credentials.
 
 Not yet done:
 
 - **The licence is not settled.** No terms are granted yet, which is why nothing
   is published to npm. See [`LICENSE.md`](LICENSE.md).
-- **Results are not size-capped.** A program is instructed to `return` only its
-  final answer, and nothing enforces it — a program that returns 10,000 rows
-  puts 10,000 rows into the model's context. A token-bounded cap on the tool
-  result, truncating to valid JSON and telling the model to narrow, is the
-  clearest remaining gap.
 - **The write path (`ZA_ALLOW_WRITES=true`) is lightly tested.** Exercise it
   against a non-production organization first.
 - **No per-user rate limiting** of Analytics calls; `ZA_MAX_TOOL_CALLS` is per

@@ -39,10 +39,10 @@ after(async () => {
   setTimeout(() => process.exit(0), 200).unref();
 });
 
-test('exposes exactly the four tools', async () => {
+test('exposes exactly the five tools', async () => {
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map((t) => t.name).sort(),
-    ['find_analytics_objects', 'get_analytics_guide',
+    ['find_analytics_objects', 'get_analytics_guide', 'query_analytics_data',
      'run_analytics_code', 'search_analytics_api']);
 });
 
@@ -69,11 +69,21 @@ test('runs a multi-step program and returns only the answer', async () => {
             'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': w.workspaceId, CONFIG: '{}',
           });
           for (const v of views.data.views.filter((v) => v.viewName.includes('Sales'))) {
-            const out = await za.exportDataView({
-              'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': w.workspaceId,
-              'view-id': v.viewId,
-              CONFIG: JSON.stringify({ responseFormat: 'json', criteria: CRITERIA }),
-            });
+            // One criteria over many views means some of them will not have
+            // the columns it names — the server answers 7330 and exports
+            // nothing. A sweep has to expect that; the alternative is one
+            // mismatched view aborting the whole aggregate.
+            let out;
+            try {
+              out = await za.exportDataView({
+                'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': w.workspaceId,
+                'view-id': v.viewId,
+                CONFIG: JSON.stringify({ responseFormat: 'json', criteria: CRITERIA }),
+              });
+            } catch (err) {
+              if (/7330|7332/.test(String(err.message))) continue;
+              throw err;
+            }
             // rows.of handles the flat-array shape the real API returns;
             // rows.sum copes with formatted values like "$1,682.39".
             const list = rows.of(out);

@@ -96,6 +96,7 @@ registerTools(server, () => session, {
   domains: config.domains,
   knowledge,
   audit,
+  limits: { maxRows: config.maxResultRows, maxBytes: config.maxResultBytes },
   scope: () => ({ domains: config.domains, writes: config.allowWrites }),
 });
 

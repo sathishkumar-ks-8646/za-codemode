@@ -158,6 +158,7 @@ export function createApp({ config, provider, sessions, operationCount, knowledg
       const server = new McpServer({ name: 'zoho-analytics-code-mode', version: '1.0.0' });
       registerTools(server, () => session, {
         operationCount, domains: config.domains, knowledge, audit,
+        limits: { maxRows: config.maxResultRows, maxBytes: config.maxResultBytes },
         scope: () => ({ domains: config.domains, writes: config.allowWrites }),
       });
 

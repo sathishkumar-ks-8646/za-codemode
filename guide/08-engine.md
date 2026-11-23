@@ -10,7 +10,7 @@ This chapter is for the curious and for anyone reviewing the tool. Nothing here 
 
 ```text
   ┌─ MCP ──────────────────────────────────────────────┐
-  │  what your agent speaks. Four tools.               │
+  │  what your agent speaks. Five tools.               │
   │  @modelcontextprotocol/sdk                         │
   └────────────────────┬───────────────────────────────┘
                        │
@@ -64,7 +64,35 @@ When the model's code calls `za.exportDataView(...)`, that is **not** an HTTP re
 The signatures are type-annotated so a model can see each argument's shape, but there is **no compiler anywhere in the chain** — the code string goes straight into V8. A type annotation, an `interface` or an `as` cast is a syntax error, and V8's message never mentions types. The server detects that case and says so rather than passing the raw error back. Modern JavaScript is fine: `async`/`await`, optional chaining, destructuring, spread.
 :::
 
-## 4. Where the accuracy comes from
+:::warn And it has no timers
+`setTimeout` and `setInterval` do not exist in the isolate, so a program cannot sleep — which matters most for polling an export job, where reaching for one is a `ReferenceError` deep inside the export. It does not need to: the tool bridge uses `applySyncPromise`, which **blocks the isolate** until the host-side call settles. A delay taken in the server process is therefore the loop's delay, which is why job polling is paced here rather than there (`ZA_JOB_POLL_INTERVAL_MS`).
+:::
+
+## 4. What the sandbox is given before the model's code
+
+Three objects are evaluated ahead of every program, each of them an answer to a specific way generated code goes wrong.
+
+| ^Object | Lives in | The failure it prevents |
+|---|---|---|
+| `find` | `src/sandbox-prelude.mjs` | `viewName === 'profit'` matching nothing, and the model reporting that your table does not exist |
+| `rows` | `src/sandbox-prelude.mjs` | `out.data.rows` being `undefined` for a flat array, and `Number("$1,682.39")` being `NaN` |
+| `data` | `src/sandbox-data.mjs` | Exporting a whole table and filtering it in JavaScript — the costly way to get a right answer |
+
+`data` is the engine for reads. It owns one implementation of criteria quoting,
+one `SELECT` builder, and one export-job polling loop, and the
+`query_analytics_data` tool reaches them by running a generated program through
+the *same* sandbox rather than by reimplementing any of it on the host. That is
+why a tool call and a hand-written program get identical quoting, identical
+pacing, identical budgets and identical audit records.
+
+What stays on the host is only what cannot run inside the isolate:
+`src/data-engine.mjs` routes a request to the view export or the SQL job,
+builds the program, and caps the result — the cap being outside the sandbox
+precisely because a program cannot be trusted to bound its own answer.
+
+[Reading data](11-data-engine.md) is the user-facing reference.
+
+## 5. Where the accuracy comes from
 
 Signatures tell a model *what it can call*. They do not tell it that criteria strings follow a particular SQL-like grammar, that `CONFIG` must be stringified and URL-encoded, or that a bulk export is three calls and a poll. Those are the things generated code gets wrong.
 
@@ -81,7 +109,7 @@ Two things happen automatically:
 - **Search points at the playbook.** Ask for export-job operations and the result ends with *"Before writing code, consider reading: `get_analytics_guide("export-data-asynchronously")`"*.
 - **Failures are annotated.** Any four-digit code in an error message gets its documented meaning and resolution attached, so the model can correct itself rather than guess.
 
-## 5. The ten API domains
+## 6. The ten API domains
 
 The catalog is tagged by the domain each operation comes from, mirroring `v2.0/oas/<domain>-grouped-api.json`:
 
@@ -100,7 +128,7 @@ The catalog is tagged by the domain each operation comes from, mirroring `v2.0/o
 
 `ZA_DOMAINS` restricts a deployment to any subset, and `search_analytics_api` takes an optional `domain` argument. See [Choosing what to expose](02-install.md#choosing-what-to-expose).
 
-## 6. Dependencies, and why they are contained
+## 7. Dependencies, and why they are contained
 
 | ^Package | Role |
 |---|---|
@@ -117,9 +145,9 @@ Every `@utcp/*` import lives in a single file, `src/catalog.mjs`. That is delibe
 UTCP's own tool search is plain word matching, and it failed on the way people actually phrase things — *"how much revenue did we make"* returned unrelated operations. `search_analytics_api` uses its own index with synonym expansion and field weighting, folding UTCP's results in only as a ranking bonus. UTCP owns the calling, not the finding.
 :::
 
-## 7. What running it against a real organization changed
+## 8. What running it against a real organization changed
 
-Four things only a live API could reveal, each now covered by a test:
+Things only a live API could reveal, each now covered by a test:
 
 | ^Found | Why it mattered |
 |---|---|
@@ -128,10 +156,13 @@ Four things only a live API could reveal, each now covered by a test:
 | A rate-limited sweep cannot finish in time | Covering 25 of 81 workspaces and reporting "no such view" is a false negative. An unfinished search now says so instead of claiming absence |
 | Export returns rows as a **flat array** in `data` | `data.rows` is `undefined`, which `?? []` turns into a confident "no data" for a table with 755 rows |
 | Values are **formatted strings** (`"$1,682.39"`) | `Number()` gives `NaN`, so sums silently come out as 0 |
+| `tableCriteriaList` on the SQL export job is **silently ignored** | Documented as one filter per table, with `7836` for a table the statement does not reference. Measured: HTTP 200 and unfiltered rows. Row selection for that path belongs in the `WHERE` clause |
+| A `SELECT` cannot name a chart, pivot, summary or dashboard | The server answers `7409`, *"the table does not exist in this workspace"*, which reads as a missing object rather than as the wrong route. The engine asks the view's type first and falls back to the view export with `criteria` |
+| `jobCode` is a **string** (`"1004"`), and the download has **no envelope** | Polling on the human `jobStatus` text alone is fragile, and the downloaded file is `{"data": [...]}` with no `status` wrapper |
 
 The last two are the dangerous pair: neither raises an error, both produce a plausible wrong answer. They survived every mock-based test because the mock returned the shape the documentation *claimed*, not the shape the API *sends* — so `test/mock-analytics.mjs` was corrected to match the real responses, which is what makes those tests meaningful.
 
-## 8. Where the catalog comes from
+## 9. Where the catalog comes from
 
 ```bash
 npm run build:manual      # v2.0/oas/*.json -> manual/analytics.utcp.json

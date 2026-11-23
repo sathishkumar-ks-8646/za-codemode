@@ -3,6 +3,19 @@
  *
  * Speaks the real paths, the real stringified-JSON CONFIG convention and the
  * real three-call bulk export dance (create job -> poll -> download).
+ *
+ * Every shape here is one that was observed against a live organization, not
+ * one read off the documentation — the previous version of this file returned
+ * the documented shapes and hid two arithmetic bugs for it. Specifically:
+ *
+ *  - Both bulk export creators are GET with a CONFIG query parameter, not
+ *    POST. POST on those paths is the IMPORT job.
+ *  - Job progress is `jobCode`, a STRING ("1002" in progress, "1004" done),
+ *    alongside a human `jobStatus`.
+ *  - The download carries {"data": [...]} with no status envelope.
+ *  - A criteria naming an unknown column is 7330 with HTTP 400, before any
+ *    rows are produced.
+ *  - A statement that is not a SELECT is 7402; an unknown table is 7409.
  */
 import { createServer } from 'node:http';
 
@@ -61,7 +74,7 @@ const FORMULAS = {
   ],
 };
 
-/** Columns per view, for find.columns(). */
+/** Columns per view, for find.columns(). Views with rows derive theirs below. */
 const COLUMNS = {
   '2375824000000020007': [
     { columnName: 'Country', dataType: 'PLAIN' },
@@ -96,6 +109,18 @@ const ROWS = {
   ],
 };
 
+// A table's columns are its rows' keys. Declaring them twice is a way to get
+// them out of step, and a criteria pre-flight that checks against a stale
+// column list is worse than no pre-flight at all.
+for (const [viewId, rows] of Object.entries(ROWS)) {
+  if (!COLUMNS[viewId] && rows.length) {
+    COLUMNS[viewId] = Object.keys(rows[0]).map((columnName) => ({
+      columnName,
+      dataType: typeof rows[0][columnName] === 'number' ? 'NUMBER' : 'PLAIN',
+    }));
+  }
+}
+
 /** The only organization this mock knows about. Requests naming any other get
  *  7103 / 404 — the documented code for an organization that does not exist or
  *  is not visible to the caller. */
@@ -105,12 +130,230 @@ const jobs = new Map();
 let jobSeq = 0;
 const throttleState = {};
 
+/**
+ * Enough of the criteria grammar to exercise pushdown.
+ *
+ * Deliberately not a parser: it understands the handful of forms the engine
+ * emits — =, !=, >, >=, <, <=, in, like, is null — joined by and/or, so a
+ * test can assert that a filter really narrowed the result rather than that
+ * the string reached the server. Anything it cannot read is treated as
+ * matching everything, which fails loudly in a test expecting fewer rows.
+ */
+const CONDITION = /"([^"]+)"\s*(>=|<=|!=|<>|=|>|<|\s+not\s+in\s+|\s+in\s+|\s+not\s+like\s+|\s+like\s+|\s+is\s+not\s+null|\s+is\s+null)\s*(\([^)]*\)|'(?:[^']|'')*'|[-\d.]+)?/gi;
+
+function unquote(literal) {
+  if (literal === undefined) return undefined;
+  const text = String(literal).trim();
+  if (text.startsWith("'")) return text.slice(1, -1).replace(/''/g, "'");
+  return text;
+}
+
+/** A value as the mock stores it, comparable with a criteria literal. */
+function comparable(value) {
+  const n = Number(String(value ?? '').replace(/[^0-9.eE+-]/g, ''));
+  return Number.isFinite(n) && String(value ?? '').match(/[\d]/) ? n : String(value ?? '');
+}
+
+function evaluate(row, condition) {
+  const [, column, rawOp, rawValue] = condition;
+  const op = rawOp.trim().toLowerCase().replace(/\s+/g, ' ');
+  const actual = row[column];
+
+  if (op === 'is null') return actual === undefined || actual === null || actual === '';
+  if (op === 'is not null') return !(actual === undefined || actual === null || actual === '');
+
+  if (op === 'in' || op === 'not in') {
+    const list = String(rawValue ?? '()').slice(1, -1).split(',')
+      .map((v) => unquote(v.trim()));
+    const hit = list.includes(String(actual));
+    return op === 'in' ? hit : !hit;
+  }
+
+  if (op === 'like' || op === 'not like') {
+    const pattern = String(unquote(rawValue) ?? '');
+    const re = new RegExp('^' + pattern.split('%').map((s) =>
+      s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$', 'i');
+    const hit = re.test(String(actual ?? ''));
+    return op === 'like' ? hit : !hit;
+  }
+
+  const expected = unquote(rawValue);
+  const a = comparable(actual);
+  const b = typeof a === 'number' ? Number(expected) : String(expected);
+  switch (op) {
+    case '=': return a === b;
+    case '!=': case '<>': return a !== b;
+    case '>': return a > b;
+    case '>=': return a >= b;
+    case '<': return a < b;
+    case '<=': return a <= b;
+    default: return true;
+  }
+}
+
 function matches(row, criteria = '') {
-  const region = /"Region"\s*=\s*'([^']+)'/.exec(criteria);
-  const since = /"Date"\s*>=\s*'([^']+)'/.exec(criteria);
-  if (region && row.Region !== region[1]) return false;
-  if (since && row.Date < since[1]) return false;
-  return true;
+  const text = String(criteria ?? '').trim();
+  if (!text) return true;
+  const conditions = [...text.matchAll(CONDITION)];
+  if (!conditions.length) return true;
+  // One joiner for the whole expression is enough for the shapes the engine
+  // produces; mixed and/or would need a real parser and no test needs one.
+  const anyOf = /\bor\b/i.test(text) && !/\band\b/i.test(text);
+  return anyOf
+    ? conditions.some((c) => evaluate(row, c))
+    : conditions.every((c) => evaluate(row, c));
+}
+
+/** The columns a view has, for the 7330 check and for selectedColumns. */
+function columnsOf(viewId) {
+  if (COLUMNS[viewId]) return COLUMNS[viewId].map((c) => c.columnName);
+  const sample = (ROWS[viewId] ?? [])[0];
+  return sample ? Object.keys(sample) : [];
+}
+
+/** Unknown column in a criteria is 7330 — before any rows are produced. */
+function unknownColumn(viewId, criteria) {
+  if (!criteria) return null;
+  const have = new Set(columnsOf(viewId));
+  if (!have.size) return null;
+  for (const [, column] of String(criteria).matchAll(/"([^"]+)"/g)) {
+    if (!have.has(column)) return column;
+  }
+  return null;
+}
+
+function project(list, selectedColumns) {
+  if (!selectedColumns?.length) return list;
+  return list.map((row) => Object.fromEntries(
+    selectedColumns.filter((c) => c in row).map((c) => [c, row[c]])));
+}
+
+/**
+ * A SELECT engine just large enough for the statements the builder emits.
+ *
+ * SELECT list (plain columns and sum/avg/min/max/count/count distinct),
+ * FROM one table, WHERE, GROUP BY, ORDER BY, LIMIT/OFFSET. Anything it does
+ * not understand throws, which surfaces as 7401 — the same code the real
+ * server uses for a statement it will not run.
+ */
+function runSql(statement) {
+  const text = String(statement).trim().replace(/\s+/g, ' ');
+  if (!/^select\b/i.test(text)) {
+    const err = new Error('Only SELECT query statements are allowed');
+    err.code = 7402;
+    throw err;
+  }
+
+  const m = /^select\s+(distinct\s+)?(.+?)\s+from\s+"?([^"\s]+(?:[^"]*)?)"?(?:\s+where\s+(.+?))?(?:\s+group by\s+(.+?))?(?:\s+having\s+(.+?))?(?:\s+order by\s+(.+?))?(?:\s+limit\s+(\d+))?(?:\s+offset\s+(\d+))?$/i
+    .exec(text);
+  if (!m) { const e = new Error('Unparseable statement'); e.code = 7401; throw e; }
+
+  const [, distinct, selectList, tableRaw, where, groupBy, , orderBy, limit, offset] = m;
+  const table = tableRaw.replace(/"/g, '').trim();
+
+  const viewId = Object.values(VIEWS).flat()
+    .find((v) => v.viewName.toLowerCase() === table.toLowerCase())?.viewId;
+  if (!viewId) {
+    const e = new Error(`The table '${table}' does not exist in this workspace.`);
+    e.code = 7409;
+    throw e;
+  }
+
+  let list = (ROWS[viewId] ?? []).filter((r) => matches(r, where));
+
+  const terms = splitList(selectList).map(parseTerm);
+  const groups = groupBy ? splitList(groupBy).map((g) => g.replace(/"/g, '').trim()) : [];
+
+  let out;
+  if (groups.length || terms.some((t) => t.fn)) {
+    const buckets = new Map();
+    for (const row of list) {
+      const key = groups.map((g) => String(row[g] ?? '')).join('\u0000');
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key).push(row);
+    }
+    if (!groups.length && !buckets.size) buckets.set('', []);
+    out = [...buckets.values()].map((bucket) => {
+      const record = {};
+      for (const g of groups) record[g] = bucket[0]?.[g];
+      for (const term of terms) {
+        if (!term.fn) { if (!(term.alias in record)) record[term.alias] = bucket[0]?.[term.column]; continue; }
+        record[term.alias] = String(apply(term, bucket));
+      }
+      return record;
+    });
+  } else {
+    out = list.map((row) => {
+      if (terms.length === 1 && terms[0].column === '*') return { ...row };
+      return Object.fromEntries(terms.map((t) => [t.alias, row[t.column]]));
+    });
+    if (distinct) {
+      const seen = new Set();
+      out = out.filter((r) => { const k = JSON.stringify(r); if (seen.has(k)) return false; seen.add(k); return true; });
+    }
+  }
+
+  if (orderBy) {
+    for (const clause of splitList(orderBy).reverse()) {
+      const desc = /\bdesc\b/i.test(clause);
+      const column = clause.replace(/\b(asc|desc)\b/i, '').replace(/"/g, '').trim();
+      out = [...out].sort((a, b) => {
+        const x = comparable(a[column]); const y = comparable(b[column]);
+        return (x < y ? -1 : x > y ? 1 : 0) * (desc ? -1 : 1);
+      });
+    }
+  }
+
+  const from = offset ? Number(offset) : 0;
+  if (limit) out = out.slice(from, from + Number(limit));
+  else if (from) out = out.slice(from);
+  return out;
+}
+
+/** Split a comma-separated clause, ignoring commas inside parentheses. */
+function splitList(text) {
+  const parts = []; let depth = 0; let current = '';
+  for (const ch of text) {
+    if (ch === '(') depth += 1;
+    if (ch === ')') depth -= 1;
+    if (ch === ',' && depth === 0) { parts.push(current); current = ''; continue; }
+    current += ch;
+  }
+  if (current.trim()) parts.push(current);
+  return parts.map((p) => p.trim()).filter(Boolean);
+}
+
+function parseTerm(term) {
+  const aliased = /^(.*?)\s+as\s+"?([^"]+)"?$/i.exec(term);
+  const body = (aliased ? aliased[1] : term).trim();
+  const alias = aliased ? aliased[2] : body.replace(/"/g, '');
+
+  const agg = /^(sum|avg|min|max|count)\s*\(\s*(distinct\s+)?(\*|"[^"]+")\s*\)$/i.exec(body);
+  if (agg) {
+    return {
+      fn: agg[1].toLowerCase(), distinct: Boolean(agg[2]),
+      column: agg[3].replace(/"/g, ''), alias,
+    };
+  }
+  return { fn: null, column: body.replace(/"/g, ''), alias };
+}
+
+function apply(term, bucket) {
+  if (term.fn === 'count') {
+    if (term.column === '*') return bucket.length;
+    const values = bucket.map((r) => r[term.column]).filter((v) => v !== undefined && v !== '');
+    return term.distinct ? new Set(values.map(String)).size : values.length;
+  }
+  const numbers = bucket.map((r) => comparable(r[term.column]))
+    .filter((n) => typeof n === 'number');
+  if (!numbers.length) return 0;
+  switch (term.fn) {
+    case 'sum': return numbers.reduce((a, b) => a + b, 0);
+    case 'avg': return numbers.reduce((a, b) => a + b, 0) / numbers.length;
+    case 'min': return Math.min(...numbers);
+    case 'max': return Math.max(...numbers);
+    default: return 0;
+  }
 }
 
 export function startMockAnalytics(port = 0) {
@@ -186,44 +429,93 @@ export function startMockAnalytics(port = 0) {
       return send({ status: 'success', data: { aggregateFormulas: FORMULAS[m[1]] ?? [] } });
     }
 
-    // View details, with columns when extended metadata is requested.
+    // View details, with columns when extended metadata is requested. The
+    // owning workspace is part of the answer, as it is live — it is what lets
+    // a caller be told that the view is not in the workspace they named.
     if ((m = /^\/restapi\/v2\/views\/(\d+)$/.exec(path))) {
-      const view = Object.values(VIEWS).flat().find((v) => v.viewId === m[1]);
-      if (!view) return fail(7103, 404);
-      const payload = { ...view };
+      const owner = Object.entries(VIEWS)
+        .find(([, views]) => views.some((v) => v.viewId === m[1]));
+      if (!owner) return fail(7103, 404);
+      const view = owner[1].find((v) => v.viewId === m[1]);
+      const payload = { ...view, workspaceId: owner[0] };
       if (config.withInvolvedMetaInfo) payload.columns = COLUMNS[m[1]] ?? [];
       return send({ status: 'success', data: { views: payload } });
     }
 
+    // Synchronous view export. criteria and selectedColumns are applied HERE,
+    // by the server, which is the whole point of the pushdown path.
     if ((m = /^\/restapi\/v2\/workspaces\/(\d+)\/views\/(\d+)\/data$/.exec(path))) {
-      const rows = (ROWS[m[2]] ?? []).filter((r) => matches(r, config.criteria));
+      const bad = unknownColumn(m[2], config.criteria);
+      if (bad) return fail(7330, 400);
+      const rows = project(
+        (ROWS[m[2]] ?? []).filter((r) => matches(r, config.criteria)),
+        config.selectedColumns);
+      if (config.responseFormat === 'csv') {
+        const cols = rows.length ? Object.keys(rows[0]) : [];
+        const body = [cols.join(','), ...rows.map((r) => cols.map((c) => r[c]).join(','))].join('\n');
+        res.writeHead(200, { 'content-type': 'text/csv' });
+        return res.end(body);
+      }
       // The live API puts export rows directly in `data`, as a flat array.
       return send({ status: 'success', data: rows });
     }
 
-    if (req.method === 'POST'
+    // Both export-job creators are GET with a CONFIG query parameter. POST on
+    // the same paths is the IMPORT job, which is why the method matters.
+    if (req.method === 'GET'
         && (m = /^\/restapi\/v2\/bulk\/workspaces\/(\d+)\/views\/(\d+)\/data$/.exec(path))) {
+      const bad = unknownColumn(m[2], config.criteria);
+      if (bad) return fail(7330, 400);
       const jobId = String(9900000000000000000n + BigInt(++jobSeq));
-      jobs.set(jobId, { viewId: m[2], polls: 0, criteria: config.criteria ?? '' });
+      jobs.set(jobId, {
+        viewId: m[2], polls: 0, criteria: config.criteria ?? '',
+        selectedColumns: config.selectedColumns ?? null,
+      });
+      return send({ status: 'success', data: { jobId } });
+    }
+
+    // Export job from an ad-hoc SELECT. The statement is validated at create
+    // time, as the live API does: a bad one never becomes a job.
+    if (req.method === 'GET' && /^\/restapi\/v2\/bulk\/workspaces\/(\d+)\/data$/.test(path)) {
+      if (!config.sqlQuery) return fail(7401, 400);
+      let rows;
+      try {
+        rows = runSql(config.sqlQuery);
+      } catch (err) {
+        return fail(err.code ?? 7401, 400);
+      }
+      const jobId = String(9900000000000000000n + BigInt(++jobSeq));
+      // tableCriteriaList is accepted and IGNORED, which is what the live
+      // server was measured doing — a test asserting otherwise would be
+      // asserting the documentation, not the API.
+      jobs.set(jobId, { polls: 0, rows: project(rows, config.selectedColumns) });
       return send({ status: 'success', data: { jobId } });
     }
 
     if ((m = /^\/restapi\/v2\/bulk\/workspaces\/(\d+)\/exportjobs\/(\d+)$/.exec(path))) {
       const job = jobs.get(m[2]);
-      if (!job) return fail(7103, 404);
+      if (!job) return send({ status: 'failure', summary: 'EXPORTJOBNOTFOUND',
+        data: { errorCode: 8120 } }, 404);
       job.polls += 1;
-      const done = job.polls >= 3;          // real jobs are not instant
+      const done = job.polls >= 2;          // real jobs are not instant
       return send({ status: 'success', data: {
         jobId: m[2],
+        jobCode: done ? '1004' : '1002',
         jobStatus: done ? 'JOB COMPLETED' : 'JOB IN PROGRESS',
       } });
     }
 
     if ((m = /^\/restapi\/v2\/bulk\/workspaces\/(\d+)\/exportjobs\/(\d+)\/data$/.exec(path))) {
       const job = jobs.get(m[2]);
-      if (!job) return fail(7103, 404);
-      const rows = (ROWS[job.viewId] ?? []).filter((r) => matches(r, job.criteria));
-      return send({ status: 'success', data: rows });
+      if (!job) return send({ status: 'failure', summary: 'EXPORTJOBNOTFOUND',
+        data: { errorCode: 8120 } }, 404);
+      if (job.polls < 2) return send({ status: 'failure', summary: 'EXPORTJOBNOTCOMPLETED',
+        data: { errorCode: 8122 } }, 400);
+      const rows = job.rows
+        ?? project((ROWS[job.viewId] ?? []).filter((r) => matches(r, job.criteria)),
+          job.selectedColumns);
+      // The download has NO status envelope — just {"data": [...]}.
+      return send({ data: rows });
     }
 
     return fail(7103, 404);

@@ -107,20 +107,23 @@ Three possibilities:
 
 | ^Message | Meaning | Options |
 |---|---|---|
-| "API call budget exhausted after 200 calls" | The program looped too far | Narrow the task; filter with `CONFIG` criteria instead of fetching everything; or raise `ZA_MAX_TOOL_CALLS` |
-| Timed out | Longer than 60 s | Use `createExportJob*` + `getExportJobDetails` instead of a blocking export; or raise `ZA_EXEC_TIMEOUT_MS` |
-| Out of memory | Accumulated too many rows | Aggregate per view instead of collecting everything first; or raise `ZA_EXEC_MEMORY_MB` |
+| "API call budget exhausted after 200 calls" | The program looped too far | Narrow the task; push the filter to the server with `query_analytics_data` or `data.rows` instead of fetching everything; or raise `ZA_MAX_TOOL_CALLS` |
+| Timed out | Longer than 60 s | Use `data.query()` or `data.export()`, which run the job and poll it for you; or raise `ZA_EXEC_TIMEOUT_MS` |
+| Out of memory | Accumulated too many rows | Aggregate inside Analytics (`groupBy` + `metrics`) rather than collecting rows first; or raise `ZA_EXEC_MEMORY_MB` |
+| "Showing 500 of N rows" | The result hit `ZA_MAX_RESULT_ROWS` | Ask a narrower question. The answer is **not** the first 500 rows of the real one — see [Reading data](11-data-engine.md#result-caps) |
+| `ReferenceError: setTimeout is not defined` | The program tried to sleep | The isolate has no timers. Use `data.awaitJob()`, which polls without one; the server spaces the polls |
 
 Raising a limit is usually the wrong first move. Each one is normally telling you the program is fetching data it does not need.
 
 ## 6. "You have no data" but you definitely do
 
-Almost always one of two things, both of which the `rows` helpers exist to prevent:
+Almost always one of three things, all of which the helpers exist to prevent:
 
 - The program read `out.data.rows`. Export returns a **flat array** in `data`; `data.rows` is `undefined`, and `?? []` turns that into an empty result.
 - The program summed `Number(row.Sales)` on `"$1,682.39"`, which is `NaN`.
+- The filter compared a formatted value: `r.Sales > 1000` on `"$1,682.39"` compares strings. Server-side `criteria` compares the underlying number, which is one more reason to push it down.
 
-Ask your agent to show the code. If it is not using `rows.of()` and `rows.sum()`, tell it to.
+Ask your agent to show the code. If it is not using `rows.of()`, `rows.sum()` or the `data.*` helpers, tell it to.
 
 ## 7. The answers look wrong
 
@@ -139,7 +142,9 @@ No. They complement each other: 26 named tools for single lookups, this for mult
 
 ### Q. Does it reduce my API unit consumption?
 
-No. The same operations are called, so the same units are billed. What it reduces is model turns and context — in a measured multi-workspace export, 19 model turns became 1.
+For data reads, yes — if you let it. Export units are billed per 1000 rows *produced*, so a filter or an aggregate inside the request cuts them: measured on a live 755-row table, the same question produced 128,116 bytes of export when the rows were filtered in code and 1,183 bytes when the `GROUP BY` ran inside Analytics. That is what `query_analytics_data` and the `data.*` helpers are for — see [Reading data](11-data-engine.md).
+
+For everything else, no. The same metadata operations are called, so the same units are billed. What that reduces is model turns and context — in a measured multi-workspace export, 19 model turns became 1.
 
 ### Q. Do I need an OpenAI or Anthropic API key?
 

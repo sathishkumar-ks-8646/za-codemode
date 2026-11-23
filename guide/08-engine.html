@@ -30,6 +30,7 @@
       <a href="08-engine.html" aria-current="page">Engine</a>
       <a href="09-credentials.html">Credentials</a>
       <a href="10-audit.html">Audit</a>
+      <a href="11-data-engine.html">Reading data</a>
     </nav>
     <button class="icon-btn nav-toggle" id="nav-toggle" type="button"
             aria-expanded="false" aria-controls="sidebar"
@@ -65,6 +66,7 @@
     <a href="08-engine.html" aria-current="page"><span class="n">08</span><span>How the engine works</span></a>
     <a href="09-credentials.html"><span class="n">09</span><span>Credentials &amp; secrets</span></a>
     <a href="10-audit.html"><span class="n">10</span><span>Audit logging</span></a>
+    <a href="11-data-engine.html"><span class="n">11</span><span>Reading data</span></a>
     <h2>Source</h2>
     <a href="https://github.com/sathishkumar-ks-8646/za-codemode/blob/main/guide/08-engine.md"><span class="n">md</span><span>This page as Markdown</span></a>
     <a href="https://github.com/sathishkumar-ks-8646/za-codemode"><span class="n">&#8212;</span><span>Repository</span></a>
@@ -82,7 +84,7 @@
 <section id="the-three-layers">
 <h2><span class="num">01</span>The three layers</h2>
 <pre><code class="lang-text">  ┌─ MCP ──────────────────────────────────────────────┐
-  │  what your agent speaks. Four tools.               │
+  │  what your agent speaks. Five tools.               │
   │  @modelcontextprotocol/sdk                         │
   └────────────────────┬───────────────────────────────┘
                        │
@@ -121,9 +123,18 @@
 <p><code>@utcp/code-mode</code> is the implementation here. It takes the registered UTCP manual, generates a type-annotated signature per operation, and binds each one as a method on a <code>za</code> global inside an <a href="https://github.com/laverdet/isolated-vm"><code>isolated-vm</code></a> V8 isolate.</p>
 <p>When the model's code calls <code>za.exportDataView(...)</code>, that is <strong>not</strong> an HTTP request. It is a callback out of the isolate into the server process, which reads that operation's call template, substitutes the variables, and makes the real call. The isolate has no network of its own — see <a href="04-security.html#what-the-sandbox-cannot-do">Security</a>.</p>
 <div class="note note--warn"><div class="note__title">The program is plain JavaScript, not TypeScript</div><p>The signatures are type-annotated so a model can see each argument's shape, but there is <strong>no compiler anywhere in the chain</strong> — the code string goes straight into V8. A type annotation, an <code>interface</code> or an <code>as</code> cast is a syntax error, and V8's message never mentions types. The server detects that case and says so rather than passing the raw error back. Modern JavaScript is fine: <code>async</code>/<code>await</code>, optional chaining, destructuring, spread.</p></div>
+<div class="note note--warn"><div class="note__title">And it has no timers</div><p><code>setTimeout</code> and <code>setInterval</code> do not exist in the isolate, so a program cannot sleep — which matters most for polling an export job, where reaching for one is a <code>ReferenceError</code> deep inside the export. It does not need to: the tool bridge uses <code>applySyncPromise</code>, which <strong>blocks the isolate</strong> until the host-side call settles. A delay taken in the server process is therefore the loop's delay, which is why job polling is paced here rather than there (<code>ZA_JOB_POLL_INTERVAL_MS</code>).</p></div>
+</section>
+<section id="what-the-sandbox-is-given-before-the-models-code">
+<h2><span class="num">04</span>What the sandbox is given before the model's code</h2>
+<p>Three objects are evaluated ahead of every program, each of them an answer to a specific way generated code goes wrong.</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Object</th><th>Lives in</th><th>The failure it prevents</th></tr></thead><tbody><tr><td class="col-narrow"><code>find</code></td><td><code>src/sandbox-prelude.mjs</code></td><td><code>viewName === 'profit'</code> matching nothing, and the model reporting that your table does not exist</td></tr><tr><td class="col-narrow"><code>rows</code></td><td><code>src/sandbox-prelude.mjs</code></td><td><code>out.data.rows</code> being <code>undefined</code> for a flat array, and <code>Number("$1,682.39")</code> being <code>NaN</code></td></tr><tr><td class="col-narrow"><code>data</code></td><td><code>src/sandbox-data.mjs</code></td><td>Exporting a whole table and filtering it in JavaScript — the costly way to get a right answer</td></tr></tbody></table></div>
+<p><code>data</code> is the engine for reads. It owns one implementation of criteria quoting, one <code>SELECT</code> builder, and one export-job polling loop, and the <code>query_analytics_data</code> tool reaches them by running a generated program through the <em>same</em> sandbox rather than by reimplementing any of it on the host. That is why a tool call and a hand-written program get identical quoting, identical pacing, identical budgets and identical audit records.</p>
+<p>What stays on the host is only what cannot run inside the isolate: <code>src/data-engine.mjs</code> routes a request to the view export or the SQL job, builds the program, and caps the result — the cap being outside the sandbox precisely because a program cannot be trusted to bound its own answer.</p>
+<p><a href="11-data-engine.html">Reading data</a> is the user-facing reference.</p>
 </section>
 <section id="where-the-accuracy-comes-from">
-<h2><span class="num">04</span>Where the accuracy comes from</h2>
+<h2><span class="num">05</span>Where the accuracy comes from</h2>
 <p>Signatures tell a model <em>what it can call</em>. They do not tell it that criteria strings follow a particular SQL-like grammar, that <code>CONFIG</code> must be stringified and URL-encoded, or that a bulk export is three calls and a poll. Those are the things generated code gets wrong.</p>
 <p>So the <strong>OKF knowledge base</strong> ships with the server and is exposed as <code>get_analytics_guide</code>. Its source of truth is the published bundle at <strong><a href="https://github.com/zoho/analytics-okf">github.com/zoho/analytics-okf</a></strong> — <code>npm run build:knowledge</code> reads that repository's root <code>manifest.json</code> to resolve the current version, then its <code>llms.txt</code> link index, exactly as that repository instructs. It is not built from any local checkout:</p>
 <div class="table-wrap"><table><thead><tr><th class="col-narrow">Content</th><th>Count</th><th>What it is for</th></tr></thead><tbody><tr><td class="col-narrow">Playbooks</td><td>8</td><td>Multi-step recipes: asynchronous export, large import, resolving identifiers, sharing with row filters, scheduling email, managing users, AutoML, multi-tenant embedding</td></tr><tr><td class="col-narrow">References</td><td>9</td><td>Criteria grammar, request conventions, job polling, identifiers, response envelope, export and import enums, HTTP statuses, rate limits</td></tr><tr><td class="col-narrow">Error codes</td><td>385</td><td>Every documented code, with its meaning, resolution and whether it is retryable</td></tr></tbody></table></div>
@@ -131,25 +142,25 @@
 <ul><li><strong>Search points at the playbook.</strong> Ask for export-job operations and the result ends with <em>"Before writing code, consider reading: <code>get_analytics_guide("export-data-asynchronously")</code>"</em>.</li><li><strong>Failures are annotated.</strong> Any four-digit code in an error message gets its documented meaning and resolution attached, so the model can correct itself rather than guess.</li></ul>
 </section>
 <section id="the-ten-api-domains">
-<h2><span class="num">05</span>The ten API domains</h2>
+<h2><span class="num">06</span>The ten API domains</h2>
 <p>The catalog is tagged by the domain each operation comes from, mirroring <code>v2.0/oas/&lt;domain&gt;-grouped-api.json</code>:</p>
 <div class="table-wrap"><table><thead><tr><th class="col-narrow">Domain</th><th>Operations</th><th>Covers</th></tr></thead><tbody><tr><td class="col-narrow"><code>workspace-management</code></td><td>35</td><td>Workspaces, backups, linking, templates, variables</td></tr><tr><td class="col-narrow"><code>data-modeling-schema</code></td><td>33</td><td>Tables, columns, formulas, query tables, lookups</td></tr><tr><td class="col-narrow"><code>user-groups</code></td><td>26</td><td>Users, groups, roles, portals</td></tr><tr><td class="col-narrow"><code>views-management</code></td><td>26</td><td>Views, folders, tags, trash, copy and move</td></tr><tr><td class="col-narrow"><code>data-operations</code></td><td>20</td><td>Rows, imports, exports, bulk jobs, data sync</td></tr><tr><td class="col-narrow"><code>share-publish</code></td><td>20</td><td>Sharing, permissions, embed URLs, public links, slideshows</td></tr><tr><td class="col-narrow"><code>schedules-alerts</code></td><td>16</td><td>Email schedules and data alerts</td></tr><tr><td class="col-narrow"><code>dsml</code></td><td>11</td><td>AutoML analyses, training, predictions</td></tr><tr><td class="col-narrow"><code>org-management</code></td><td>10</td><td>Organizations, subscriptions, security controls</td></tr><tr><td class="col-narrow"><code>reports-dashboards</code></td><td>6</td><td>Charts, pivots, summaries, dashboards</td></tr></tbody></table></div>
 <p><code>ZA_DOMAINS</code> restricts a deployment to any subset, and <code>search_analytics_api</code> takes an optional <code>domain</code> argument. See <a href="02-install.html#choosing-what-to-expose">Choosing what to expose</a>.</p>
 </section>
 <section id="dependencies-and-why-they-are-contained">
-<h2><span class="num">06</span>Dependencies, and why they are contained</h2>
+<h2><span class="num">07</span>Dependencies, and why they are contained</h2>
 <div class="table-wrap"><table><thead><tr><th class="col-narrow">Package</th><th>Role</th></tr></thead><tbody><tr><td class="col-narrow"><code>@modelcontextprotocol/sdk</code></td><td>the MCP server, OAuth 2.1, HTTP transport</td></tr><tr><td class="col-narrow"><code>@utcp/code-mode</code></td><td>the sandbox and the tool bridge</td></tr><tr><td class="col-narrow"><code>@utcp/http</code></td><td>makes the real API calls from the call templates</td></tr><tr><td class="col-narrow"><code>@utcp/text</code></td><td>hands the manual over inline, so nothing is fetched</td></tr><tr><td class="col-narrow"><code>isolated-vm</code></td><td>the V8 isolate itself</td></tr><tr><td class="col-narrow"><code>express</code></td><td>the HTTP layer, used only by the unreleased multi-user server</td></tr></tbody></table></div>
 <p>Every <code>@utcp/*</code> import lives in a single file, <code>src/catalog.mjs</code>. That is deliberate: UTCP is a young project with a small user base, and confining it to one module means it can be replaced without touching anything else. The server uses exactly three of its functions.</p>
 <div class="note note--info"><div class="note__title">Search deliberately does not use UTCP</div><p>UTCP's own tool search is plain word matching, and it failed on the way people actually phrase things — <em>"how much revenue did we make"</em> returned unrelated operations. <code>search_analytics_api</code> uses its own index with synonym expansion and field weighting, folding UTCP's results in only as a ranking bonus. UTCP owns the calling, not the finding.</p></div>
 </section>
 <section id="what-running-it-against-a-real-organization-changed">
-<h2><span class="num">07</span>What running it against a real organization changed</h2>
-<p>Four things only a live API could reveal, each now covered by a test:</p>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Found</th><th>Why it mattered</th></tr></thead><tbody><tr><td class="col-narrow"><code>expires_in</code> is <strong>milliseconds</strong> (<code>3600000</code>) alongside <code>expires_in_sec</code> (<code>3600</code>)</td><td>Taking it at face value made a one-hour token look valid for 41 days, so it was never refreshed and every call failed with 8535 an hour in</td></tr><tr><td class="col-narrow">An 81-workspace name sweep trips <strong>error 6045</strong></td><td>The limit is a <em>rate over a window</em>, not a gap between calls — measured: 53/min ran clean, 105/min tripped after 27 calls, 188/min after 5. A fixed delay was the wrong shape; calls now go through a sliding window capped at 55/min, with 6 s / 15 s / 30 s backoff</td></tr><tr><td class="col-narrow">A rate-limited sweep cannot finish in time</td><td>Covering 25 of 81 workspaces and reporting "no such view" is a false negative. An unfinished search now says so instead of claiming absence</td></tr><tr><td class="col-narrow">Export returns rows as a <strong>flat array</strong> in <code>data</code></td><td><code>data.rows</code> is <code>undefined</code>, which <code>?? []</code> turns into a confident "no data" for a table with 755 rows</td></tr><tr><td class="col-narrow">Values are <strong>formatted strings</strong> (<code>"$1,682.39"</code>)</td><td><code>Number()</code> gives <code>NaN</code>, so sums silently come out as 0</td></tr></tbody></table></div>
+<h2><span class="num">08</span>What running it against a real organization changed</h2>
+<p>Things only a live API could reveal, each now covered by a test:</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Found</th><th>Why it mattered</th></tr></thead><tbody><tr><td class="col-narrow"><code>expires_in</code> is <strong>milliseconds</strong> (<code>3600000</code>) alongside <code>expires_in_sec</code> (<code>3600</code>)</td><td>Taking it at face value made a one-hour token look valid for 41 days, so it was never refreshed and every call failed with 8535 an hour in</td></tr><tr><td class="col-narrow">An 81-workspace name sweep trips <strong>error 6045</strong></td><td>The limit is a <em>rate over a window</em>, not a gap between calls — measured: 53/min ran clean, 105/min tripped after 27 calls, 188/min after 5. A fixed delay was the wrong shape; calls now go through a sliding window capped at 55/min, with 6 s / 15 s / 30 s backoff</td></tr><tr><td class="col-narrow">A rate-limited sweep cannot finish in time</td><td>Covering 25 of 81 workspaces and reporting "no such view" is a false negative. An unfinished search now says so instead of claiming absence</td></tr><tr><td class="col-narrow">Export returns rows as a <strong>flat array</strong> in <code>data</code></td><td><code>data.rows</code> is <code>undefined</code>, which <code>?? []</code> turns into a confident "no data" for a table with 755 rows</td></tr><tr><td class="col-narrow">Values are <strong>formatted strings</strong> (<code>"$1,682.39"</code>)</td><td><code>Number()</code> gives <code>NaN</code>, so sums silently come out as 0</td></tr><tr><td class="col-narrow"><code>tableCriteriaList</code> on the SQL export job is <strong>silently ignored</strong></td><td>Documented as one filter per table, with <code>7836</code> for a table the statement does not reference. Measured: HTTP 200 and unfiltered rows. Row selection for that path belongs in the <code>WHERE</code> clause</td></tr><tr><td class="col-narrow">A <code>SELECT</code> cannot name a chart, pivot, summary or dashboard</td><td>The server answers <code>7409</code>, <em>"the table does not exist in this workspace"</em>, which reads as a missing object rather than as the wrong route. The engine asks the view's type first and falls back to the view export with <code>criteria</code></td></tr><tr><td class="col-narrow"><code>jobCode</code> is a <strong>string</strong> (<code>"1004"</code>), and the download has <strong>no envelope</strong></td><td>Polling on the human <code>jobStatus</code> text alone is fragile, and the downloaded file is <code>{"data": [...]}</code> with no <code>status</code> wrapper</td></tr></tbody></table></div>
 <p>The last two are the dangerous pair: neither raises an error, both produce a plausible wrong answer. They survived every mock-based test because the mock returned the shape the documentation <em>claimed</em>, not the shape the API <em>sends</em> — so <code>test/mock-analytics.mjs</code> was corrected to match the real responses, which is what makes those tests meaningful.</p>
 </section>
 <section id="where-the-catalog-comes-from">
-<h2><span class="num">08</span>Where the catalog comes from</h2>
+<h2><span class="num">09</span>Where the catalog comes from</h2>
 <pre><code class="lang-bash">npm run build:manual      # v2.0/oas/*.json -&gt; manual/analytics.utcp.json
 npm run build:knowledge   # github.com/zoho/analytics-okf -&gt; knowledge/knowledge.json
 npm run build             # both
@@ -173,6 +184,7 @@ node tools/build-knowledge.mjs --verify ../v2.0/okf   # does a checkout match pu
     <a href="#the-three-layers">The three layers</a>
     <a href="#what-utcp-is">What UTCP is</a>
     <a href="#what-code-mode-is">What code mode is</a>
+    <a href="#what-the-sandbox-is-given-before-the-models-code">What the sandbox is given before the model&#x27;s code</a>
     <a href="#where-the-accuracy-comes-from">Where the accuracy comes from</a>
     <a href="#the-ten-api-domains">The ten API domains</a>
     <a href="#dependencies-and-why-they-are-contained">Dependencies, and why they are contained</a>
@@ -197,6 +209,7 @@ node tools/build-knowledge.mjs --verify ../v2.0/okf   # does a checkout match pu
       <a href="08-engine.html">08 &nbsp;How the engine works</a>
       <a href="09-credentials.html">09 &nbsp;Credentials &amp; secrets</a>
       <a href="10-audit.html">10 &nbsp;Audit logging</a>
+      <a href="11-data-engine.html">11 &nbsp;Reading data</a>
     </div>
     <div>
       <h2>Reference</h2>
@@ -211,7 +224,7 @@ node tools/build-knowledge.mjs --verify ../v2.0/okf   # does a checkout match pu
       that lets AI agents run sandboxed code against the Analytics v2 API,
       powered by the UTCP code-mode engine.</p>
       <p>Rendered from the Markdown in this folder by <code>build.py</code>.
-      Generated 2026-11-23.</p>
+      Generated 2026-11-24.</p>
       <p><strong>zoho-analytics-codemode v1.0.0. Read-only by default.</strong></p>
     </div>
   </div>

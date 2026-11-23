@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>Using it &mdash; Zoho Analytics Code Mode for AI agents</title>
-<meta name="description" content="How to get good results from Zoho Analytics Code Mode — worked examples, what makes a good prompt, and how the four tools work together.">
+<meta name="description" content="How to get good results from Zoho Analytics Code Mode — worked examples, what makes a good prompt, and how the five tools work together.">
 <link rel="stylesheet" href="assets/migration.css">
 <script src="assets/migration.js" defer></script>
 </head>
@@ -30,6 +30,7 @@
       <a href="08-engine.html">Engine</a>
       <a href="09-credentials.html">Credentials</a>
       <a href="10-audit.html">Audit</a>
+      <a href="11-data-engine.html">Reading data</a>
     </nav>
     <button class="icon-btn nav-toggle" id="nav-toggle" type="button"
             aria-expanded="false" aria-controls="sidebar"
@@ -65,6 +66,7 @@
     <a href="08-engine.html"><span class="n">08</span><span>How the engine works</span></a>
     <a href="09-credentials.html"><span class="n">09</span><span>Credentials &amp; secrets</span></a>
     <a href="10-audit.html"><span class="n">10</span><span>Audit logging</span></a>
+    <a href="11-data-engine.html"><span class="n">11</span><span>Reading data</span></a>
     <h2>Source</h2>
     <a href="https://github.com/sathishkumar-ks-8646/za-codemode/blob/main/guide/03-using-it.md"><span class="n">md</span><span>This page as Markdown</span></a>
     <a href="https://github.com/sathishkumar-ks-8646/za-codemode"><span class="n">&#8212;</span><span>Repository</span></a>
@@ -82,7 +84,8 @@
 <section id="the-normal-flow">
 <h2><span class="num">01</span>The normal flow</h2>
 <p>Every task follows the same shape, and your agent does it on its own:</p>
-<ol><li><strong><code>find_analytics_objects</code></strong> — whenever you name a table, view or workspace, it resolves that name to a real ID first.</li><li><strong><code>search_analytics_api</code></strong> — it describes the operation it needs and gets back signatures.</li><li><strong><code>get_analytics_guide</code></strong> — <em>optional</em>, when it needs to know how something behaves.</li><li><strong><code>run_analytics_code</code></strong> — it writes a program and gets back the result.</li></ol>
+<ol><li><strong><code>find_analytics_objects</code></strong> — whenever you name a table, view or workspace, it resolves that name to a real ID first.</li><li><strong><code>query_analytics_data</code></strong> — if the question is <em>about the data</em> (rows matching a filter, a total, a breakdown, a top-N, a count), this answers it on its own, with the work done inside Analytics.</li><li><strong><code>search_analytics_api</code></strong> — otherwise it describes the operation it needs and gets back signatures.</li><li><strong><code>get_analytics_guide</code></strong> — <em>optional</em>, when it needs to know how something behaves.</li><li><strong><code>run_analytics_code</code></strong> — it writes a program and gets back the result.</li></ol>
+<p>Steps 3 to 5 are for everything a single data read cannot answer: several questions at once, a sweep across workspaces, or anything that is not a read.</p>
 </section>
 <section id="finding-your-data">
 <h2><span class="num">02</span>Finding your data</h2>
@@ -125,30 +128,30 @@ rows.groupSum(list, 'Region', 'Sales')      // { West: {...}, East: {...} }</cod
 <section id="worked-example-a-total-across-workspaces">
 <h2><span class="num">04</span>Worked example — a total across workspaces</h2>
 <p>&gt; <strong>You:</strong> What were our East-region sales from July onwards, across every workspace?</p>
-<p>The agent searches, then writes something like:</p>
-<pre><code class="lang-javascript">const CRITERIA = `"Sales"."Region"='East' and "Sales"."Date"&gt;='2026-07-01'`;
-const ws = await za.getOrgWorkspaces({ 'ZANALYTICS-ORGID': ORG_ID });
+<p>The agent resolves the views, then has Analytics do the arithmetic:</p>
+<pre><code class="lang-javascript">const found = await find.views('Sales', { exhaustive: true });
 const totals = {};
 
-for (const w of ws.data.workspaces) {
-  const views = await za.getViews({
-    'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': w.workspaceId, CONFIG: '{}',
+for (const v of found.matches) {
+  const out = await data.aggregate({
+    workspaceId: v.workspaceId,
+    table: v.viewName,
+    by: ['Region'],
+    metrics: [{ fn: 'sum', column: 'Sales', as: 'Total' }],
+    filters: [
+      { column: 'Region', value: 'East' },
+      { column: 'Date', op: 'gte', value: '2026-07-01' },
+    ],
   });
-  for (const v of views.data.views.filter((v) =&gt; v.viewName.includes('Sales'))) {
-    const out = await za.exportDataView({
-      'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': w.workspaceId, 'view-id': v.viewId,
-      CONFIG: JSON.stringify({ responseFormat: 'json', criteria: CRITERIA }),
-    });
-    const list = rows.of(out);          // flat array, not out.data.rows
-    if (list.length) {
-      totals[w.workspaceName] =
-        (totals[w.workspaceName] ?? 0) + rows.sum(list, 'Sales').total;
-    }
+  for (const row of out.rows) {
+    totals[v.workspaceName] = (totals[v.workspaceName] ?? 0) + rows.num(row.Total);
   }
 }
 
 return { totals, grandTotal: Object.values(totals).reduce((a, b) =&gt; a + b, 0) };</code></pre>
-<p>One tool call. The response is a handful of numbers; no row ever reaches the model.</p>
+<p>One tool call, and <strong>no row is ever exported</strong>. Each workspace contributes a single aggregate row, computed by Analytics; <code>rows.num</code> is still needed because even an aggregate comes back as a string.</p>
+<div class="note note--good"><div class="note__title">Why not export and sum in the loop?</div><p>Both give the same number. Only one of them bills export units for every row it then throws away — measured, 128 KB of exported rows against 1.1 KB for the aggregate. See <a href="11-data-engine.html#measured">Reading data</a>.</p></div>
+<p>If a view is a chart, pivot or summary rather than a table, SQL cannot name it; <code>data.rows</code> with the same <code>filters</code> is the route, and the view applies its own aggregation. The engine makes that choice itself and says which it took.</p>
 </section>
 <section id="worked-example-an-export-that-has-to-be-polled">
 <h2><span class="num">05</span>Worked example — an export that has to be polled</h2>
@@ -199,7 +202,7 @@ return { rowCount: rows.of(out).length };</code></pre>
 </section>
 <section id="limits-you-will-meet">
 <h2><span class="num">10</span>Limits you will meet</h2>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Limit</th><th>Default</th><th>What happens</th><th>Change it with</th></tr></thead><tbody><tr><td class="col-narrow">API calls per program</td><td>200</td><td>Program stops with a budget error</td><td><code>ZA_MAX_TOOL_CALLS</code></td></tr><tr><td class="col-narrow">Program runtime</td><td>60 s</td><td>Timed out; use an async export job</td><td><code>ZA_EXEC_TIMEOUT_MS</code></td></tr><tr><td class="col-narrow">Sandbox memory</td><td>256 MB</td><td>Out of memory; aggregate in chunks</td><td><code>ZA_EXEC_MEMORY_MB</code></td></tr><tr><td class="col-narrow">Write operations</td><td>hidden</td><td><code>not a function</code></td><td><code>ZA_ALLOW_WRITES</code> — read <a href="04-security.html">Security</a> first</td></tr><tr><td class="col-narrow">API call rate</td><td>55 per minute</td><td>loops are paced; no 6045</td><td><code>ZA_MAX_CALLS_PER_MINUTE</code></td></tr><tr><td class="col-narrow">API domains</td><td>all ten</td><td><code>not a function</code></td><td><code>ZA_DOMAINS</code> — see <a href="02-install.html#choosing-what-to-expose">Choosing what to expose</a></td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Limit</th><th>Default</th><th>What happens</th><th>Change it with</th></tr></thead><tbody><tr><td class="col-narrow">API calls per program</td><td>200</td><td>Program stops with a budget error</td><td><code>ZA_MAX_TOOL_CALLS</code></td></tr><tr><td class="col-narrow">Program runtime</td><td>60 s</td><td>Timed out; use an async export job</td><td><code>ZA_EXEC_TIMEOUT_MS</code></td></tr><tr><td class="col-narrow">Sandbox memory</td><td>256 MB</td><td>Out of memory; aggregate in chunks</td><td><code>ZA_EXEC_MEMORY_MB</code></td></tr><tr><td class="col-narrow">Write operations</td><td>hidden</td><td><code>not a function</code></td><td><code>ZA_ALLOW_WRITES</code> — read <a href="04-security.html">Security</a> first</td></tr><tr><td class="col-narrow">API call rate</td><td>55 per minute</td><td>loops are paced; no 6045</td><td><code>ZA_MAX_CALLS_PER_MINUTE</code></td></tr><tr><td class="col-narrow">API domains</td><td>all ten</td><td><code>not a function</code></td><td><code>ZA_DOMAINS</code> — see <a href="02-install.html#choosing-what-to-expose">Choosing what to expose</a></td></tr><tr><td class="col-narrow">Rows in a result</td><td>500</td><td>Truncated, and the result says so</td><td><code>ZA_MAX_RESULT_ROWS</code></td></tr><tr><td class="col-narrow">Size of a result</td><td>120 KB</td><td>Truncated to valid JSON, and said</td><td><code>ZA_MAX_RESULT_BYTES</code></td></tr><tr><td class="col-narrow">Export job poll gap</td><td>1 s</td><td>Polls are spaced; the budget lasts</td><td><code>ZA_JOB_POLL_INTERVAL_MS</code></td></tr></tbody></table></div>
 </section>
 <section id="a-caution-about-numbers">
 <h2><span class="num">11</span>A caution about numbers</h2>
@@ -245,6 +248,7 @@ return { rowCount: rows.of(out).length };</code></pre>
       <a href="08-engine.html">08 &nbsp;How the engine works</a>
       <a href="09-credentials.html">09 &nbsp;Credentials &amp; secrets</a>
       <a href="10-audit.html">10 &nbsp;Audit logging</a>
+      <a href="11-data-engine.html">11 &nbsp;Reading data</a>
     </div>
     <div>
       <h2>Reference</h2>
@@ -259,7 +263,7 @@ return { rowCount: rows.of(out).length };</code></pre>
       that lets AI agents run sandboxed code against the Analytics v2 API,
       powered by the UTCP code-mode engine.</p>
       <p>Rendered from the Markdown in this folder by <code>build.py</code>.
-      Generated 2026-11-23.</p>
+      Generated 2026-11-24.</p>
       <p><strong>zoho-analytics-codemode v1.0.0. Read-only by default.</strong></p>
     </div>
   </div>

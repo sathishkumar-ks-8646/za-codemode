@@ -71,6 +71,27 @@ const SYNONYMS = {
   folder: ['folder'],
   filter: ['criteria', 'config'],
   where: ['criteria'],
+  // Analytical vocabulary. These questions are answered by the SQL export
+  // job, whose description talks about statements and jobs rather than about
+  // totals, so without the bridge a search for "total sales by region" ranks
+  // the import-details operation above it.
+  group: ['sql', 'query', 'export'],
+  grouped: ['sql', 'query', 'export'],
+  aggregate: ['sql', 'query', 'export'],
+  aggregated: ['sql', 'query', 'export'],
+  average: ['sql', 'query', 'export'],
+  count: ['sql', 'query', 'export'],
+  distinct: ['sql', 'query', 'export'],
+  breakdown: ['sql', 'query', 'export'],
+  top: ['sql', 'query', 'export'],
+  highest: ['sql', 'query', 'export'],
+  largest: ['sql', 'query', 'export'],
+  ranking: ['sql', 'query', 'export'],
+  limit: ['sql', 'query'],
+  preview: ['export', 'data'],
+  sample: ['export', 'data'],
+  matching: ['criteria'],
+  criteria: ['criteria', 'config'],
 };
 
 const STOPWORDS = new Set([

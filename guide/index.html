@@ -30,6 +30,7 @@
       <a href="08-engine.html">Engine</a>
       <a href="09-credentials.html">Credentials</a>
       <a href="10-audit.html">Audit</a>
+      <a href="11-data-engine.html">Reading data</a>
     </nav>
     <button class="icon-btn nav-toggle" id="nav-toggle" type="button"
             aria-expanded="false" aria-controls="sidebar"
@@ -66,7 +67,7 @@
       <a class="btn" href="01-what-it-is.html">How it works</a>
     </div>
     <dl class="hero__facts">
-      <div class="fact fact--new"><dt>Tools your agent sees</dt><dd>4</dd></div>
+      <div class="fact fact--new"><dt>Tools your agent sees</dt><dd>5</dd></div>
       <div class="fact"><dt>Operations reachable</dt><dd>203</dd></div>
       <div class="fact fact--new"><dt>API domains</dt><dd>10</dd></div>
       <div class="fact"><dt>Documented error codes</dt><dd>385</dd></div>
@@ -88,6 +89,7 @@
     <a href="08-engine.html"><span class="n">08</span><span>How the engine works</span></a>
     <a href="09-credentials.html"><span class="n">09</span><span>Credentials &amp; secrets</span></a>
     <a href="10-audit.html"><span class="n">10</span><span>Audit logging</span></a>
+    <a href="11-data-engine.html"><span class="n">11</span><span>Reading data</span></a>
     <h2>Source</h2>
     <a href="https://github.com/sathishkumar-ks-8646/za-codemode/blob/main/guide/index.md"><span class="n">md</span><span>This page as Markdown</span></a>
     <a href="https://github.com/sathishkumar-ks-8646/za-codemode"><span class="n">&#8212;</span><span>Repository</span></a>
@@ -112,8 +114,8 @@
 </section>
 <section id="what-your-agent-sees">
 <h2><span class="num">03</span>What your agent sees</h2>
-<p>Four tools, no matter how large the API is:</p>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Tool</th><th>What it does</th></tr></thead><tbody><tr><td class="col-narrow"><code>find_analytics_objects</code></td><td>Turn "my profit table" into a real workspace and view ID</td></tr><tr><td class="col-narrow"><code>search_analytics_api</code></td><td>Describe a task, get back the exact call signatures for the matching operations</td></tr><tr><td class="col-narrow"><code>get_analytics_guide</code></td><td>Read how something actually works — criteria grammar, job polling, what an error code means</td></tr><tr><td class="col-narrow"><code>run_analytics_code</code></td><td>Run JavaScript against those operations in a sandbox, get back the result</td></tr></tbody></table></div>
+<p>Five tools, no matter how large the API is:</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Tool</th><th>What it does</th></tr></thead><tbody><tr><td class="col-narrow"><code>find_analytics_objects</code></td><td>Turn "my profit table" into a real workspace and view ID</td></tr><tr><td class="col-narrow"><code>search_analytics_api</code></td><td>Describe a task, get back the exact call signatures for the matching operations</td></tr><tr><td class="col-narrow"><code>get_analytics_guide</code></td><td>Read how something actually works — criteria grammar, job polling, what an error code means</td></tr><tr><td class="col-narrow"><code>query_analytics_data</code></td><td>Read rows, totals or a top-N with the filtering and grouping done <strong>inside Analytics</strong></td></tr><tr><td class="col-narrow"><code>run_analytics_code</code></td><td>Run JavaScript against those operations in a sandbox, get back the result</td></tr></tbody></table></div>
 <p>Behind them sit <strong>203 operations</strong> across ten API domains, generated from the published OpenAPI specifications, plus the <strong>OKF knowledge base</strong>: 8 multi-step playbooks, 9 references and 385 documented error codes.</p>
 </section>
 <section id="install-it">
@@ -139,11 +141,11 @@ npm link</code></pre>
 </section>
 <section id="read-the-guide-in-order">
 <h2><span class="num">05</span>Read the guide in order</h2>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Chapter</th><th>What it covers</th></tr></thead><tbody><tr><td class="col-narrow"><a href="01-what-it-is.html">01 What it is</a></td><td>How the sandbox works, where your code runs, and how this relates to the MCP Server</td></tr><tr><td class="col-narrow"><a href="02-install.html">02 Install &amp; configure</a></td><td>Credentials, every environment variable, and per-host setup</td></tr><tr><td class="col-narrow"><a href="03-using-it.html">03 Using it</a></td><td>What good prompts look like, worked examples, and what to expect</td></tr><tr><td class="col-narrow"><a href="04-security.html">04 Security &amp; governance</a></td><td>The sandbox boundary, read-only mode, budgets, and what to tell your security team</td></tr><tr><td class="col-narrow"><a href="05-troubleshooting.html">05 Troubleshooting &amp; FAQ</a></td><td>Symptoms, error codes, and answers</td></tr><tr><td class="col-narrow"><a href="06-operating.html">06 Operating &amp; updating</a></td><td>Updates, API-unit cost, and running it from source</td></tr><tr><td class="col-narrow"><a href="08-engine.html">08 How the engine works</a></td><td>UTCP, code mode, the isolate and the knowledge base</td></tr><tr><td class="col-narrow"><a href="09-credentials.html">09 Credentials &amp; profiles</a></td><td>The login command, tool-group scoping, and where secrets are stored</td></tr><tr><td class="col-narrow"><a href="10-audit.html">10 Audit logging</a></td><td>Two streams, how much history, and what is never written</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Chapter</th><th>What it covers</th></tr></thead><tbody><tr><td class="col-narrow"><a href="01-what-it-is.html">01 What it is</a></td><td>How the sandbox works, where your code runs, and how this relates to the MCP Server</td></tr><tr><td class="col-narrow"><a href="02-install.html">02 Install &amp; configure</a></td><td>Credentials, every environment variable, and per-host setup</td></tr><tr><td class="col-narrow"><a href="03-using-it.html">03 Using it</a></td><td>What good prompts look like, worked examples, and what to expect</td></tr><tr><td class="col-narrow"><a href="04-security.html">04 Security &amp; governance</a></td><td>The sandbox boundary, read-only mode, budgets, and what to tell your security team</td></tr><tr><td class="col-narrow"><a href="05-troubleshooting.html">05 Troubleshooting &amp; FAQ</a></td><td>Symptoms, error codes, and answers</td></tr><tr><td class="col-narrow"><a href="06-operating.html">06 Operating &amp; updating</a></td><td>Updates, API-unit cost, and running it from source</td></tr><tr><td class="col-narrow"><a href="08-engine.html">08 How the engine works</a></td><td>UTCP, code mode, the isolate and the knowledge base</td></tr><tr><td class="col-narrow"><a href="09-credentials.html">09 Credentials &amp; profiles</a></td><td>The login command, tool-group scoping, and where secrets are stored</td></tr><tr><td class="col-narrow"><a href="10-audit.html">10 Audit logging</a></td><td>Two streams, how much history, and what is never written</td></tr><tr><td class="col-narrow"><a href="11-data-engine.html">11 Reading data</a></td><td>Server-side filtering and aggregation, and what it measurably saves</td></tr></tbody></table></div>
 </section>
 <section id="the-four-things-to-know-before-you-start">
 <h2><span class="num">06</span>The four things to know before you start</h2>
-<ol><li><strong>It does not reduce API units.</strong> The same calls are made, so the same units are billed. What it saves is model turns and context.</li><li><strong>Write operations are off by default,</strong> and you can narrow further. 76 read-only operations are exposed out of 203, and <code>ZA_DOMAINS</code> restricts that to the API domains you actually need. See <a href="02-install.html#choosing-what-to-expose">Choosing what to expose</a>.</li><li><strong>Your agent's model writes the code.</strong> A more capable model writes better code. If results are poor, that is the first thing to check.</li><li><strong>It will not guess which table you meant.</strong> When two views both match your words, it returns both and asks. See <a href="03-using-it.html#finding-your-data">Finding your data</a>.</li></ol>
+<ol><li><strong>It reduces API units only where the request gets smaller.</strong> Metadata calls cost what they always did. Export units are billed per 1000 rows <em>produced</em>, so pushing a filter or an aggregate into the request does cut the bill — measured, 128 KB of exported rows became 1.1 KB. Everything else it saves is model turns and context. See <a href="11-data-engine.html">Reading data</a>.</li><li><strong>Write operations are off by default,</strong> and you can narrow further. 76 read-only operations are exposed out of 203, and <code>ZA_DOMAINS</code> restricts that to the API domains you actually need. See <a href="02-install.html#choosing-what-to-expose">Choosing what to expose</a>.</li><li><strong>Your agent's model writes the code.</strong> A more capable model writes better code. If results are poor, that is the first thing to check.</li><li><strong>It will not guess which table you meant.</strong> When two views both match your words, it returns both and asks. See <a href="03-using-it.html#finding-your-data">Finding your data</a>.</li></ol>
 </section>
 <section id="conventions-used-in-this-guide">
 <h2><span class="num">07</span>Conventions used in this guide</h2>
@@ -184,6 +186,7 @@ npm link</code></pre>
       <a href="08-engine.html">08 &nbsp;How the engine works</a>
       <a href="09-credentials.html">09 &nbsp;Credentials &amp; secrets</a>
       <a href="10-audit.html">10 &nbsp;Audit logging</a>
+      <a href="11-data-engine.html">11 &nbsp;Reading data</a>
     </div>
     <div>
       <h2>Reference</h2>
@@ -198,7 +201,7 @@ npm link</code></pre>
       that lets AI agents run sandboxed code against the Analytics v2 API,
       powered by the UTCP code-mode engine.</p>
       <p>Rendered from the Markdown in this folder by <code>build.py</code>.
-      Generated 2026-11-23.</p>
+      Generated 2026-11-24.</p>
       <p><strong>zoho-analytics-codemode v1.0.0. Read-only by default.</strong></p>
     </div>
   </div>

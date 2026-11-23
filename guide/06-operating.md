@@ -28,15 +28,17 @@ Two separate budgets, often confused.
 
 | ^Budget | Who bills it | Effect of this tool |
 |---|---|---|
-| **Analytics API units** | Zoho | **Unchanged.** Same operations, same units |
+| **Analytics API units** | Zoho | **Unchanged for metadata, lower for data reads.** Export units are billed per 1000 rows *produced*, so a pushed-down filter or aggregate cuts them |
 | **Model tokens** | Your AI provider | **Substantially lower.** Fewer turns, and intermediate data never enters context |
 
 In a measured multi-workspace export the same work took 19 model turns one call at a time versus 1 with a program — and 2,092 bytes of intermediate data became 101. Both paths made the same API calls.
 
+For data reads the API bill moves too. Measured on a live 755-row table, *"what did the West sell?"* produced 128,116 bytes of export when the rows were filtered in code and 1,183 bytes when the `GROUP BY` ran inside Analytics — see [Reading data](11-data-engine.md#measured).
+
 `run_analytics_code` reports `apiCalls` on every execution, so you can see unit consumption directly.
 
 :::info Keeping units down
-Filter server-side. A `CONFIG` with `criteria` is applied by Analytics before rows are sent; filtering in the sandbox instead means paying for everything and discarding most of it.
+Filter server-side, and prefer `query_analytics_data` or the `data.*` helpers over a hand-written export: they put `criteria`, `selectedColumns` and the aggregate into the request, which is where Analytics applies them before producing a single row. Filtering in the sandbox instead means paying for everything and discarding most of it.
 :::
 
 ## 3. Running from source
@@ -123,6 +125,7 @@ Each build records the OKF version and the date that bundle was generated, and t
 test/agent.test.mjs        end-to-end over real MCP stdio against the mock
 test/resolve.test.mjs      name resolution: fuzzy matching, ambiguity, refusal
 test/search.test.mjs       search quality — API and user vocabulary
+test/data-engine.test.mjs  pushdown, routing, quoting, refusals and result caps
 test/audit.test.mjs        two streams, rotation, redaction, hash chain
 test/credentials.test.mjs  env -> credential command -> keychain resolution
 test/token-cache.test.mjs  access-token reuse across process restarts
@@ -132,7 +135,7 @@ test/mock-analytics.mjs    the mock API — enforces org scoping, returns real s
 test/mock-accounts.mjs     the mock token endpoint
 ```
 
-`agent.test.mjs` asserts the properties that matter: exactly four tools, signatures stay small, a multi-step program returns only its answer, `ORG_ID` is present, **the sandbox is sealed**, write operations are hidden, the org header and `Bearer` prefix reach the API correctly, and a failed program yields an actionable error.
+`agent.test.mjs` asserts the properties that matter: exactly five tools, signatures stay small, a multi-step program returns only its answer, `ORG_ID` is present, **the sandbox is sealed**, write operations are hidden, the org header and `Bearer` prefix reach the API correctly, and a failed program yields an actionable error.
 
 Two tests to keep green above all others:
 
@@ -149,7 +152,8 @@ Honest notes for anyone maintaining this.
 
 | ^Edge | Detail |
 |---|---|
-| **Results are not size-capped** | A program is told to `return` only its final answer, and that instruction is the only thing keeping a large result out of your context. Nothing truncates it. Ask for aggregates, and see [Using it](03-using-it.md#what-makes-a-good-request) |
+| `tableCriteriaList` is ignored | The SQL export job documents a per-table filter and `7836` for a table the statement does not reference. Measured live, it returns 200 and unfiltered rows. Row selection for that path goes in the `WHERE` clause; see [Reading data](11-data-engine.md#three-things-the-api-does-that-the-documentation-does-not-say) |
+| Column pre-flight costs a call | `data.rows` reads the view's columns before spending an export on a filter that names a wrong one. One extra metadata call per execution, cached within it — worth it against a wasted export, but it is a call |
 | **Write path is lightly tested** | `ZA_ALLOW_WRITES=true` exposes all 203 operations; only the read-only set is covered by tests. Exercise it against a non-production organization first |
 | **Not on npm** | Installed from source while the licence is finalised, so there is no `npx` one-liner and no `--version` flag. The commit is the build identifier |
 | The process does not exit cleanly | `isolated-vm` worker threads outlive `process.exit()`. Tests force exit; agents kill the child on quit, so it does not matter in normal use |
@@ -166,9 +170,11 @@ za-codemode/
 ├── src/
 │   ├── bin.mjs             entry point: no args -> server, args -> CLI
 │   ├── server.mjs          the stdio MCP server
-│   ├── tools.mjs           the four tools
+│   ├── tools.mjs           the five tools
 │   ├── catalog.mjs         the operation catalog and sandbox — the only UTCP usage
 │   ├── sandbox-prelude.mjs `find` (name resolver) and `rows` (result readers)
+│   ├── sandbox-data.mjs    `data` (the pushdown engine) — same file, second half
+│   ├── data-engine.mjs     host side: routing, program building, result caps
 │   ├── search.mjs          query expansion and ranking
 │   ├── knowledge.mjs       the OKF knowledge base: lookup, search, hints
 │   ├── auth.mjs            refresh token -> access token

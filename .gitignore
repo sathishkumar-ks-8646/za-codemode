@@ -9,3 +9,6 @@ node_modules/
 *.log
 *.tmp.mjs
 test/.tmp/
+
+# Left behind if guide/build.py is ever imported rather than run.
+__pycache__/

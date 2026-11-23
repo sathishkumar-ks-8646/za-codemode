@@ -30,6 +30,7 @@
       <a href="08-engine.html">Engine</a>
       <a href="09-credentials.html">Credentials</a>
       <a href="10-audit.html">Audit</a>
+      <a href="11-data-engine.html">Reading data</a>
     </nav>
     <button class="icon-btn nav-toggle" id="nav-toggle" type="button"
             aria-expanded="false" aria-controls="sidebar"
@@ -65,6 +66,7 @@
     <a href="08-engine.html"><span class="n">08</span><span>How the engine works</span></a>
     <a href="09-credentials.html"><span class="n">09</span><span>Credentials &amp; secrets</span></a>
     <a href="10-audit.html"><span class="n">10</span><span>Audit logging</span></a>
+    <a href="11-data-engine.html"><span class="n">11</span><span>Reading data</span></a>
     <h2>Source</h2>
     <a href="https://github.com/sathishkumar-ks-8646/za-codemode/blob/main/guide/05-troubleshooting.md"><span class="n">md</span><span>This page as Markdown</span></a>
     <a href="https://github.com/sathishkumar-ks-8646/za-codemode"><span class="n">&#8212;</span><span>Repository</span></a>
@@ -123,14 +125,14 @@ npm link</code></pre>
 </section>
 <section id="limits-and-timeouts">
 <h2><span class="num">05</span>Limits and timeouts</h2>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Message</th><th>Meaning</th><th>Options</th></tr></thead><tbody><tr><td class="col-narrow">"API call budget exhausted after 200 calls"</td><td>The program looped too far</td><td>Narrow the task; filter with <code>CONFIG</code> criteria instead of fetching everything; or raise <code>ZA_MAX_TOOL_CALLS</code></td></tr><tr><td class="col-narrow">Timed out</td><td>Longer than 60 s</td><td>Use <code>createExportJob*</code> + <code>getExportJobDetails</code> instead of a blocking export; or raise <code>ZA_EXEC_TIMEOUT_MS</code></td></tr><tr><td class="col-narrow">Out of memory</td><td>Accumulated too many rows</td><td>Aggregate per view instead of collecting everything first; or raise <code>ZA_EXEC_MEMORY_MB</code></td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Message</th><th>Meaning</th><th>Options</th></tr></thead><tbody><tr><td class="col-narrow">"API call budget exhausted after 200 calls"</td><td>The program looped too far</td><td>Narrow the task; push the filter to the server with <code>query_analytics_data</code> or <code>data.rows</code> instead of fetching everything; or raise <code>ZA_MAX_TOOL_CALLS</code></td></tr><tr><td class="col-narrow">Timed out</td><td>Longer than 60 s</td><td>Use <code>data.query()</code> or <code>data.export()</code>, which run the job and poll it for you; or raise <code>ZA_EXEC_TIMEOUT_MS</code></td></tr><tr><td class="col-narrow">Out of memory</td><td>Accumulated too many rows</td><td>Aggregate inside Analytics (<code>groupBy</code> + <code>metrics</code>) rather than collecting rows first; or raise <code>ZA_EXEC_MEMORY_MB</code></td></tr><tr><td class="col-narrow">"Showing 500 of N rows"</td><td>The result hit <code>ZA_MAX_RESULT_ROWS</code></td><td>Ask a narrower question. The answer is <strong>not</strong> the first 500 rows of the real one — see <a href="11-data-engine.html#result-caps">Reading data</a></td></tr><tr><td class="col-narrow"><code>ReferenceError: setTimeout is not defined</code></td><td>The program tried to sleep</td><td>The isolate has no timers. Use <code>data.awaitJob()</code>, which polls without one; the server spaces the polls</td></tr></tbody></table></div>
 <p>Raising a limit is usually the wrong first move. Each one is normally telling you the program is fetching data it does not need.</p>
 </section>
 <section id="you-have-no-data-but-you-definitely-do">
 <h2><span class="num">06</span>"You have no data" but you definitely do</h2>
-<p>Almost always one of two things, both of which the <code>rows</code> helpers exist to prevent:</p>
-<ul><li>The program read <code>out.data.rows</code>. Export returns a <strong>flat array</strong> in <code>data</code>; <code>data.rows</code> is <code>undefined</code>, and <code>?? []</code> turns that into an empty result.</li><li>The program summed <code>Number(row.Sales)</code> on <code>"$1,682.39"</code>, which is <code>NaN</code>.</li></ul>
-<p>Ask your agent to show the code. If it is not using <code>rows.of()</code> and <code>rows.sum()</code>, tell it to.</p>
+<p>Almost always one of three things, all of which the helpers exist to prevent:</p>
+<ul><li>The program read <code>out.data.rows</code>. Export returns a <strong>flat array</strong> in <code>data</code>; <code>data.rows</code> is <code>undefined</code>, and <code>?? []</code> turns that into an empty result.</li><li>The program summed <code>Number(row.Sales)</code> on <code>"$1,682.39"</code>, which is <code>NaN</code>.</li><li>The filter compared a formatted value: <code>r.Sales &gt; 1000</code> on <code>"$1,682.39"</code> compares strings. Server-side <code>criteria</code> compares the underlying number, which is one more reason to push it down.</li></ul>
+<p>Ask your agent to show the code. If it is not using <code>rows.of()</code>, <code>rows.sum()</code> or the <code>data.*</code> helpers, tell it to.</p>
 </section>
 <section id="the-answers-look-wrong">
 <h2><span class="num">07</span>The answers look wrong</h2>
@@ -142,7 +144,8 @@ npm link</code></pre>
 <h3 id="q-does-this-replace-the-zoho-analytics-mcp-server">Q. Does this replace the Zoho Analytics MCP Server?</h3>
 <p>No. They complement each other: 26 named tools for single lookups, this for multi-step work. Install both. See <a href="01-what-it-is.html#how-this-relates-to-the-zoho-analytics-mcp-server">the comparison</a>.</p>
 <h3 id="q-does-it-reduce-my-api-unit-consumption">Q. Does it reduce my API unit consumption?</h3>
-<p>No. The same operations are called, so the same units are billed. What it reduces is model turns and context — in a measured multi-workspace export, 19 model turns became 1.</p>
+<p>For data reads, yes — if you let it. Export units are billed per 1000 rows <em>produced</em>, so a filter or an aggregate inside the request cuts them: measured on a live 755-row table, the same question produced 128,116 bytes of export when the rows were filtered in code and 1,183 bytes when the <code>GROUP BY</code> ran inside Analytics. That is what <code>query_analytics_data</code> and the <code>data.*</code> helpers are for — see <a href="11-data-engine.html">Reading data</a>.</p>
+<p>For everything else, no. The same metadata operations are called, so the same units are billed. What that reduces is model turns and context — in a measured multi-workspace export, 19 model turns became 1.</p>
 <h3 id="q-do-i-need-an-openai-or-anthropic-api-key">Q. Do I need an OpenAI or Anthropic API key?</h3>
 <p>No. Your agent supplies the model. This server contains no AI.</p>
 <h3 id="q-where-does-my-data-go">Q. Where does my data go?</h3>
@@ -196,6 +199,7 @@ npm link</code></pre>
       <a href="08-engine.html">08 &nbsp;How the engine works</a>
       <a href="09-credentials.html">09 &nbsp;Credentials &amp; secrets</a>
       <a href="10-audit.html">10 &nbsp;Audit logging</a>
+      <a href="11-data-engine.html">11 &nbsp;Reading data</a>
     </div>
     <div>
       <h2>Reference</h2>
@@ -210,7 +214,7 @@ npm link</code></pre>
       that lets AI agents run sandboxed code against the Analytics v2 API,
       powered by the UTCP code-mode engine.</p>
       <p>Rendered from the Markdown in this folder by <code>build.py</code>.
-      Generated 2026-11-23.</p>
+      Generated 2026-11-24.</p>
       <p><strong>zoho-analytics-codemode v1.0.0. Read-only by default.</strong></p>
     </div>
   </div>
