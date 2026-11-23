@@ -209,6 +209,86 @@
     runFilter();
   }
 
+  /* --------------------------------------------------------------- tabs --- */
+  /* Vertical tab sets. Sets that share a data-tab-group switch together and
+     the choice is remembered, so a reader who picks "Linux" under Install
+     sees Linux everywhere on the page, and again next visit. */
+
+  var tabSets = Array.prototype.slice.call(document.querySelectorAll(".tabs"));
+  if (tabSets.length) {
+    var remember = function (group, label) {
+      if (!group) { return; }
+      try { localStorage.setItem("za-tab:" + group, label); } catch (e) {}
+    };
+    var recall = function (group) {
+      if (!group) { return null; }
+      try { return localStorage.getItem("za-tab:" + group); } catch (e) { return null; }
+    };
+
+    // Show one pane of one set. `propagate` stops the group sync recursing.
+    var select = function (set, tab, propagate) {
+      var tabs = Array.prototype.slice.call(set.querySelectorAll(".tabs__tab"));
+      var panels = Array.prototype.slice.call(set.querySelectorAll(".tabs__panel"));
+      tabs.forEach(function (t, idx) {
+        var on = t === tab;
+        t.setAttribute("aria-selected", on ? "true" : "false");
+        t.setAttribute("tabindex", on ? "0" : "-1");
+        if (panels[idx]) {
+          if (on) { panels[idx].setAttribute("data-active", "true"); }
+          else { panels[idx].removeAttribute("data-active"); }
+        }
+      });
+
+      var group = set.getAttribute("data-tab-group");
+      var label = tab.getAttribute("data-tab-label");
+      if (!propagate || !group) { return; }
+      remember(group, label);
+      tabSets.forEach(function (other) {
+        if (other === set || other.getAttribute("data-tab-group") !== group) { return; }
+        var match = other.querySelector('.tabs__tab[data-tab-label="' + label + '"]');
+        if (match) { select(other, match, false); }
+      });
+    };
+
+    tabSets.forEach(function (set) {
+      var tabs = Array.prototype.slice.call(set.querySelectorAll(".tabs__tab"));
+      if (!tabs.length) { return; }
+
+      // Only now may the stylesheet hide a pane. Before this attribute the
+      // page shows every pane, which is what a reader without JS gets.
+      set.setAttribute("data-enhanced", "");
+
+      set.addEventListener("click", function (ev) {
+        var tab = ev.target.closest ? ev.target.closest(".tabs__tab") : null;
+        if (tab && set.contains(tab)) { select(set, tab, true); }
+      });
+
+      // Left/right and up/down both work: the set is a column on wide
+      // screens and a row on narrow ones, so neither axis is wrong.
+      set.addEventListener("keydown", function (ev) {
+        var current = tabs.indexOf(document.activeElement);
+        if (current < 0) { return; }
+        var next = null;
+        if (ev.key === "ArrowDown" || ev.key === "ArrowRight") { next = current + 1; }
+        else if (ev.key === "ArrowUp" || ev.key === "ArrowLeft") { next = current - 1; }
+        else if (ev.key === "Home") { next = 0; }
+        else if (ev.key === "End") { next = tabs.length - 1; }
+        if (next === null) { return; }
+        ev.preventDefault();
+        next = (next + tabs.length) % tabs.length;
+        select(set, tabs[next], true);
+        tabs[next].focus();
+      });
+
+      // A remembered choice wins over the first pane.
+      var stored = recall(set.getAttribute("data-tab-group"));
+      var preferred = stored
+        ? set.querySelector('.tabs__tab[data-tab-label="' + stored + '"]')
+        : null;
+      select(set, preferred || tabs[0], false);
+    });
+  }
+
   /* --------------------------------------------------------- scrollspy --- */
 
   var tocLinks = Array.prototype.slice.call(document.querySelectorAll(".toc a[href^='#']"));

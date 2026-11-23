@@ -135,7 +135,7 @@ Answering yes to writes exposes create, update and **delete** across every group
 }
 ```
 
-Config file locations, and the form to use if you skipped `npm link`, are in [Install & configure](02-install.md#step-4-add-it-to-your-agent).
+Config file locations, and the form to use if you skipped `npm link`, are in [Install & configure](02-install.md#step-4-connect-your-agent).
 
 ## 5. Several profiles
 

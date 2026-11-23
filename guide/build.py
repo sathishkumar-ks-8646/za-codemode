@@ -20,6 +20,7 @@ here is exactly the subset these documents use:
     | a | b |                 GFM pipe tables
     ```lang … ```             fenced code
     :::kind Title … :::       callout block; kind = danger warn good info sunset
+    +++tabs [group] … +++     vertical tab set, panes split on `+++tab Label`
     <div …> … </div>          a raw HTML block passes through untouched
     **bold** *em* `code` [t](u)
 
@@ -151,6 +152,10 @@ CALLOUT_TITLES = {
 
 
 class Renderer:
+    # Shared across every instance, including the nested ones a callout or a
+    # tab pane creates, so ids stay unique within a page.
+    _tabset = 0
+
     # Asset panels need ids unique across the whole page, including the nested
     # renderers used for their descriptions, so the counter is class-level.
     _asset_n = 0
@@ -195,6 +200,28 @@ class Renderer:
                 self.out.append(
                     "<pre><code%s>%s</code></pre>" % (cls, _esc("\n".join(body)))
                 )
+                continue
+
+            # tabs ----------------------------------------------------------
+            #
+            #   +++tabs os          <- optional group name; sets with the same
+            #   +++tab macOS           name switch together and remember the
+            #   …any markdown…         choice, so "macOS" picked once holds
+            #   +++tab Linux           for the whole page.
+            #   …
+            #   +++
+            #
+            # A distinct fence rather than another `:::` so a tab pane can
+            # contain callouts, which `:::` cannot nest inside itself.
+            if stripped.startswith("+++tabs"):
+                group = stripped[len("+++tabs"):].strip()
+                body = []
+                i += 1
+                while i < n and lines[i].strip() != "+++":
+                    body.append(lines[i])
+                    i += 1
+                i += 1
+                self.out.append(self.tabs(group, body))
                 continue
 
             # callout -------------------------------------------------------
@@ -297,7 +324,7 @@ class Renderer:
         buf = []
         n = len(lines)
         while i < n and lines[i].strip() and not re.match(
-            r"^(#{1,4}\s|[-*]\s|\d+\.\s|\||```|:::|<|-{3,}$)", lines[i].strip()
+            r"^(#{1,4}\s|[-*]\s|\d+\.\s|\||```|:::|\+\+\+|<|-{3,}$)", lines[i].strip()
         ):
             buf.append(lines[i].strip())
             i += 1
@@ -389,6 +416,65 @@ class Renderer:
         title = label or CALLOUT_TITLES.get(kind) or ""
         head = '<div class="note__title">%s</div>' % inline(title) if title else ""
         return '<div class="note note--%s">%s%s</div>' % (_esc(kind), head, inner)
+
+    # -- tabs ---------------------------------------------------------------
+    def tabs(self, group: str, body: list[str]) -> str:
+        """A vertical tab set: the labels in a column, one pane shown at a time.
+
+        Panes are split on `+++tab <Label>` and each is rendered as ordinary
+        markdown, so code, tables and callouts all work inside one.
+
+        Every pane is emitted visible. `migration.js` sets `data-enhanced` and
+        only then does the CSS hide the inactive ones, so with JavaScript off
+        the reader still sees every platform rather than a single mystery pane.
+        A `## ` heading inside a pane would open a stray <section>; put the
+        tab set under a heading instead.
+        """
+        panes: list[tuple[str, list[str]]] = []
+        for raw in body:
+            m = re.match(r"^\+\+\+tab\s+(.*)$", raw.strip())
+            if m:
+                panes.append((m.group(1).strip(), []))
+            elif panes:
+                panes[-1][1].append(raw)
+
+        if not panes:
+            return ""
+
+        Renderer._tabset += 1
+        base = "tabs-%s-%d" % (self.stem, Renderer._tabset)
+
+        buttons, panels = [], []
+        for idx, (label, pane) in enumerate(panes):
+            tab_id, panel_id = "%s-t%d" % (base, idx), "%s-p%d" % (base, idx)
+            first = idx == 0
+            buttons.append(
+                '<button class="tabs__tab" role="tab" type="button" id="%s"'
+                ' aria-controls="%s" aria-selected="%s" tabindex="%s"'
+                ' data-tab-label="%s">%s</button>'
+                % (tab_id, panel_id, "true" if first else "false",
+                   "0" if first else "-1", _esc(label), inline(label))
+            )
+            # The in-pane label is for the scripting-off case: the tab column
+            # cannot line up with stacked panes, so each pane names itself.
+            # The enhanced stylesheet hides it again.
+            panels.append(
+                '<div class="tabs__panel" role="tabpanel" id="%s"'
+                ' aria-labelledby="%s"%s>'
+                '<p class="tabs__panel-label">%s</p>%s</div>'
+                % (panel_id, tab_id, ' data-active="true"' if first else "",
+                   inline(label), Renderer(self.stem).render(pane))
+            )
+
+        return (
+            '<div class="tabs"%s>'
+            '<div class="tabs__list" role="tablist" aria-orientation="vertical">'
+            "%s</div><div class=\"tabs__panels\">%s</div></div>"
+        ) % (
+            ' data-tab-group="%s"' % _esc(group) if group else "",
+            "".join(buttons),
+            "".join(panels),
+        )
 
     # -- downloadable asset ------------------------------------------------
     def asset(self, rel: str, body: list[str]) -> str:

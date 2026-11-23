@@ -789,6 +789,68 @@ dl.kv dd { margin: 0; }
   .asset__btn { flex: 1 1 auto; text-align: center; }
 }
 
+/* ----------------------------------------------------------- 23. Tabs --- */
+/* Vertical tab sets: labels in a column, one pane at a time. Used where the
+   reader needs exactly one variant — their OS, their agent — and the rest is
+   noise on the page.
+
+   Progressive enhancement: every pane ships visible and the hiding rule is
+   gated behind [data-enhanced], which migration.js adds. Scripting off means
+   all panes show, stacked, each under its own label. */
+
+.tabs {
+  display: grid; grid-template-columns: minmax(8.5rem, 13rem) minmax(0, 1fr);
+  border: 1px solid var(--rule); background: var(--paper-2);
+}
+
+.tabs__list {
+  display: flex; flex-direction: column;
+  border-right: 1px solid var(--rule); background: var(--paper-3);
+}
+
+.tabs__tab {
+  appearance: none; background: none; border: 0; border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--rule);
+  padding: 0.62rem 0.85rem; text-align: left; cursor: pointer;
+  font-family: var(--font-display); font-size: var(--t--1);
+  letter-spacing: 0.02em; color: var(--ink-2); white-space: nowrap;
+}
+.tabs__tab:last-child { border-bottom: 0; }
+.tabs__tab:hover { color: var(--ink); background: var(--paper-2); }
+.tabs__tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.tabs__tab[aria-selected="true"] {
+  background: var(--paper-2); color: var(--ink); font-weight: 700;
+  border-left-color: var(--accent);
+  /* Pull the pane and its label together across the dividing rule. */
+  margin-right: -1px; border-right: 1px solid var(--paper-2);
+}
+
+.tabs__panels { min-width: 0; }
+.tabs__panel { padding: 1rem 1.15rem; }
+.tabs__panel > :first-child { margin-top: 0; }
+.tabs__panel > * + * { margin-top: 0.75rem; }
+.tabs__panel pre { margin-left: 0; }
+
+/* Only once the script is driving it does a pane ever hide. */
+.tabs[data-enhanced] .tabs__panel { display: none; }
+.tabs[data-enhanced] .tabs__panel[data-active="true"] { display: block; }
+
+/* Without the script the tab column cannot line up with stacked panes, so
+   each pane carries its own label and a rule to separate it. Enhanced, the
+   label is redundant with the selected tab — hide it, but keep it for screen
+   readers rather than removing it from the tree. */
+.tabs__panel-label {
+  font-family: var(--font-display); font-size: var(--t--1); font-weight: 700;
+  letter-spacing: 0.02em; color: var(--ink-3);
+  text-transform: uppercase; margin-bottom: 0.2rem;
+}
+.tabs:not([data-enhanced]) .tabs__panel + .tabs__panel { border-top: 1px solid var(--rule); }
+.tabs[data-enhanced] .tabs__panel-label {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+
 /* ------------------------------------------------------ 21. Responsive -- */
 
 @media (max-width: 1200px) {
@@ -810,11 +872,33 @@ dl.kv dd { margin: 0; }
   .filterbar { position: static; }
   .doc { padding-top: 1.6rem; }
   .ba { grid-template-columns: minmax(0, 1fr); }
+
+  /* Narrow: the label column becomes a scrolling row above the pane. */
+  .tabs { grid-template-columns: minmax(0, 1fr); }
+  .tabs__list {
+    flex-direction: row; overflow-x: auto; border-right: 0;
+    border-bottom: 1px solid var(--rule); -webkit-overflow-scrolling: touch;
+  }
+  .tabs__tab {
+    border-bottom: 0; border-left: 0; border-top: 3px solid transparent;
+    padding: 0.55rem 0.8rem;
+  }
+  .tabs__tab[aria-selected="true"] {
+    border-left-color: transparent; border-top-color: var(--accent);
+    margin-right: 0; border-right: 0;
+  }
 }
 
 @media print {
   .masthead, .sidebar, .toc, .copy-btn, .filterbar, .pager, .deadline-bar,
-  .asset__actions, .asset-all { display: none !important; }
+  .asset__actions, .asset-all, .tabs__list { display: none !important; }
+  /* Print every pane, each under its own label — paper has no tabs. */
+  .tabs { display: block; border: 1px solid #999; }
+  .tabs .tabs__panel { display: block !important; }
+  .tabs .tabs__panel-label {
+    position: static !important; width: auto !important; height: auto !important;
+    clip-path: none !important; overflow: visible !important;
+  }
   .asset__code[hidden] { display: none !important; }
   body { background: #fff; color: #000; }
   .layout { display: block; }

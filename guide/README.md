@@ -102,7 +102,37 @@ The markdown subset the renderer understands:
 | `++cell++` in a table | Bold in the "new" green. |
 | ` ```lang ` | A code block with a copy button. |
 | `:::kind Title` … `:::` | A callout. `kind` is `danger`, `warn`, `good`, `info` or `sunset`. |
+| `+++tabs [group]` … `+++` | A vertical tab set. Panes are split on `+++tab Label`. |
 | A line starting with `<` | A raw HTML block, passed through. |
+
+### Tabs
+
+Use a tab set where the reader needs **one** of several variants — their
+operating system, their agent — and the others are noise:
+
+```markdown
++++tabs os
++++tab macOS
+…macOS instructions…
++++tab Linux
+…Linux instructions…
++++
+```
+
+Two things to know:
+
+- **Name the group** when more than one set on a page asks the same question.
+  Sets sharing a group name switch together and the choice is remembered, so a
+  reader picking "Linux" once sees Linux everywhere, including next visit.
+- **No `##` headings inside a pane** — a level-2 heading opens a page section
+  and would escape the pane. Put the tab set under the heading instead.
+- **Do not nest one tab set inside another.** `migration.js` finds a set's tabs
+  and panes with `querySelectorAll`, which would reach into a nested set and
+  drive both at once.
+
+Panes may contain anything else, callouts and code blocks included. Every pane
+renders visible; the JavaScript hides the inactive ones, so with scripting off
+the reader sees all platforms rather than one unexplained pane.
 
 ### Callouts carry the safety message
 

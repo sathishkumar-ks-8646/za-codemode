@@ -80,7 +80,7 @@ Third, paste the block it prints into your agent's configuration. It holds no se
 Restart your agent and ask it something. The full walkthrough is in [Install & configure](02-install.md); credentials in detail are in [Credentials & profiles](09-credentials.md).
 
 :::info Not on npm yet
-This is installed from source while the licence is finalised, so there is no `npx` one-liner today. [Install & configure](02-install.md#step-1-get-the-code) covers the clone, and what to do if `npm link` is not available to you.
+This is installed from source while the licence is finalised, so there is no `npx` one-liner today. [Install & configure](02-install.md#step-2-install-the-tool) covers the clone, and what to do if `npm link` is not available to you.
 :::
 
 ## 5. Read the guide in order

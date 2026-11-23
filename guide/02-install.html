@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>Install &amp; configure &mdash; Zoho Analytics Code Mode for AI agents</title>
-<meta name="description" content="How to install Zoho Analytics Code Mode — obtaining OAuth credentials, the complete environment variable reference, and configuration for Claude Desktop, Claude Code, Cursor and VS Code.">
+<meta name="description" content="How to install Zoho Analytics Code Mode — what you need before you start, creating the OAuth credential, installing on macOS, Linux or Windows, and connecting Claude Code, Claude Desktop, Cursor or VS Code.">
 <link rel="stylesheet" href="assets/migration.css">
 <script src="assets/migration.js" defer></script>
 </head>
@@ -76,35 +76,34 @@
   <div class="spine"><i></i><i></i><i></i><i></i></div>
   <p class="eyebrow">Code Mode &middot; <b>Chapter 02</b></p>
   <h1>Install &amp; configure</h1>
-  <p class="lede">Ten minutes. You need Node 20 or newer, git, and a Zoho Analytics account.</p>
+  <p class="lede">Two halves. First you get two things from Zoho — an <strong>Organization ID</strong> and an <strong>OAuth credential</strong>. Then you install the tool and point your agent at it. Budget ten minutes; the Zoho half is most of it.</p>
 </header>
-<section id="prerequisites">
-<h2><span class="num">01</span>Prerequisites</h2>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Requirement</th><th>Check</th></tr></thead><tbody><tr><td class="col-narrow">Node.js 20+</td><td><code>node --version</code></td></tr><tr><td class="col-narrow">git</td><td><code>git --version</code></td></tr><tr><td class="col-narrow">An MCP-capable agent</td><td>Claude Desktop, Claude Code, Cursor, VS Code, Windsurf</td></tr><tr><td class="col-narrow">A terminal</td><td><code>login</code> is interactive; your agent cannot run it for you</td></tr><tr><td class="col-narrow">A Zoho Analytics organization</td><td>You need its Organization ID — see <a href="#step-2-create-a-self-client">step 2</a></td></tr></tbody></table></div>
-<div class="note note--info"><div class="note__title">Why Node</div><p>The sandbox is a V8 isolate provided by <code>isolated-vm</code>, a native module. Prebuilt binaries cover macOS on Apple silicon, Linux on x64 and arm64, and Windows on x64, so <code>npm install</code> needs no toolchain on any of those. Elsewhere — an Intel Mac, for instance — it compiles on install and needs Python 3, <code>make</code> and a C++ compiler first.</p></div>
+<div class="note note--info"><div class="note__title">What you are setting up</div><p>A server that runs on your own machine, spawned by your agent. Nothing is hosted, no port is opened, and no AI model is supplied — your agent brings its own.</p></div>
+<section id="what-you-need">
+<h2><span class="num">01</span>What you need</h2>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Requirement</th><th>Check or get it</th></tr></thead><tbody><tr><td class="col-narrow">A Zoho Analytics organization</td><td>You will need its ID — <a href="#step-1-get-your-zoho-credentials">step 1</a></td></tr><tr><td class="col-narrow">An MCP-capable agent</td><td>Claude Code, Claude Desktop, Cursor, VS Code, Windsurf</td></tr><tr><td class="col-narrow">Node.js 20 or newer</td><td><code>node --version</code></td></tr><tr><td class="col-narrow">git</td><td><code>git --version</code></td></tr><tr><td class="col-narrow">A terminal</td><td><code>login</code> asks questions; your agent cannot answer them for you</td></tr></tbody></table></div>
+<div class="note note--info"><div class="note__title">If Node or git are missing</div><div class="tabs" data-tab-group="os"><div class="tabs__list" role="tablist" aria-orientation="vertical"><button class="tabs__tab" role="tab" type="button" id="tabs-02-install-1-t0" aria-controls="tabs-02-install-1-p0" aria-selected="true" tabindex="0" data-tab-label="macOS">macOS</button><button class="tabs__tab" role="tab" type="button" id="tabs-02-install-1-t1" aria-controls="tabs-02-install-1-p1" aria-selected="false" tabindex="-1" data-tab-label="Linux">Linux</button><button class="tabs__tab" role="tab" type="button" id="tabs-02-install-1-t2" aria-controls="tabs-02-install-1-p2" aria-selected="false" tabindex="-1" data-tab-label="Windows">Windows</button></div><div class="tabs__panels"><div class="tabs__panel" role="tabpanel" id="tabs-02-install-1-p0" aria-labelledby="tabs-02-install-1-t0" data-active="true"><p class="tabs__panel-label">macOS</p><pre><code class="lang-bash">brew install node git</code></pre>
+<p>Or download the Node installer from <a href="https://nodejs.org">nodejs.org</a>. git also arrives with the Xcode command line tools: <code>xcode-select --install</code>.</p></div><div class="tabs__panel" role="tabpanel" id="tabs-02-install-1-p1" aria-labelledby="tabs-02-install-1-t1"><p class="tabs__panel-label">Linux</p><pre><code class="lang-bash"># Debian, Ubuntu
+sudo apt install nodejs npm git
+
+# Fedora, RHEL
+sudo dnf install nodejs git</code></pre>
+<p>If your distribution packages a Node older than 20, use <a href="https://github.com/nodesource/distributions">nodesource</a> or <a href="https://github.com/nvm-sh/nvm">nvm</a> instead.</p></div><div class="tabs__panel" role="tabpanel" id="tabs-02-install-1-p2" aria-labelledby="tabs-02-install-1-t2"><p class="tabs__panel-label">Windows</p><pre><code class="lang-powershell">winget install OpenJS.NodeJS.LTS Git.Git</code></pre>
+<p>Or download both installers: <a href="https://nodejs.org">nodejs.org</a> and <a href="https://git-scm.com">git-scm.com</a>. Reopen your terminal afterwards so <code>PATH</code> picks them up.</p></div></div></div></div>
 </section>
-<section id="step-1-get-the-code">
-<h2><span class="num">02</span>Step 1 — Get the code</h2>
-<p>This is not on npm yet, so install it from source:</p>
-<pre><code class="lang-bash">git clone https://github.com/sathishkumar-ks-8646/za-codemode.git
-cd za-codemode
-npm install
-npm link</code></pre>
-<p><code>npm link</code> puts a <code>za-codemode</code> command on your <code>PATH</code>, which is what the rest of this guide and your agent's configuration both call. Confirm it:</p>
-<pre><code class="lang-bash">za-codemode help</code></pre>
-<div class="note note--info"><div class="note__title">If npm link is not available to you</div><p>It writes into your global npm prefix, which some managed machines do not allow. Skip it and use the full path instead — everywhere this guide says <code>za-codemode</code>, write <code>node /path/to/za-codemode/src/bin.mjs</code>:</p>
-<pre><code class="lang-bash">node /path/to/za-codemode/src/bin.mjs login</code></pre>
-<p>The agent configuration in <a href="#step-4-add-it-to-your-agent">step 4</a> shows the matching form.</p></div>
-<p>Keep the clone. The server runs from it — deleting the directory breaks the command.</p>
-</section>
-<section id="step-2-create-a-self-client">
-<h2><span class="num">03</span>Step 2 — Create a Self Client</h2>
-<p>You need three OAuth values from Zoho. Create a <strong>Self Client</strong> in the Developer Console:</p>
-<ol><li>Go to <a href="https://api-console.zoho.com">api-console.zoho.com</a> and sign in with the account that owns the data.</li><li>Choose <strong>Add Client → Self Client → Create</strong>.</li><li>Copy the <strong>Client ID</strong> and <strong>Client Secret</strong>.</li><li>Open the <strong>Generate Code</strong> tab and enter the scopes you need — see <a href="#which-scopes">below</a>.</li><li>Pick a validity of 10 minutes, give it a description, and click <strong>Create</strong>. Copy the code immediately — it is shown once.</li></ol>
-<p>You also need your <strong>Organization ID</strong>: in Zoho Analytics, go to <strong>Settings → Organization</strong>.</p>
+<section id="step-1-get-your-zoho-credentials">
+<h2><span class="num">02</span>Step 1 — Get your Zoho credentials</h2>
+<p>Two values, both from Zoho, both needed before the tool is any use.</p>
+<h3 id="your-organization-id">Your Organization ID</h3>
+<p>In Zoho Analytics, go to <strong>Settings → Organization</strong>. Copy the ID — a long number like <code>2375824000000000001</code>. Every call this tool makes is scoped to it.</p>
+<h3 id="an-oauth-credential">An OAuth credential</h3>
+<p>A <strong>Self Client</strong> is the right kind here: it is for a program acting as you, with no browser sign-in.</p>
+<ol><li>Go to <a href="https://api-console.zoho.com">api-console.zoho.com</a> and sign in with the account that owns the data.</li><li>Choose <strong>Add Client → Self Client → Create</strong>.</li><li>Copy the <strong>Client ID</strong> and <strong>Client Secret</strong>.</li><li>Open the <strong>Generate Code</strong> tab and enter the scopes you need — see <a href="#which-scopes">below</a>.</li><li>Set a validity of 10 minutes, give it a description, and click <strong>Create</strong>.</li></ol>
+<p>Copy the generated code immediately: it is shown once and it expires in minutes. You will paste it in <a href="#step-3-store-your-credentials">step 3</a>, which exchanges it for a refresh token.</p>
+<div class="note note--warn"><div class="note__title">Use a Self Client made for this tool alone</div><p>Then revoking it stops this tool and nothing else. Reusing a credential that other integrations share means you cannot withdraw access from one without breaking the rest.</p></div>
 </section>
 <section id="which-scopes">
-<h2><span class="num">04</span>Which scopes</h2>
+<h2><span class="num">03</span>Which scopes</h2>
 <div class="note note--info"><div class="note__title">The authoritative list is Zoho's</div><p>Scopes are an Analytics API concept, not something this tool defines, and the set grows. Read <a href="https://www.zoho.com/analytics/api/v2/authentication.html">Authentication</a> in the API documentation and choose from there. What follows is orientation, not a substitute.</p></div>
 <p>A scope is <code>ZohoAnalytics.&lt;family&gt;.&lt;operation&gt;</code>, where <code>&lt;operation&gt;</code> is one of <code>read</code>, <code>create</code>, <code>update</code>, <code>delete</code> or <code>all</code>. Supply them to <strong>Generate Code</strong> as a comma-separated list:</p>
 <pre><code class="lang-text">ZohoAnalytics.metadata.read,ZohoAnalytics.data.read,ZohoAnalytics.modeling.read</code></pre>
@@ -113,26 +112,61 @@ npm link</code></pre>
 <p>Three sets that match how this tool is actually used:</p>
 <div class="table-wrap"><table><thead><tr><th class="col-narrow">You want to…</th><th>Grant</th></tr></thead><tbody><tr><td class="col-narrow">Read and analyse, nothing more</td><td><code>ZohoAnalytics.metadata.read</code>, <code>ZohoAnalytics.data.read</code>, <code>ZohoAnalytics.modeling.read</code></td></tr><tr><td class="col-narrow">Also build tables, reports and formulas</td><td>add <code>ZohoAnalytics.modeling.all</code>, <code>ZohoAnalytics.data.all</code></td></tr><tr><td class="col-narrow">Not think about it</td><td><code>ZohoAnalytics.fullaccess.all</code></td></tr></tbody></table></div>
 <div class="note note--danger"><div class="note__title"><code>fullaccess.all</code> is the wrong default for this tool</div><p>It is the simplest answer and the wrong one here. This server executes code written by a language model, and <strong>the OAuth grant — not <code>ZA_ALLOW_WRITES</code> — is the real boundary</strong>: the flag is a setting on your own machine, while the grant is enforced by Zoho. A read-only grant means a misread prompt <em>cannot</em> delete a workspace, whatever the model writes or the configuration says.</p>
-<p>Grant it only when you have a reason, and prefer a Self Client created for this tool alone so it can be revoked without affecting anything else. See <a href="04-security.html#enabling-write-operations">Security</a>.</p></div>
+<p>Grant it only when you have a reason. See <a href="04-security.html#enabling-write-operations">Security</a>.</p></div>
 <div class="note note--warn"><div class="note__title">A missing scope surfaces late</div><p>An access token without the scope an operation needs fails with error <strong>8535</strong>, at the moment your agent makes the call — not at setup. Ask your agent <code>get_analytics_guide("8535")</code> if you see it. If you widen what the server may reach with <code>ZA_DOMAINS</code> or <code>ZA_ALLOW_WRITES</code>, check the grant still covers it.</p></div>
 </section>
-<section id="step-3-store-them">
-<h2><span class="num">05</span>Step 3 — Store them</h2>
-<p>Run this <strong>in a terminal</strong> — not through your agent. It is interactive, and the server your agent spawns has no terminal to prompt from:</p>
+<section id="step-2-install-the-tool">
+<h2><span class="num">04</span>Step 2 — Install the tool</h2>
+<p>Not on npm yet, so it installs from a clone. Three commands anywhere you keep source:</p>
+<div class="tabs" data-tab-group="os"><div class="tabs__list" role="tablist" aria-orientation="vertical"><button class="tabs__tab" role="tab" type="button" id="tabs-02-install-2-t0" aria-controls="tabs-02-install-2-p0" aria-selected="true" tabindex="0" data-tab-label="macOS">macOS</button><button class="tabs__tab" role="tab" type="button" id="tabs-02-install-2-t1" aria-controls="tabs-02-install-2-p1" aria-selected="false" tabindex="-1" data-tab-label="Linux">Linux</button><button class="tabs__tab" role="tab" type="button" id="tabs-02-install-2-t2" aria-controls="tabs-02-install-2-p2" aria-selected="false" tabindex="-1" data-tab-label="Windows">Windows</button></div><div class="tabs__panels"><div class="tabs__panel" role="tabpanel" id="tabs-02-install-2-p0" aria-labelledby="tabs-02-install-2-t0" data-active="true"><p class="tabs__panel-label">macOS</p><pre><code class="lang-bash">git clone https://github.com/sathishkumar-ks-8646/za-codemode.git
+cd za-codemode
+npm install
+npm link</code></pre>
+<p><code>npm link</code> puts a <code>za-codemode</code> command on your <code>PATH</code>. Check it:</p>
+<pre><code class="lang-bash">za-codemode help</code></pre>
+<p>On Apple silicon the sandbox's native module installs from a prebuilt binary, so there is nothing to compile. On an Intel Mac there is no prebuilt binary: install the Xcode command line tools first with <code>xcode-select --install</code>.</p></div><div class="tabs__panel" role="tabpanel" id="tabs-02-install-2-p1" aria-labelledby="tabs-02-install-2-t1"><p class="tabs__panel-label">Linux</p><pre><code class="lang-bash">git clone https://github.com/sathishkumar-ks-8646/za-codemode.git
+cd za-codemode
+npm install
+npm link</code></pre>
+<p><code>npm link</code> puts a <code>za-codemode</code> command on your <code>PATH</code>. Check it:</p>
+<pre><code class="lang-bash">za-codemode help</code></pre>
+<p>Prebuilt binaries cover x64 and arm64, so nothing compiles. If <code>npm link</code> fails on permissions, set a user-owned prefix rather than using <code>sudo</code>:</p>
+<pre><code class="lang-bash">npm config set prefix ~/.local</code></pre></div><div class="tabs__panel" role="tabpanel" id="tabs-02-install-2-p2" aria-labelledby="tabs-02-install-2-t2"><p class="tabs__panel-label">Windows</p><pre><code class="lang-powershell">git clone https://github.com/sathishkumar-ks-8646/za-codemode.git
+cd za-codemode
+npm install
+npm link</code></pre>
+<p><code>npm link</code> puts a <code>za-codemode</code> command on your <code>PATH</code>. Check it:</p>
+<pre><code class="lang-powershell">za-codemode help</code></pre>
+<p>Prebuilt binaries cover x64, so nothing compiles. Use PowerShell rather than Command Prompt — the multi-line commands later in this guide assume it.</p></div></div></div>
+<div class="note note--info"><div class="note__title">If npm link is not available to you</div><p>It writes into your global npm prefix, which some managed machines do not allow. Skip it: everywhere this guide says <code>za-codemode</code>, write <code>node /path/to/za-codemode/src/bin.mjs</code> instead.</p>
+<pre><code class="lang-bash">node /path/to/za-codemode/src/bin.mjs login</code></pre>
+<p><a href="#step-4-connect-your-agent">Step 4</a> shows the matching agent configuration.</p></div>
+<p>Keep the clone. The server runs from it, so deleting the directory breaks the command.</p>
+</section>
+<section id="step-3-store-your-credentials">
+<h2><span class="num">05</span>Step 3 — Store your credentials</h2>
+<p>Run this <strong>in a terminal</strong>, not through your agent. It asks questions, and the server your agent spawns has no terminal to answer them from:</p>
 <pre><code class="lang-bash">za-codemode login</code></pre>
-<p>It asks for your data centre, the Client ID and Secret, your Organization ID, and a refresh token — or paste the Generate Code grant from <a href="#step-2-create-a-self-client">step 2</a> and it will do the exchange for you.</p>
-<p>It then asks <strong>which groups of tools this profile may use</strong> and whether writes are allowed. Pick the smallest set that answers your questions; read-only is the default and the recommendation.</p>
+<p>It asks for your data centre, the Client ID and Secret, the Organization ID, and a refresh token — or paste the Generate Code grant from <a href="#step-1-get-your-zoho-credentials">step 1</a> and it will do the exchange for you.</p>
+<p>Then it asks <strong>which groups of tools this profile may use</strong> and whether writes are allowed. Pick the smallest set that answers your questions; read-only is the default and the recommendation. See <a href="#choosing-what-to-expose">Choosing what to expose</a>.</p>
 <p>Finally it verifies the credential against Zoho before storing anything, so a typo fails here rather than inside your agent days later:</p>
 <pre><code class="lang-text">Verifying... the credential works.
 
 Stored under "zoho-analytics-codemode" / "default" in the Keychain.
   tool groups   data-operations, views-management, reports-dashboards
   data access   read-only</code></pre>
-<p>Credentials go into your operating system's keychain — macOS Keychain, Windows Credential Manager, Linux Secret Service. <a href="09-credentials.html">Credentials &amp; profiles</a> covers the whole command, scripting it, multiple profiles, and the one Linux caveat.</p>
+<p>Credentials go into your operating system's keychain:</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Platform</th><th>Store</th></tr></thead><tbody><tr><td class="col-narrow">macOS</td><td>Keychain</td></tr><tr><td class="col-narrow">Windows</td><td>Credential Manager</td></tr><tr><td class="col-narrow">Linux</td><td>Secret Service — gnome-keyring or KWallet</td></tr></tbody></table></div>
+<p><a href="09-credentials.html">Credentials &amp; profiles</a> covers the whole command, scripting it, several profiles, and the one Linux caveat.</p>
 </section>
-<section id="step-4-add-it-to-your-agent">
-<h2><span class="num">06</span>Step 4 — Add it to your agent</h2>
-<p><code>login</code> prints this block. Note that it holds no credentials:</p>
+<section id="step-4-connect-your-agent">
+<h2><span class="num">06</span>Step 4 — Connect your agent</h2>
+<p><code>login</code> prints the block to paste. It holds no secrets — just the command to run:</p>
+<div class="tabs" data-tab-group="agent"><div class="tabs__list" role="tablist" aria-orientation="vertical"><button class="tabs__tab" role="tab" type="button" id="tabs-02-install-3-t0" aria-controls="tabs-02-install-3-p0" aria-selected="true" tabindex="0" data-tab-label="Claude Code">Claude Code</button><button class="tabs__tab" role="tab" type="button" id="tabs-02-install-3-t1" aria-controls="tabs-02-install-3-p1" aria-selected="false" tabindex="-1" data-tab-label="Claude Desktop">Claude Desktop</button><button class="tabs__tab" role="tab" type="button" id="tabs-02-install-3-t2" aria-controls="tabs-02-install-3-p2" aria-selected="false" tabindex="-1" data-tab-label="Cursor">Cursor</button><button class="tabs__tab" role="tab" type="button" id="tabs-02-install-3-t3" aria-controls="tabs-02-install-3-p3" aria-selected="false" tabindex="-1" data-tab-label="VS Code">VS Code</button><button class="tabs__tab" role="tab" type="button" id="tabs-02-install-3-t4" aria-controls="tabs-02-install-3-p4" aria-selected="false" tabindex="-1" data-tab-label="Windsurf">Windsurf</button></div><div class="tabs__panels"><div class="tabs__panel" role="tabpanel" id="tabs-02-install-3-p0" aria-labelledby="tabs-02-install-3-t0" data-active="true"><p class="tabs__panel-label">Claude Code</p><p>One command, nothing to edit:</p>
+<pre><code class="lang-bash">claude mcp add zoho-analytics-code-mode -- za-codemode</code></pre>
+<p>Check it registered:</p>
+<pre><code class="lang-bash">claude mcp list</code></pre></div><div class="tabs__panel" role="tabpanel" id="tabs-02-install-3-p1" aria-labelledby="tabs-02-install-3-t1"><p class="tabs__panel-label">Claude Desktop</p><p>Edit <code>claude_desktop_config.json</code>:</p>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Platform</th><th>Path</th></tr></thead><tbody><tr><td class="col-narrow">macOS</td><td><code>~/Library/Application Support/Claude/claude_desktop_config.json</code></td></tr><tr><td class="col-narrow">Windows</td><td><code>%APPDATA%\Claude\claude_desktop_config.json</code></td></tr><tr><td class="col-narrow">Linux</td><td><code>~/.config/Claude/claude_desktop_config.json</code></td></tr></tbody></table></div>
 <pre><code class="lang-json">{
   "mcpServers": {
     "zoho-analytics-code-mode": {
@@ -140,7 +174,8 @@ Stored under "zoho-analytics-codemode" / "default" in the Keychain.
     }
   }
 }</code></pre>
-<p>If you skipped <code>npm link</code>, name the entry point directly instead — an absolute path, because your agent does not start in your clone:</p>
+<p>Quit Claude Desktop <strong>completely</strong> and reopen it — closing the window is not enough. The tools then appear in the tools menu.</p>
+<div class="note note--warn"><div class="note__title">Claude Desktop does not read your shell PATH</div><p>On macOS it is launched by the window server, not your shell, so a <code>za-codemode</code> installed by <code>npm link</code> is often invisible to it even though it works in your terminal. If the server fails to start, use the absolute-path form:</p>
 <pre><code class="lang-json">{
   "mcpServers": {
     "zoho-analytics-code-mode": {
@@ -148,20 +183,32 @@ Stored under "zoho-analytics-codemode" / "default" in the Keychain.
       "args": ["/path/to/za-codemode/src/bin.mjs"]
     }
   }
-}</code></pre>
-<h3 id="claude-desktop">Claude Desktop</h3>
-<p>Edit <code>claude_desktop_config.json</code>:</p>
-<ul><li><strong>macOS</strong> <code>~/Library/Application Support/Claude/claude_desktop_config.json</code></li><li><strong>Windows</strong> <code>%APPDATA%\Claude\claude_desktop_config.json</code></li><li><strong>Linux</strong> <code>~/.config/Claude/claude_desktop_config.json</code></li></ul>
-<p>Quit Claude Desktop completely and reopen it. The tools appear in the tools menu.</p>
-<div class="note note--warn"><div class="note__title">Claude Desktop does not read your shell PATH</div><p>On macOS it is launched by the window server, not your shell, so a <code>za-codemode</code> installed by <code>npm link</code> is often invisible to it even though it works in your terminal. If the server fails to start there, use the <code>node</code> + absolute path form above.</p></div>
-<h3 id="claude-code">Claude Code</h3>
-<pre><code class="lang-bash">claude mcp add zoho-analytics-code-mode -- za-codemode</code></pre>
-<h3 id="cursor">Cursor</h3>
-<p>Edit <code>~/.cursor/mcp.json</code> (global) or <code>.cursor/mcp.json</code> (per project), using the same <code>mcpServers</code> block.</p>
-<h3 id="vs-code">VS Code</h3>
-<p>Add the same block under <code>"mcp": { "servers": { … } }</code> in your user or workspace <code>settings.json</code>.</p>
-<h3 id="using-a-profile">Using a profile</h3>
-<p>If you created a named profile, that is the only thing <code>env</code> needs:</p>
+}</code></pre></div></div><div class="tabs__panel" role="tabpanel" id="tabs-02-install-3-p2" aria-labelledby="tabs-02-install-3-t2"><p class="tabs__panel-label">Cursor</p><p>Edit <code>~/.cursor/mcp.json</code> for every project, or <code>.cursor/mcp.json</code> inside one:</p>
+<pre><code class="lang-json">{
+  "mcpServers": {
+    "zoho-analytics-code-mode": {
+      "command": "za-codemode"
+    }
+  }
+}</code></pre></div><div class="tabs__panel" role="tabpanel" id="tabs-02-install-3-p3" aria-labelledby="tabs-02-install-3-t3"><p class="tabs__panel-label">VS Code</p><p>Add this to your user or workspace <code>settings.json</code> — note the <code>servers</code> key, which differs from the others:</p>
+<pre><code class="lang-json">{
+  "mcp": {
+    "servers": {
+      "zoho-analytics-code-mode": {
+        "command": "za-codemode"
+      }
+    }
+  }
+}</code></pre></div><div class="tabs__panel" role="tabpanel" id="tabs-02-install-3-p4" aria-labelledby="tabs-02-install-3-t4"><p class="tabs__panel-label">Windsurf</p><p>Edit <code>~/.codeium/windsurf/mcp_config.json</code>:</p>
+<pre><code class="lang-json">{
+  "mcpServers": {
+    "zoho-analytics-code-mode": {
+      "command": "za-codemode"
+    }
+  }
+}</code></pre></div></div></div>
+<h3 id="using-a-named-profile">Using a named profile</h3>
+<p>If you created one, that is the only thing <code>env</code> needs:</p>
 <pre><code class="lang-json">"env": { "ZA_PROFILE": "eu-reporting" }</code></pre>
 </section>
 <section id="step-5-check-it-works">
@@ -208,12 +255,12 @@ Stored under "zoho-analytics-codemode" / "default" in the Keychain.
 <aside class="toc" aria-label="On this page">
   <nav>
     <h2>On this page</h2>
-    <a href="#prerequisites">Prerequisites</a>
-    <a href="#step-1-get-the-code">Step 1 — Get the code</a>
-    <a href="#step-2-create-a-self-client">Step 2 — Create a Self Client</a>
+    <a href="#what-you-need">What you need</a>
+    <a href="#step-1-get-your-zoho-credentials">Step 1 — Get your Zoho credentials</a>
     <a href="#which-scopes">Which scopes</a>
-    <a href="#step-3-store-them">Step 3 — Store them</a>
-    <a href="#step-4-add-it-to-your-agent">Step 4 — Add it to your agent</a>
+    <a href="#step-2-install-the-tool">Step 2 — Install the tool</a>
+    <a href="#step-3-store-your-credentials">Step 3 — Store your credentials</a>
+    <a href="#step-4-connect-your-agent">Step 4 — Connect your agent</a>
     <a href="#step-5-check-it-works">Step 5 — Check it works</a>
     <a href="#choosing-what-to-expose">Choosing what to expose</a>
     <a href="#configuration-reference">Configuration reference</a>
