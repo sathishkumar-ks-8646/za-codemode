@@ -23,7 +23,9 @@ export function registerTools(server, resolve, {
       title: 'Search the Zoho Analytics API',
       description:
         'Find the Zoho Analytics operations relevant to a task and get their exact '
-        + 'TypeScript signatures for run_analytics_code. ALWAYS call this first: there '
+        + 'call signatures for run_analytics_code. The signatures are type-annotated to '
+        + 'show argument shapes, but the code you write is plain JavaScript — do not copy '
+        + 'the annotations. ALWAYS call this first: there '
         + `are ${operationCount} operations and you need the signatures before you can write `
         + 'code. Describe the operation you need in API terms rather than quoting the '
         + 'user — "export rows from a view with a filter" or "list users in an '
@@ -238,9 +240,14 @@ export function registerTools(server, resolve, {
     {
       title: 'Run code against Zoho Analytics',
       description:
-        'Execute TypeScript against the Zoho Analytics API in a sandbox and return the '
+        'Execute JavaScript against the Zoho Analytics API in a sandbox and return the '
         + 'result. Call search_analytics_api first for signatures, and '
         + 'get_analytics_guide if you are unsure how an operation behaves.\n\n'
+        + 'PLAIN JavaScript only — the sandbox is a bare V8 isolate with no compiler, so '
+        + 'TypeScript syntax is a syntax error. The signatures are type-annotated to show '
+        + 'you the shape of each argument; do not copy the annotations into your code. No '
+        + '`const x: number`, no `interface`, no `as` casts. Modern JavaScript is fine: '
+        + 'async/await, optional chaining, destructuring.\n\n'
         + 'The sandbox provides one global, `za`, with every available operation as an '
         + 'async method, plus the `ORG_ID` constant. It has no network, no imports and '
         + 'no filesystem — `za` is the only way out.\n\n'
@@ -249,7 +256,8 @@ export function registerTools(server, resolve, {
         + "progress notes. CONFIG parameters must be JSON.stringify()'d strings.",
       inputSchema: {
         code: z.string().min(1)
-          .describe('TypeScript statements. Use await, and `return` the final result.'),
+          .describe('Plain JavaScript statements, no type annotations. Use await, and '
+            + '`return` the final result.'),
       },
     },
     async ({ code }, extra) => {
@@ -281,7 +289,7 @@ export function registerTools(server, resolve, {
           tool: 'run_analytics_code', scope: scope?.(session),
           code, outcome: 'error', ms: Date.now() - started, error: err?.message,
         });
-        return { isError: true, content: [{ type: 'text', text: explain(err, knowledge) }] };
+        return { isError: true, content: [{ type: 'text', text: explain(err, knowledge, code) }] };
       }
     });
 
@@ -312,10 +320,40 @@ function clientOf(extra) {
   };
 }
 
+/**
+ * TypeScript syntax that a bare V8 isolate rejects.
+ *
+ * The signatures this server hands out are type-annotated, which reads as an
+ * invitation to write TypeScript — but there is no compiler anywhere in the
+ * chain, so `const n: number = 1` dies as "Missing initializer in const
+ * declaration" and an `as` cast as "Unexpected identifier 'as'". Neither
+ * message mentions types, so the model has no way to work out what it did.
+ */
+const TS_SYNTAX = [
+  [/\b(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*:\s*[A-Za-z_$]/, 'a type annotation on a variable'],
+  [/\binterface\s+[A-Za-z_$][\w$]*\s*\{/, 'an `interface` declaration'],
+  [/\s+as\s+(?:string|number|boolean|any|unknown|never|[A-Za-z_$][\w$]*\s*\[\])\b/, 'an `as` cast'],
+  [/\btype\s+[A-Za-z_$][\w$]*\s*=/, 'a `type` alias'],
+  [/\bfunction\s+[A-Za-z_$][\w$]*\s*\([^)]*:\s*[A-Za-z_$]/, 'a typed function parameter'],
+  [/\benum\s+[A-Za-z_$][\w$]*\s*\{/, 'an `enum` declaration'],
+];
+
 /** Turn an execution failure into something the model can act on. */
-export function explain(err, knowledge) {
+export function explain(err, knowledge, code) {
   const message = String(err?.message ?? err);
   const hints = [];
+
+  // Checked first: a syntax error from a type annotation explains every other
+  // symptom, and the raw V8 message actively misdirects.
+  if (code && /SyntaxError|Unexpected identifier|Missing initializer|Unexpected token/i.test(message)) {
+    const found = TS_SYNTAX.filter(([re]) => re.test(code)).map(([, what]) => what);
+    if (found.length) {
+      hints.push(
+        `The sandbox runs PLAIN JavaScript, not TypeScript — there is no compiler. `
+        + `Your program contains ${found.join(' and ')}. Remove the type syntax and `
+        + 'run it again; the signatures are annotated only to show argument shapes.');
+    }
+  }
 
   // Any Zoho error code in the message gets its documented meaning attached,
   // straight from the OKF catalog.

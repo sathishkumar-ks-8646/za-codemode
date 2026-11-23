@@ -148,7 +148,7 @@ await za.exportDataView({
 &gt; get_analytics_guide("8080")   // an error code</code></pre>
 <p>Two things happen without the agent asking. Search results for export-job operations end with a pointer to the asynchronous-export playbook, and any error code in a failed run is annotated with its documented meaning and resolution.</p>
 <h3 id="run-analytics-code"><code>run_analytics_code</code></h3>
-<p>The agent writes TypeScript and the server runs it:</p>
+<p>The agent writes plain JavaScript and the server runs it:</p>
 <pre><code class="lang-javascript">const ws = await za.getOrgWorkspaces({ 'ZANALYTICS-ORGID': ORG_ID });
 let total = 0;
 

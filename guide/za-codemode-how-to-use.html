@@ -1311,7 +1311,7 @@ dl.kv dd { margin: 0; }
 <section id="index--what-your-agent-sees">
 <h2><span class="num">03</span>What your agent sees</h2>
 <p>Four tools, no matter how large the API is:</p>
-<div class="table-wrap"><table><thead><tr><th class="col-narrow">Tool</th><th>What it does</th></tr></thead><tbody><tr><td class="col-narrow"><code>find_analytics_objects</code></td><td>Turn "my profit table" into a real workspace and view ID</td></tr><tr><td class="col-narrow"><code>search_analytics_api</code></td><td>Describe a task, get back the exact call signatures for the matching operations</td></tr><tr><td class="col-narrow"><code>get_analytics_guide</code></td><td>Read how something actually works — criteria grammar, job polling, what an error code means</td></tr><tr><td class="col-narrow"><code>run_analytics_code</code></td><td>Run TypeScript against those operations in a sandbox, get back the result</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th class="col-narrow">Tool</th><th>What it does</th></tr></thead><tbody><tr><td class="col-narrow"><code>find_analytics_objects</code></td><td>Turn "my profit table" into a real workspace and view ID</td></tr><tr><td class="col-narrow"><code>search_analytics_api</code></td><td>Describe a task, get back the exact call signatures for the matching operations</td></tr><tr><td class="col-narrow"><code>get_analytics_guide</code></td><td>Read how something actually works — criteria grammar, job polling, what an error code means</td></tr><tr><td class="col-narrow"><code>run_analytics_code</code></td><td>Run JavaScript against those operations in a sandbox, get back the result</td></tr></tbody></table></div>
 <p>Behind them sit <strong>203 operations</strong> across ten API domains, generated from the published OpenAPI specifications, plus the <strong>OKF knowledge base</strong>: 8 multi-step playbooks, 9 references and 385 documented error codes.</p>
 </section>
 <section id="index--install-it">
@@ -1425,7 +1425,7 @@ await za.exportDataView({
 &gt; get_analytics_guide("8080")   // an error code</code></pre>
 <p>Two things happen without the agent asking. Search results for export-job operations end with a pointer to the asynchronous-export playbook, and any error code in a failed run is annotated with its documented meaning and resolution.</p>
 <h3 id="01-what-it-is--run-analytics-code"><code>run_analytics_code</code></h3>
-<p>The agent writes TypeScript and the server runs it:</p>
+<p>The agent writes plain JavaScript and the server runs it:</p>
 <pre><code class="lang-javascript">const ws = await za.getOrgWorkspaces({ 'ZANALYTICS-ORGID': ORG_ID });
 let total = 0;
 
@@ -2090,9 +2090,10 @@ test/mock-accounts.mjs     the mock token endpoint</code></pre>
 </section>
 <section id="08-engine--what-code-mode-is">
 <h2><span class="num">03</span>What code mode is</h2>
-<p><strong>Code mode</strong> is the pattern of letting a model write <em>one program</em> that calls many tools, instead of calling them one at a time. Cloudflare named it in 2025; Anthropic ships it as programmatic tool calling, AWS as <code>run_script</code>, Snowflake as its Cortex code execution tool.</p>
-<p><code>@utcp/code-mode</code> is the implementation here. It takes the registered UTCP manual, generates a TypeScript signature per operation, and binds each one as a method on a <code>za</code> global inside an <a href="https://github.com/laverdet/isolated-vm"><code>isolated-vm</code></a> V8 isolate.</p>
+<p><strong>Code mode</strong> is the pattern of letting a model write <em>one program</em> that calls many tools, instead of calling them one at a time. It is becoming standard: Anthropic ships it as programmatic tool calling, AWS as <code>run_script</code>, Snowflake as its Cortex code execution tool.</p>
+<p><code>@utcp/code-mode</code> is the implementation here. It takes the registered UTCP manual, generates a type-annotated signature per operation, and binds each one as a method on a <code>za</code> global inside an <a href="https://github.com/laverdet/isolated-vm"><code>isolated-vm</code></a> V8 isolate.</p>
 <p>When the model's code calls <code>za.exportDataView(...)</code>, that is <strong>not</strong> an HTTP request. It is a callback out of the isolate into the server process, which reads that operation's call template, substitutes the variables, and makes the real call. The isolate has no network of its own — see <a href="#04-security--what-the-sandbox-cannot-do">Security</a>.</p>
+<div class="note note--warn"><div class="note__title">The program is plain JavaScript, not TypeScript</div><p>The signatures are type-annotated so a model can see each argument's shape, but there is <strong>no compiler anywhere in the chain</strong> — the code string goes straight into V8. A type annotation, an <code>interface</code> or an <code>as</code> cast is a syntax error, and V8's message never mentions types. The server detects that case and says so rather than passing the raw error back. Modern JavaScript is fine: <code>async</code>/<code>await</code>, optional chaining, destructuring, spread.</p></div>
 </section>
 <section id="08-engine--where-the-accuracy-comes-from">
 <h2><span class="num">04</span>Where the accuracy comes from</h2>

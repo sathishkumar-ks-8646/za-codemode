@@ -117,9 +117,10 @@
 </section>
 <section id="what-code-mode-is">
 <h2><span class="num">03</span>What code mode is</h2>
-<p><strong>Code mode</strong> is the pattern of letting a model write <em>one program</em> that calls many tools, instead of calling them one at a time. Cloudflare named it in 2025; Anthropic ships it as programmatic tool calling, AWS as <code>run_script</code>, Snowflake as its Cortex code execution tool.</p>
-<p><code>@utcp/code-mode</code> is the implementation here. It takes the registered UTCP manual, generates a TypeScript signature per operation, and binds each one as a method on a <code>za</code> global inside an <a href="https://github.com/laverdet/isolated-vm"><code>isolated-vm</code></a> V8 isolate.</p>
+<p><strong>Code mode</strong> is the pattern of letting a model write <em>one program</em> that calls many tools, instead of calling them one at a time. It is becoming standard: Anthropic ships it as programmatic tool calling, AWS as <code>run_script</code>, Snowflake as its Cortex code execution tool.</p>
+<p><code>@utcp/code-mode</code> is the implementation here. It takes the registered UTCP manual, generates a type-annotated signature per operation, and binds each one as a method on a <code>za</code> global inside an <a href="https://github.com/laverdet/isolated-vm"><code>isolated-vm</code></a> V8 isolate.</p>
 <p>When the model's code calls <code>za.exportDataView(...)</code>, that is <strong>not</strong> an HTTP request. It is a callback out of the isolate into the server process, which reads that operation's call template, substitutes the variables, and makes the real call. The isolate has no network of its own — see <a href="04-security.html#what-the-sandbox-cannot-do">Security</a>.</p>
+<div class="note note--warn"><div class="note__title">The program is plain JavaScript, not TypeScript</div><p>The signatures are type-annotated so a model can see each argument's shape, but there is <strong>no compiler anywhere in the chain</strong> — the code string goes straight into V8. A type annotation, an <code>interface</code> or an <code>as</code> cast is a syntax error, and V8's message never mentions types. The server detects that case and says so rather than passing the raw error back. Modern JavaScript is fine: <code>async</code>/<code>await</code>, optional chaining, destructuring, spread.</p></div>
 </section>
 <section id="where-the-accuracy-comes-from">
 <h2><span class="num">04</span>Where the accuracy comes from</h2>

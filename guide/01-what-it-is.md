@@ -113,7 +113,7 @@ Two things happen without the agent asking. Search results for export-job operat
 
 ### `run_analytics_code`
 
-The agent writes TypeScript and the server runs it:
+The agent writes plain JavaScript and the server runs it:
 
 ```javascript
 const ws = await za.getOrgWorkspaces({ 'ZANALYTICS-ORGID': ORG_ID });

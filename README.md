@@ -31,9 +31,9 @@ The agent sees **four tools**:
 | Tool | What it does |
 |---|---|
 | `find_analytics_objects` | resolves "my profit table" / "the sum variable" to real IDs |
-| `search_analytics_api` | finds operations, returns TypeScript signatures |
+| `search_analytics_api` | finds operations, returns type-annotated signatures |
 | `get_analytics_guide` | OKF playbooks, references and 385 error codes |
-| `run_analytics_code` | runs TypeScript in a sealed V8 isolate |
+| `run_analytics_code` | runs plain JavaScript in a sealed V8 isolate |
 
 **203 operations** across ten API domains, as a UTCP manual. 76 read-only ones
 are exposed by default; `ZA_DOMAINS` narrows further.

@@ -132,6 +132,46 @@ test('a failed program returns an actionable error, not a stack trace', async ()
   assert.match(res.content[0].text, /search_analytics_api/);
 });
 
+/**
+ * The signatures are type-annotated, so a model may reasonably copy the
+ * annotations into its program — and the isolate has no compiler, so V8
+ * rejects it with a message that never mentions types. Left raw, the model has
+ * nothing to act on and will usually retry the same thing.
+ */
+test('TypeScript syntax is refused with an explanation, not a bare SyntaxError',
+  async () => {
+    const cases = [
+      ['variable annotation', 'const n: number = 41; return n + 1;'],
+      ['interface', 'interface R { a: number } const r = { a: 1 }; return r.a;'],
+      ['as cast', 'const xs = [1, 2] as number[]; return xs.length;'],
+    ];
+
+    for (const [label, code] of cases) {
+      const res = await client.callTool({ name: 'run_analytics_code', arguments: { code } });
+      assert.equal(res.isError, true, label);
+      const text = res.content[0].text;
+      assert.match(text, /PLAIN JavaScript, not TypeScript/, label);
+      assert.match(text, /Remove the type syntax/, label);
+    }
+
+    // The same syntax error without type syntax must NOT claim it is a type
+    // problem — that would send the model hunting for annotations it did not
+    // write.
+    const other = await client.callTool({
+      name: 'run_analytics_code', arguments: { code: 'return (((;' },
+    });
+    assert.equal(other.isError, true);
+    assert.doesNotMatch(other.content[0].text, /not TypeScript/);
+  });
+
+test('plain modern JavaScript still runs', async () => {
+  const res = await client.callTool({
+    name: 'run_analytics_code',
+    arguments: { code: 'const o = { a: { b: 7 } }; return o?.a?.b ?? 0;' },
+  });
+  assert.equal(JSON.parse(res.content[0].text).result, 7);
+});
+
 test('the organization header and auth scheme reach the API correctly', async () => {
   // Regression: UTCP's `headers` map sends "{ZANALYTICS-ORGID}" literally, and
   // its api_key value verbatim. Both must come through as real values or every

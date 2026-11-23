@@ -177,7 +177,13 @@ export class OperationSearch {
   }
 }
 
-/** Render operations as the TypeScript call signatures the model writes against. */
+/**
+ * Render operations as type-annotated call signatures.
+ *
+ * The annotations communicate argument shape; the code the model writes is
+ * plain JavaScript, because the isolate has no compiler. tools.mjs says so in
+ * both tool descriptions, and explain() catches it when a model copies them.
+ */
 export function renderSignatures(operations, globalName = 'za') {
   return operations.map((op) => {
     const required = new Set(op.inputs.required ?? []);

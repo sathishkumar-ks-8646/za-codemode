@@ -54,11 +54,15 @@ UTCP has no token-refresh mechanism, which is why handing a manual to end users 
 
 ## 3. What code mode is
 
-**Code mode** is the pattern of letting a model write *one program* that calls many tools, instead of calling them one at a time. Cloudflare named it in 2025; Anthropic ships it as programmatic tool calling, AWS as `run_script`, Snowflake as its Cortex code execution tool.
+**Code mode** is the pattern of letting a model write *one program* that calls many tools, instead of calling them one at a time. It is becoming standard: Anthropic ships it as programmatic tool calling, AWS as `run_script`, Snowflake as its Cortex code execution tool.
 
-`@utcp/code-mode` is the implementation here. It takes the registered UTCP manual, generates a TypeScript signature per operation, and binds each one as a method on a `za` global inside an [`isolated-vm`](https://github.com/laverdet/isolated-vm) V8 isolate.
+`@utcp/code-mode` is the implementation here. It takes the registered UTCP manual, generates a type-annotated signature per operation, and binds each one as a method on a `za` global inside an [`isolated-vm`](https://github.com/laverdet/isolated-vm) V8 isolate.
 
 When the model's code calls `za.exportDataView(...)`, that is **not** an HTTP request. It is a callback out of the isolate into the server process, which reads that operation's call template, substitutes the variables, and makes the real call. The isolate has no network of its own — see [Security](04-security.md#what-the-sandbox-cannot-do).
+
+:::warn The program is plain JavaScript, not TypeScript
+The signatures are type-annotated so a model can see each argument's shape, but there is **no compiler anywhere in the chain** — the code string goes straight into V8. A type annotation, an `interface` or an `as` cast is a syntax error, and V8's message never mentions types. The server detects that case and says so rather than passing the raw error back. Modern JavaScript is fine: `async`/`await`, optional chaining, destructuring, spread.
+:::
 
 ## 4. Where the accuracy comes from
 

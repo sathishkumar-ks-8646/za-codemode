@@ -42,7 +42,7 @@ Four tools, no matter how large the API is:
 | `find_analytics_objects` | Turn "my profit table" into a real workspace and view ID |
 | `search_analytics_api` | Describe a task, get back the exact call signatures for the matching operations |
 | `get_analytics_guide` | Read how something actually works — criteria grammar, job polling, what an error code means |
-| `run_analytics_code` | Run TypeScript against those operations in a sandbox, get back the result |
+| `run_analytics_code` | Run JavaScript against those operations in a sandbox, get back the result |
 
 Behind them sit **203 operations** across ten API domains, generated from the published OpenAPI specifications, plus the **OKF knowledge base**: 8 multi-step playbooks, 9 references and 385 documented error codes.
 
