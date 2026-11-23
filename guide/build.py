@@ -83,6 +83,10 @@ SKILLS_ZIP = HERE / "assets" / "zoho-analytics-v2-agent-skills.zip"
 # Language hint per suffix, for the embedded source view.
 ASSET_LANG = {".md": "markdown", ".json": "json", ".py": "python"}
 
+# The one-file build: every chapter, the stylesheet and the script inlined into
+# a single document that works from any static URL with nothing beside it.
+SINGLE_FILE = "za-codemode-how-to-use.html"
+
 # --------------------------------------------------------------------------
 # Inline markdown
 # --------------------------------------------------------------------------
@@ -662,9 +666,9 @@ def shell(stem: str, r: Renderer, body: str, meta: dict) -> str:
 
 <div class="deadline-bar">
   <div class="deadline-bar__inner">
-    <span class="chip chip--sdk">{sdk_version}</span>
-    <p>Install with <strong>npx&nbsp;{sdk_version}</strong>, version&nbsp;{deadline}.
-    <a href="02-install.html">Setup in five minutes &rarr;</a></p>
+    <span class="chip chip--sdk">v{deadline}</span>
+    <p>Installed from source &mdash; the package is <strong>not on npm yet</strong>.
+    <a href="02-install.html">Setup in ten minutes &rarr;</a></p>
     <span class="chip chip--deadline">Read-only</span>
     <p>Write operations are <strong>disabled by default</strong>. Enable them
     deliberately. <a href="04-security.html">Security model &rarr;</a></p>
@@ -816,9 +820,169 @@ def bundle_skills() -> tuple[int, int]:
     return len(files), SKILLS_ZIP.stat().st_size
 
 
+def namespace_ids(html: str, stem: str) -> str:
+    """Prefix every id and intra-document reference with the chapter stem.
+
+    Ten chapters in one document means ten chances of an id collision — both
+    `02-install` and `09-credentials` have a "which scopes" heading's worth of
+    overlap. Prefixing makes every anchor unique and turns cross-chapter links
+    into in-page jumps.
+
+    Order matters: same-page `#anchor` links are rewritten first, so the
+    `#stem--anchor` hrefs the cross-chapter rules then produce are already
+    final and never prefixed twice.
+    """
+    for attr in ("id", "aria-controls", "aria-labelledby"):
+        html = re.sub(
+            r'%s="([^"]+)"' % attr,
+            lambda m, a=attr: '%s="%s--%s"' % (a, stem, m.group(1)),
+            html,
+        )
+    html = re.sub(r'href="#([^"]+)"', r'href="#%s--\1"' % stem, html)
+    # page.html#anchor -> #page--anchor, page.html -> #page
+    html = re.sub(r'href="([\w.-]+)\.html#([^"]+)"', r'href="#\1--\2"', html)
+    html = re.sub(r'href="([\w.-]+)\.html"', r'href="#\1"', html)
+    return html
+
+
+def single_file(parts: list[tuple[str, str, str, str, str, str]]) -> str:
+    """Build the one-file edition from the already-rendered chapter bodies.
+
+    `parts` is (stem, num, nav label, title, lede, body) in navigation order.
+    """
+    css = (HERE / "assets" / "migration.css").read_text(encoding="utf-8")
+    js = (HERE / "assets" / "migration.js").read_text(encoding="utf-8")
+    mark = (HERE / "zoho.svg").read_text(encoding="utf-8").strip()
+
+    contents = "\n".join(
+        '<li><a href="#%s"><span class="num">%s</span>%s</a></li>'
+        % (stem, num, htmllib.escape(label))
+        for stem, num, label, _, _, _ in parts
+    )
+
+    chapters = []
+    for stem, num, _, title, lede, body in parts:
+        chapters.append(
+            '<article class="chapter" id="%s">\n'
+            '<header class="page-head">\n'
+            '  <div class="spine">%s</div>\n'
+            '  <p class="eyebrow">Code Mode &middot; <b>Chapter %s</b></p>\n'
+            '  <h1>%s</h1>\n%s</header>\n%s\n</article>'
+            % (stem, SPINE, num, htmllib.escape(title),
+               '  <p class="lede">%s</p>\n' % lede if lede else "",
+               namespace_ids(body, stem))
+        )
+
+    doc = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Zoho Analytics Code Mode &mdash; complete guide</title>
+<meta name="description" content="Install, configure and use Zoho Analytics Code Mode: an MCP server that lets AI agents write and run sandboxed code against the Analytics v2 API. The complete guide in one page.">
+<style>
+{css}
+/* ---- one-file edition ---- */
+.chapter + .chapter {{ margin-top: 3.5rem; border-top: 1px solid var(--rule-2); padding-top: 2.5rem; }}
+.chapter .page-head {{ padding-top: 1rem; }}
+.contents {{ border: 1px solid var(--rule); background: var(--paper-2); padding: 1.1rem 1.25rem; }}
+.contents h2 {{ font-size: var(--t--1); letter-spacing: 0.11em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 0.6rem; }}
+.contents ol {{ list-style: none; padding: 0; columns: 2; column-gap: 2rem; }}
+@media (max-width: 760px) {{ .contents ol {{ columns: 1; }} }}
+.contents li {{ break-inside: avoid; margin: 0.18rem 0; }}
+.contents a {{ text-decoration: none; display: flex; gap: 0.6rem; padding: 0.15rem 0; }}
+.contents a:hover {{ color: var(--accent-text); }}
+.contents .num {{ color: var(--ink-3); font-variant-numeric: tabular-nums; }}
+</style>
+<script>
+{js}
+</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <a class="wordmark" href="#top">
+      {mark}
+      Analytics Code Mode<span>&nbsp;/ UTCP for AI agents</span>
+    </a>
+    <span class="chip">Zoho Analytics API v2</span>
+    <button class="icon-btn" id="theme-toggle" type="button"
+            aria-label="Switch colour theme">&#9680;</button>
+  </div>
+</header>
+
+<div class="deadline-bar">
+  <div class="deadline-bar__inner">
+    <span class="chip chip--sdk">v{version}</span>
+    <p>Installed from source &mdash; the package is <strong>not on npm yet</strong>.
+    <a href="#02-install">Setup in ten minutes &rarr;</a></p>
+    <span class="chip chip--deadline">Read-only</span>
+    <p>Write operations are <strong>disabled by default</strong>. Enable them
+    deliberately. <a href="#04-security">Security model &rarr;</a></p>
+  </div>
+</div>
+
+<div class="layout layout--wide" id="top">
+  <main class="doc" id="main">
+    <nav class="contents" aria-label="Contents">
+      <h2>The whole guide, one page</h2>
+      <ol>
+{contents}
+      </ol>
+    </nav>
+
+{chapters}
+  </main>
+</div>
+
+<footer class="footer">
+  <div class="footer__inner">
+    <div>
+      <p>Setup and usage guide for Zoho Analytics Code Mode, the MCP server
+      that lets AI agents run sandboxed code against the Analytics v2 API,
+      powered by the UTCP code-mode engine.</p>
+      <p>One-file edition, generated {today} from the Markdown in
+      <a href="https://github.com/sathishkumar-ks-8646/za-codemode">github.com/sathishkumar-ks-8646/za-codemode</a>.</p>
+      <p><strong>{package} v{version}. Read-only by default.</strong></p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
+""".format(
+        css=css, js=js, mark=mark, contents=contents,
+        chapters="\n\n".join(chapters),
+        today=date.today().isoformat(),
+        version=TOOL_VERSION, package=PACKAGE_NAME,
+    )
+
+    # This file gets published on its own, where a broken anchor is nobody's
+    # 404 — the page just silently fails to jump. Namespacing is regex work on
+    # generated HTML, so verify the result rather than trusting it.
+    ids = set(re.findall(r'id="([^"]+)"', doc))
+    dead = sorted({a for a in re.findall(r'href="#([^"]+)"', doc) if a not in ids})
+    stray = sorted(set(re.findall(r'href="([\w.-]+\.html[^"]*)"', doc)))
+    if dead or stray:
+        raise SystemExit(
+            "%s is broken:\n%s%s" % (
+                SINGLE_FILE,
+                "".join("  dead anchor #%s\n" % a for a in dead),
+                "".join("  link leaves the file: %s\n" % s for s in stray),
+            )
+        )
+    return doc
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--check", action="store_true", help="validate, write nothing")
+    ap.add_argument("--single", action="store_true",
+                    help="also write %s — every chapter, CSS and JS in one file"
+                         % SINGLE_FILE)
     args = ap.parse_args()
 
     stems = [p[0] for p in PAGES]
@@ -828,6 +992,9 @@ def main() -> int:
     links: list[tuple[str, str]] = []
 
     rendered: dict[str, str] = {}
+    # (stem, num, nav label, title, lede, body) for the one-file edition
+    parts: list[tuple[str, str, str, str, str, str]] = []
+    labels = {p[0]: (p[1], p[2]) for p in PAGES}
 
     for stem in stems:
         src = HERE / (stem + ".md")
@@ -842,6 +1009,8 @@ def main() -> int:
         if stem == "index":
             meta["hero"] = hero_for_index()
         rendered[stem] = shell(stem, r, body, meta)
+        num, label = labels[stem]
+        parts.append((stem, num, label, r.title, r.lede, body))
 
         # ids the shell supplies, plus every id in the rendered body
         anchors[stem + ".html"] = {"main", "sidebar"} | {sid for sid, _ in r.toc} | set(
@@ -871,6 +1040,11 @@ def main() -> int:
             (HERE / (stem + ".html")).write_text(out, encoding="utf-8")
             written += 1
         bundled = bundle_skills()
+        if args.single:
+            out = single_file(parts)
+            (HERE / SINGLE_FILE).write_text(out, encoding="utf-8")
+            print("\n  %-26s written  (%.0f KB, self-contained)"
+                  % (SINGLE_FILE, len(out.encode("utf-8")) / 1024))
 
     verb = "checked" if args.check else "written"
     for stem in stems:

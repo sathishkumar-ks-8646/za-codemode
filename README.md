@@ -9,6 +9,10 @@ AI agent write and run sandboxed code against the Zoho Analytics v2 API.
 `zoho-analytics-codemode` but nothing is published under it while the licence
 is being settled; see [`LICENSE.md`](LICENSE.md).
 
+**The guide for users** is [`guide/za-codemode-how-to-use.html`](guide/za-codemode-how-to-use.html)
+— every chapter in one self-contained file, which is the copy to host. Rebuild
+it with `cd guide && python3 build.py --single`.
+
 A second, multi-user HTTP mode (`src/remote.mjs`) is implemented and tested but
 **unreleased and undocumented** — it is left out of the guide deliberately,
 because the write path and per-user rate limiting are not ready for a shared

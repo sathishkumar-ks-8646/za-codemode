@@ -70,9 +70,12 @@ jobs:
       # The footer carries the render date, so every re-render touches all ten
       # files. -I ignores hunks whose every changed line matches that pattern,
       # leaving real content drift to fail the job.
+      # --single also rebuilds za-codemode-how-to-use.html, the one-file
+      # edition that gets published on its own. Without the flag that file
+      # would quietly keep an older copy of the guide.
       - name: Rendered HTML is in step with the Markdown
         run: |
-          python3 guide/build.py
+          python3 guide/build.py --single
           if ! git diff -I'Generated [0-9]{4}-[0-9]{2}-[0-9]{2}\.' \
                         --exit-code --stat -- guide/; then
             echo
