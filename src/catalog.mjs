@@ -62,6 +62,23 @@ const THROTTLE_CODES = [6045, 6044, 6046];
  * learning nothing.
  */
 const JOB_STATUS_OPS = new Set(['getExportJobDetails', 'getImportJobDetails']);
+
+/**
+ * Metadata reads worth remembering between programs.
+ *
+ * A session asks several questions about one table, and each one previously
+ * re-read the same view metadata: name, type, row count, columns. Measured
+ * over a seven-question benchmark that was seven identical getViewDetails
+ * calls for one table.
+ *
+ * Only descriptions of shape are listed — never anything that returns rows.
+ * Shape changes when somebody edits the model, which is rare and, when it
+ * does happen through this server, invalidates the cache outright.
+ */
+const CACHEABLE_METADATA = new Set([
+  'getViewDetails', 'getViews', 'getWorkspaces',
+  'getCustomFormulaList', 'getAggregateFormulaList',
+]);
 const THROTTLE_PATTERN = new RegExp(
   '(' + THROTTLE_CODES.join('|') + ')|EXCEEDING_USR_PLN_API_FREQ|too many requests|\\b429\\b', 'i');
 
@@ -100,6 +117,7 @@ export class Catalog {
   #audit;
   #window = [];
   #jobPolledAt = new Map();          // job id -> when its status was last read
+  #metaCache = new Map();            // operation+args -> { at, value }
 
   constructor({ config, tokens, manualPath, audit }) {
     this.#config = config;
@@ -246,6 +264,18 @@ export class Catalog {
     }));
   }
 
+  /**
+   * The HTTP method an operation uses, for telling a read from a write.
+   *
+   * Looked up from the manual rather than guessed from the name: `getViews`
+   * and `createTable` are obvious, `refetchDatasource` and `syncDatasource`
+   * are not.
+   */
+  #methodOf(operation) {
+    return this.#exposed.find((t) => t.name === operation
+      || t.name === `za.${operation}`)?.tool_call_template?.http_method ?? 'GET';
+  }
+
   /** Every exposed operation, for offline search strategies. */
   allOperations() {
     return this.#exposed.map((t) => ({
@@ -298,21 +328,50 @@ export class Catalog {
       const started = Date.now();
       const operation = String(name).replace(/^za\./, '');
 
-      // Space repeated status reads of the same job. The first one is never
-      // delayed — a job that finished while the create call was in flight
-      // should be collected immediately.
+      // Space repeated status reads of the same job, backing off as the job
+      // turns out to be slow.
+      //
+      // The first poll used to be immediate, on the reasoning that a job
+      // might have finished while the create call was in flight. Measured
+      // against a live organization it never has — the first poll answers
+      // "1001 JOB NOT INITIATED" every time, so it was a call spent to learn
+      // nothing, on every SQL read the engine makes.
+      //
+      // Job durations were measured at anywhere from under a second to over
+      // five, which is why this backs off rather than picking one interval: a
+      // fixed one-second gap needs six polls to cover a five-second job,
+      // where doubling covers it in four and still catches a fast job on the
+      // first.
       if (JOB_STATUS_OPS.has(operation)) {
         const jobId = String(args?.['job-id'] ?? '');
-        const previous = this.#jobPolledAt.get(jobId);
-        if (previous !== undefined) {
-          const wait = this.#config.jobPollIntervalMs - (Date.now() - previous);
-          if (wait > 0) await sleep(wait);
-        }
-        this.#jobPolledAt.set(jobId, Date.now());
+        const seen = this.#jobPolledAt.get(jobId);
+        const gap = seen
+          ? Math.min(this.#config.jobPollIntervalMs * (1.6 ** (seen.polls - 1)),
+            this.#config.jobPollMaxMs)
+          : this.#config.jobFirstPollMs;
+        const wait = gap - (seen ? Date.now() - seen.at : 0);
+        if (wait > 0) await sleep(wait);
+        this.#jobPolledAt.set(jobId, { at: Date.now(), polls: (seen?.polls ?? 0) + 1 });
+      }
+
+      // A cached shape is returned without a request, so it is not audited and
+      // not counted: nothing went out. The budget decrement above is left in
+      // place deliberately — a program that loops forever over a cached call
+      // is still a program that needs stopping.
+      const cacheKey = CACHEABLE_METADATA.has(operation)
+        ? operation + '\u0000' + JSON.stringify(args ?? {}) : null;
+      if (cacheKey) {
+        const held = this.#metaCache.get(cacheKey);
+        if (held && Date.now() - held.at < this.#config.metadataCacheMs) return held.value;
       }
 
       try {
         const result = await this.#throttled(() => original(name, args));
+        if (cacheKey) this.#metaCache.set(cacheKey, { at: Date.now(), value: result });
+        // Anything that changes the model makes every remembered shape
+        // suspect. Clearing on write is cheaper than reasoning about which
+        // view a given write touched, and wrong far less often.
+        if (WRITE_METHODS.has(this.#methodOf(operation))) this.#metaCache.clear();
         this.#audit?.apiCall({
           requestId: options.requestId, actor: options.actor,
           org: this.#config.orgId, operation,

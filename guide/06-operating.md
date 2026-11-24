@@ -152,7 +152,7 @@ Honest notes for anyone maintaining this.
 
 | ^Edge | Detail |
 |---|---|
-| `tableCriteriaList` is ignored | The SQL export job documents a per-table filter and `7836` for a table the statement does not reference. Measured live, it returns 200 and unfiltered rows. Row selection for that path goes in the `WHERE` clause; see [Reading data](11-data-engine.md#three-things-the-api-does-that-the-documentation-does-not-say) |
+| `tableCriteriaList` is ignored | The SQL export job documents a per-table filter and `7836` for a table the statement does not reference. Measured live, it returns 200 and unfiltered rows. Row selection for that path goes in the `WHERE` clause; see [Reading data](11-data-engine.md#things-the-api-does-that-the-documentation-does-not-say) |
 | Column pre-flight costs a call | `data.rows` reads the view's columns before spending an export on a filter that names a wrong one. One extra metadata call per execution, cached within it — worth it against a wasted export, but it is a call |
 | **Write path is lightly tested** | `ZA_ALLOW_WRITES=true` exposes all 203 operations; only the read-only set is covered by tests. Exercise it against a non-production organization first |
 | **Not on npm** | Installed from source while the licence is finalised, so there is no `npx` one-liner and no `--version` flag. The commit is the build identifier |

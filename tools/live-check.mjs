@@ -57,33 +57,50 @@ const WS = V['workspace-id'];
 const VIEW = V['view-id'];
 const results = [];
 
-/** Bytes the API has returned so far, read from the audit stream. */
-function apiBytes() {
+/**
+ * What the API has cost so far, read from the audit stream.
+ *
+ * Calls matter more than bytes: Analytics bills and rate-limits per request,
+ * and the response body is never charged by volume. A change that trades
+ * 2 KB of metadata for one fewer round trip is a win that a bytes-only
+ * measurement would score as a regression.
+ */
+function apiCost() {
   const path = join(AUDIT_DIR, 'api.jsonl');
-  if (!existsSync(path)) return 0;
-  return readFileSync(path, 'utf8').split('\n').filter(Boolean)
-    .reduce((total, line) => {
-      try { return total + (JSON.parse(line).bytes ?? 0); } catch { return total; }
-    }, 0);
+  if (!existsSync(path)) return { bytes: 0, calls: 0, ops: [] };
+  const lines = readFileSync(path, 'utf8').split('\n').filter(Boolean);
+  let bytes = 0;
+  const ops = [];
+  for (const line of lines) {
+    try {
+      const row = JSON.parse(line);
+      bytes += row.bytes ?? 0;
+      ops.push(row.op);
+    } catch { /* a partially written line is simply not counted yet */ }
+  }
+  return { bytes, calls: ops.length, ops };
 }
 
 async function step(label, name, args) {
   const started = Date.now();
-  const beforeBytes = apiBytes();
+  const before = apiCost();
   const res = await client.callTool({ name, arguments: args });
   const text = res.content[0].text;
   // The audit writer is asynchronous; give it a moment to land.
   await new Promise((done) => setTimeout(done, 150));
+  const after = apiCost();
   const row = {
     label,
     toModel: text.length,
-    fromApi: Math.max(0, apiBytes() - beforeBytes),
+    fromApi: Math.max(0, after.bytes - before.bytes),
+    calls: Math.max(0, after.calls - before.calls),
+    ops: after.ops.slice(before.calls),
     ms: Date.now() - started,
     failed: res.isError === true,
   };
   results.push(row);
   console.log(`\n── ${label}${row.failed ? '  [refused]' : ''} — ${row.toModel} bytes to the `
-    + `model, ${row.fromApi} bytes from the API, ${row.ms} ms`);
+    + `model, ${row.calls} API calls, ${row.fromApi} bytes from the API, ${row.ms} ms`);
   console.log(text.length > 600 ? `${text.slice(0, 600)}…` : text);
   return { text, failed: row.failed };
 }
@@ -175,17 +192,18 @@ await step('data.* from run_analytics_code', 'run_analytics_code', {
 console.log('\n\n=== cost of the same question, by strategy ===');
 const baseline = results.find((r) => r.label.startsWith('BASELINE'));
 const pct = (value, of) => (of && value < of ? `-${(100 - (value / of) * 100).toFixed(1)}%` : '');
-console.log('  to model   from API      ms   strategy');
+console.log('  to model  calls   from API      ms   strategy');
 for (const r of results) {
   console.log(
-    `${String(r.toModel).padStart(10)} ${String(r.fromApi).padStart(10)} `
-    + `${String(r.ms).padStart(7)}   ${r.label}`
+    `${String(r.toModel).padStart(10)} ${String(r.calls).padStart(6)} `
+    + `${String(r.fromApi).padStart(10)} ${String(r.ms).padStart(7)}   ${r.label}`
     + (baseline && r !== baseline
-      ? `  [model ${pct(r.toModel, baseline.toModel) || '+'} / API `
-        + `${pct(r.fromApi, baseline.fromApi) || '='}]`
+      ? `  [model ${pct(r.toModel, baseline.toModel) || '+'}]`
       : ''));
 }
-console.log(`\naudit stream: ${AUDIT_DIR}/api.jsonl`);
+console.log(`\ntotals: ${results.reduce((n, r) => n + r.calls, 0)} API calls, `
+  + `${results.reduce((n, r) => n + r.toModel, 0)} bytes to the model`);
+console.log(`audit stream: ${AUDIT_DIR}/api.jsonl`);
 
 await client.close().catch(() => {});
 setTimeout(() => process.exit(0), 200).unref();

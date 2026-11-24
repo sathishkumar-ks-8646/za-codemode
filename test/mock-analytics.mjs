@@ -44,6 +44,10 @@ const VIEWS = {
     { viewId: '2375824000000020007', viewName: 'Sales_Profit_by_Country', viewType: 'Table' },
     { viewId: '2375824000000020008', viewName: 'Profit Margin Trend', viewType: 'Chart' },
     { viewId: '2375824000000020009', viewName: 'Customer Churn', viewType: 'Table' },
+    // Measured live: a dashboard refuses BOTH export paths with 8119, and a
+    // big table is the case where bounding the read with SQL pays for itself.
+    { viewId: '2375824000000020010', viewName: 'Exec Dashboard', viewType: 'Dashboard' },
+    { viewId: '2375824000000020011', viewName: 'Big Ledger', viewType: 'Table', rowCount: 250000 },
   ],
 };
 
@@ -66,6 +70,24 @@ const FOLDERS = {
     { folderId: '32000001', folderName: 'Tables & Reports', folderDesc: '', isDefault: true },
     { folderId: '32000002', folderName: 'Finance', folderDesc: 'Quarterly packs' },
   ],
+};
+
+/**
+ * Formulas, per view. Only one view has any — which is the point: the engine
+ * must cost nothing on the tables that have none, and those are most of them.
+ */
+/** A dashboard renders views; it has no rows to export. Measured: 8119. */
+function isDashboard(viewId) {
+  return Object.values(VIEWS).flat()
+    .some((v) => v.viewId === viewId && (v.viewType === 'Dashboard' || v.viewType === 'Tab'));
+}
+
+const VIEW_FORMULAS = {
+  '2375824000000020007': {
+    columns: [{ formulaId: '33000010', formulaName: 'Margin %', expression: 'Profit/Sales' }],
+    aggregates: [{ formulaId: '33000001', formulaName: 'Gross Margin',
+      expression: 'sum(Profit)/sum(Sales)' }],
+  },
 };
 
 const FORMULAS = {
@@ -428,6 +450,19 @@ export function startMockAnalytics(port = 0) {
     if ((m = /^\/restapi\/v2\/workspaces\/(\d+)\/aggregateformulas$/.exec(path))) {
       return send({ status: 'success', data: { aggregateFormulas: FORMULAS[m[1]] ?? [] } });
     }
+    // View-scoped formula lists. Empty for every view but the one that has
+    // them, which is the normal case live: most tables define no formulas at
+    // all, and the engine must not pay a call to discover that.
+    if ((m = /^\/restapi\/v2\/workspaces\/(\d+)\/views\/(\d+)\/customformulas$/.exec(path))) {
+      return send({ status: 'success', data: { customFormulas: VIEW_FORMULAS[m[2]]?.columns ?? [] } });
+    }
+    if ((m = /^\/restapi\/v2\/workspaces\/(\d+)\/views\/(\d+)\/aggregateformulas$/.exec(path))) {
+      return send({ status: 'success',
+        data: { aggregateFormulas: VIEW_FORMULAS[m[2]]?.aggregates ?? [] } });
+    }
+    if ((m = /^\/restapi\/v2\/workspaces\/(\d+)\/aggregateformulas\/(\d+)\/value$/.exec(path))) {
+      return send({ status: 'success', data: { value: '0.3184' } });
+    }
 
     // View details, with columns when extended metadata is requested. The
     // owning workspace is part of the answer, as it is live — it is what lets
@@ -438,13 +473,19 @@ export function startMockAnalytics(port = 0) {
       if (!owner) return fail(7103, 404);
       const view = owner[1].find((v) => v.viewId === m[1]);
       const payload = { ...view, workspaceId: owner[0] };
-      if (config.withInvolvedMetaInfo) payload.columns = COLUMNS[m[1]] ?? [];
+      if (config.withInvolvedMetaInfo) {
+        payload.columns = COLUMNS[m[1]] ?? [];
+        // Live, only a Table carries a usable count: a QueryTable reports 0
+        // even when populated, and a chart or pivot reports none at all.
+        if (view.viewType === 'Table') payload.rowCount = view.rowCount ?? (ROWS[m[1]] ?? []).length;
+      }
       return send({ status: 'success', data: { views: payload } });
     }
 
     // Synchronous view export. criteria and selectedColumns are applied HERE,
     // by the server, which is the whole point of the pushdown path.
     if ((m = /^\/restapi\/v2\/workspaces\/(\d+)\/views\/(\d+)\/data$/.exec(path))) {
+      if (isDashboard(m[2])) return fail(8119, 400);
       const bad = unknownColumn(m[2], config.criteria);
       if (bad) return fail(7330, 400);
       const rows = project(
@@ -464,6 +505,7 @@ export function startMockAnalytics(port = 0) {
     // the same paths is the IMPORT job, which is why the method matters.
     if (req.method === 'GET'
         && (m = /^\/restapi\/v2\/bulk\/workspaces\/(\d+)\/views\/(\d+)\/data$/.exec(path))) {
+      if (isDashboard(m[2])) return fail(8119, 400);
       const bad = unknownColumn(m[2], config.criteria);
       if (bad) return fail(7330, 400);
       const jobId = String(9900000000000000000n + BigInt(++jobSeq));

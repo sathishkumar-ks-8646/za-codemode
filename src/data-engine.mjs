@@ -27,12 +27,20 @@
  *           rows, live-connect workspaces and dashboards.
  *   sql   — the bulk export job, three calls. Everything a SELECT can do:
  *           WHERE, GROUP BY, aggregates, ORDER BY, LIMIT. Costs two extra
- *           round trips, which only pays when it removes rows.
+ *           round trips, which buy a bounded result.
  *
- * So: anything that needs real SQL goes to the job, and a plain filtered read
- * stays on the single call. A `limit` on its own is interesting — pushing it
- * down turns three calls into a guaranteed-small answer, which is worth it
- * once the table is big, and the caller is told when that applies.
+ * SQL is the stronger instrument and the default wherever it can express the
+ * question, because the thing being economised is not round trips — it is
+ * rows. Export units are billed per 1000 rows PRODUCED, and rows that reach
+ * the model are the scarcest resource of all. Three small calls beat one call
+ * that moves a table.
+ *
+ * The one case the view export still wins is a read small enough that SQL's
+ * two extra round trips buy nothing: no aggregate, no ordering, no limit, and
+ * a table the server has already told us is small. That judgement needs the
+ * row count, which is not knowable before the metadata call — so `auto` is
+ * resolved in two stages. This function picks from the SHAPE of the request;
+ * `refinePath` below revises it once the view's size and type are known.
  */
 export function choosePath(request) {
   if (request.mode && request.mode !== 'auto') return request.mode;
@@ -40,10 +48,23 @@ export function choosePath(request) {
   if (request.metrics?.length || request.groupBy?.length) return 'sql';
   if (request.orderBy?.length) return 'sql';
   if (request.distinct) return 'sql';
-  if (request.limit && !request.viewId) return 'sql';
+  // A limit or an offset is a bounded read, and bounding it server-side is
+  // the entire difference between 1.9 KB and 128 KB. Previously this applied
+  // only when no viewId was given, which excluded the common case.
+  if (request.limit || request.offset) return 'sql';
   if (!request.viewId && request.table) return 'sql';
   return 'view';
 }
+
+/**
+ * Where "small enough to just read" ends.
+ *
+ * Measured on a live organization: a 755-row, seven-column table is 128 KB
+ * exported whole. At 170 bytes per row, a thousand rows is the point where
+ * one unbounded call stops being cheaper than three bounded ones — above it
+ * the export is producing rows nobody asked for, and billing for them.
+ */
+export const SMALL_TABLE_ROWS = 1000;
 
 /** Reasons a request cannot be answered, in the words of what to do instead. */
 export function validate(request) {
@@ -81,6 +102,13 @@ export function validate(request) {
   return { path, problems };
 }
 
+const REFUSE_DASHBOARD = `
+        throw new Error('STOPPED: "' + view.viewName + '" is a ' + view.viewType
+          + ', which has no row data to read — measured live, both the synchronous '
+          + 'export and the export job answer 8119 for one. A dashboard renders views; '
+          + 'it does not tabulate. Query the tables or reports it is built from, which '
+          + 'find.viewsIn(workspaceId) will list.');`;
+
 /**
  * The program that answers the request.
  *
@@ -91,7 +119,7 @@ export function validate(request) {
  * criteria expression as text — the builders in the prelude do that, with
  * quoting.
  */
-export function buildProgram(request) {
+export function buildProgram(request, { maxRows = 500 } = {}) {
   const { path } = validate(request);
   const spec = {
     workspaceId: String(request.workspaceId),
@@ -110,16 +138,39 @@ export function buildProgram(request) {
     offset: request.offset,
     format: request.format === 'csv' ? 'csv' : 'json',
   };
+  // An OFFSET with no LIMIT is not portable SQL, and an unbounded read is
+  // what this engine exists to prevent anyway. Bounding it at the result cap
+  // changes nothing the caller could have seen — anything past the cap was
+  // going to be trimmed — while stopping the server producing and billing for
+  // rows that would then be thrown away.
+  if (spec.offset && !spec.limit) spec.limit = maxRows;
   const literal = JSON.stringify(spec);
+  const cap = JSON.stringify(maxRows);
 
   if (path === 'count') {
+    // Counting is a SELECT, so it needs a view a SELECT can name. On a chart
+    // or pivot it cannot, and the honest count is of the rows that view
+    // actually produces — which the view export returns, with the criteria
+    // applied. Previously this path answered 7409.
     return `const spec = ${literal};
-      if (!spec.table) spec.table = await data.tableFor(spec.workspaceId, spec.viewId);
-      return await data.count(spec);`;
+      if (!spec.table) {
+        const view = await data.meta(spec.workspaceId, spec.viewId);
+        if (!data.exportable(view.viewType)) { ${REFUSE_DASHBOARD} }
+        if (!data.sqlAddressable(view.viewType)) {
+          const out = await data.rows({ ...spec, columns: undefined });
+          return { rowCount: out.rowCount, path: 'view', pushdown: out.pushdown,
+            countedBy: 'A ' + view.viewType + ' cannot be named in a SELECT, so the rows '
+              + 'it produces were counted after export rather than by count(*).' };
+        }
+        spec.table = view.viewName;
+      }
+      return { ...(await data.count(spec)), path: 'count' };`;
   }
 
   if (path === 'preview') {
     return `const spec = ${literal};
+      const view = spec.viewId ? await data.meta(spec.workspaceId, spec.viewId) : null;
+      if (view && !data.exportable(view.viewType)) { ${REFUSE_DASHBOARD} }
       return await data.preview({ ...spec, limit: spec.limit ?? 20 });`;
   }
 
@@ -133,7 +184,8 @@ export function buildProgram(request) {
     // where the view's own aggregation does the work and says so.
     return `const spec = ${literal};
       if (!spec.sql && !spec.table) {
-        const view = await data.view(spec.workspaceId, spec.viewId);
+        const view = await data.meta(spec.workspaceId, spec.viewId);
+        if (!data.exportable(view.viewType)) { ${REFUSE_DASHBOARD} }
         if (!data.sqlAddressable(view.viewType)) {
           const out = await data.rows({ ...spec, limit: spec.limit });
           return { ...out, path: 'view',
@@ -144,23 +196,93 @@ export function buildProgram(request) {
         }
         spec.table = view.viewName;
       }
-      return await data.query(spec);`;
+      // A SELECT with no aggregate and no limit is an unbounded read wearing
+      // a SELECT. Cap it at what the result cap would keep anyway, so the
+      // server never produces — or bills for — rows that cannot be returned.
+      if (!spec.sql && !spec.metrics && !spec.groupBy && !spec.limit) {
+        spec.limit = ${cap} + 1;
+        spec.cappedForSafety = true;
+      }
+      const out = { ...(await data.query(spec)), path: 'sql' };
+      return spec.cappedForSafety
+        ? { ...out, safetyLimit: 'No limit was given, so the SELECT was bounded at '
+            + (${cap} + 1) + ' rows — the most a result can carry. Ask for an aggregate '
+            + 'if you need to reason about more than that.' }
+        : out;`;
   }
 
-  // The asynchronous view export is the fallback when the synchronous one
-  // refuses the view — a dashboard, a query table, a live-connect workspace or
-  // a table over a million rows. Trying the cheap path first and falling back
-  // costs one wasted call in the rare case and saves two in the common one.
+  // The plain filtered read. One call, rows straight back — but only when the
+  // read is actually small. The metadata call that resolves the view also
+  // reports its row count, so "is this worth bounding with SQL" is answerable
+  // before a single row moves, and for free.
   return `const spec = ${literal};
+    const view = spec.viewId ? await data.meta(spec.workspaceId, spec.viewId) : null;
+    if (view && !data.exportable(view.viewType)) { ${REFUSE_DASHBOARD} }
+    if (view && data.sqlAddressable(view.viewType) && data.isLarge(view)) {
+      // Big enough that exporting it whole would produce rows the cap throws
+      // away. SQL bounds it at the source instead.
+      const out = await data.query({ ...spec, table: view.viewName, limit: ${cap} + 1 });
+      return { ...out, path: 'sql',
+        routedToSql: 'This ' + view.viewType + ' holds ' + view.rowCount + ' rows, so the '
+          + 'read was bounded with SQL rather than exported whole. Add an aggregate or a '
+          + 'filter to answer over all of them.' };
+    }
     try {
       return await data.rows(spec);
     } catch (err) {
-      if (/\\b(7806|7807|8017|8088|restricted|not supported)\\b/i.test(String(err && err.message))) {
+      if (/\\b(7806|7807|8017|8088|8133)\\b|restricted|not supported|not allowed|switch to async/i
+          .test(String(err && err.message))) {
         console.log('synchronous export refused this view; retrying as an export job');
         return { ...(await data.export(spec)), fellBackTo: 'export job' };
       }
       throw err;
     }`;
+}
+
+/**
+ * Strip a result down to the answer.
+ *
+ * "Total sales for the West" is one row and about forty bytes of answer. It
+ * used to cost 563, and almost none of the difference was the answer: the
+ * statement was carried three times — as `sql`, again inside `pushdown.sql`,
+ * and a third time spelled out inside `pushedDown` — beside a job id, a poll
+ * count and a millisecond timing that no model has ever needed to answer a
+ * question. The same call is now 212 bytes.
+ *
+ * So the envelope is now: the rows, what they are, the statement ONCE, and
+ * anything the server did that the statement does not already show. The
+ * diagnostics still exist — they go to the audit stream, which is where
+ * something written for an operator belongs.
+ */
+const DIAGNOSTIC_FIELDS = ['jobId', 'polls', 'ms', 'pushdown'];
+
+export function leanResult(value, { path, apiCalls }) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return { result: value, path, apiCalls };
+  }
+  const out = {};
+  for (const [k, v] of Object.entries(value)) {
+    if (DIAGNOSTIC_FIELDS.includes(k)) continue;
+    if (v === null || v === undefined) continue;
+    out[k] = v;
+  }
+  // What the server applied, shown ONCE and as the thing itself rather than
+  // as a sentence about it: `sql` on the SQL path, `criteria` on the view
+  // path. A model can read either back and reason about it; prose describing
+  // a statement that is also printed verbatim is pure duplication.
+  const applied = value.pushdown ?? {};
+  if (applied.criteria && !out.sql) out.criteria = applied.criteria;
+  // How many matched, but only when it is not simply how many came back.
+  if (out.rowsAvailable === out.rowCount) delete out.rowsAvailable;
+  out.path = path;
+
+  // `pushedDown` is now only what the fields CANNOT show: a window applied
+  // after download, a result still too wide to reason over, a caveat about
+  // something the server ignored.
+  const advice = adviseOn(value);
+  if (advice) out.pushedDown = advice;
+  out.apiCalls = apiCalls;
+  return out;
 }
 
 /**
@@ -181,6 +303,36 @@ export function capResult(value, { maxRows = 500, maxBytes = 120_000 } = {}) {
   const bare = Array.isArray(value);
   const list = bare ? value : (Array.isArray(value?.rows) ? value.rows : null);
   const rewrap = (rows, extra) => (bare ? rows : { ...value, rows, ...extra });
+
+  // CSV arrives as one string in `body`, so it carries no row list to trim
+  // and used to pass both caps untouched — while the tool description
+  // recommended it as "denser for many rows". Denser is exactly what makes it
+  // dangerous: the same budget buys more rows, and all of them land in the
+  // context. It is trimmed on a line boundary so the remainder stays parseable.
+  if (list === null && typeof value?.body === 'string' && value.body.length > maxBytes) {
+    const lines = value.body.split('\n');
+    const kept = [];
+    let used = 0;
+    for (const line of lines) {
+      if (used + line.length + 1 > maxBytes) break;
+      kept.push(line);
+      used += line.length + 1;
+    }
+    // Always keep the header, even if it alone is over budget — a CSV body
+    // with no header is not shorter, it is unreadable.
+    if (kept.length < 2) kept.splice(0, kept.length, lines[0] ?? '');
+    const out = {
+      ...value,
+      body: kept.join('\n'),
+      rowsOmitted: Math.max(0, lines.length - kept.length),
+      truncated: true,
+      truncation: `The CSV was ${value.body.length} bytes, over the ${maxBytes}-byte `
+        + `budget, and was cut to ${kept.length} lines (ZA_MAX_RESULT_BYTES). `
+        + 'Narrow it server-side with filters, columns or an aggregate — do not '
+        + 'reason about the rest from this fragment.',
+    };
+    return { value: out, text: JSON.stringify(out), truncated: true };
+  }
 
   if (list === null) {
     const text = JSON.stringify(value ?? null);
@@ -245,26 +397,46 @@ export function describePushdown(path, result) {
   if (p.criteria) bits.push(`criteria applied by the server: ${p.criteria}`);
   if (p.selectedColumns?.length) bits.push(`columns limited to ${p.selectedColumns.join(', ')}`);
   if (p.sql) bits.push(`SQL run inside Analytics: ${p.sql}`);
-  if (p.limitAppliedBy === 'client') {
-    bits.push('the row limit was applied after download — the synchronous view export has no '
-      + 'limit attribute, so use the SQL path (give a table and a limit) to push it down');
-  }
-  if (p.tableCriteriaList) bits.push(`tableCriteriaList: ${p.tableCriteriaList}`);
+  const advice = adviseOn(result);
+  if (advice) bits.push(advice);
   if (!bits.length) {
     bits.push(path === 'sql'
       ? 'ran as a SQL export job'
-      : 'read the whole view — add filters, columns or an aggregate to narrow it server-side');
+      : 'read the whole view — add filters, columns or an aggregate to narrow it');
   }
+  return bits.join('; ');
+}
+
+/**
+ * Only the parts a model cannot read off the result itself.
+ *
+ * `sql` and `criteria` are printed verbatim beside the rows, so repeating
+ * them in prose costs bytes and tells nobody anything. What is NOT visible
+ * from the result is whether a window was honoured by the server or faked
+ * after the download, and whether an answer this wide should have been an
+ * aggregate — and both change what the next call should be.
+ */
+export function adviseOn(result) {
+  const bits = [];
+  const p = result?.pushdown ?? {};
+  if (p.selectedColumns?.length) bits.push(`columns limited to ${p.selectedColumns.join(', ')}`);
+  if (p.limitAppliedBy === 'client') {
+    bits.push('limit applied after download (the view export has none) — pass a table to '
+      + 'push it into SQL');
+  }
+  if (p.offsetAppliedBy === 'client') {
+    bits.push('offset applied after download — every skipped row was still exported');
+  }
+  if (p.tableCriteriaList) bits.push(`tableCriteriaList: ${p.tableCriteriaList}`);
 
   // A pushdown that still returns hundreds of rows has narrowed the export
   // but not the context. Saying so is what turns the next call into an
   // aggregate rather than a second wide read.
   const returned = Array.isArray(result?.rows) ? result.rows.length : 0;
   if (returned >= WIDE_RESULT_ROWS) {
-    bits.push(`${returned} rows still reached the model — if the question is a total, a `
-      + 'count or a ranking, ask for groupBy + metrics and get it in a few rows instead');
+    bits.push(`${returned} rows reached the model — for a total, count or ranking ask for `
+      + 'groupBy + metrics instead');
   }
-
   return bits.join('; ');
 }
 

@@ -347,19 +347,16 @@ const find = {
     return strong[0];
   },
 
-  /** Column names of one view, ranked against an optional query. Cached. */
+  /**
+   * Column names of one view, ranked against an optional query.
+   *
+   * Reads through __viewDetail - the data engine's single getViewDetails
+   * call - rather than making its own. The two halves of the prelude used to
+   * cache the same response separately, so resolving a column name and then
+   * reading the view paid for the metadata twice.
+   */
   async columns(workspaceId, viewId, query, { limit = 50 } = {}) {
-    const key = String(workspaceId) + ':' + String(viewId);
-    if (!__cache.columns.has(key)) {
-      const res = await za.getViewDetails({
-        'ZANALYTICS-ORGID': ORG_ID,
-        'view-id': String(viewId),
-        CONFIG: JSON.stringify({ withInvolvedMetaInfo: true }),
-      });
-      const v = res.data?.views ?? res.data?.view ?? res.data ?? {};
-      __cache.columns.set(key, v.columns ?? v.columnList ?? []);
-    }
-    const all = __cache.columns.get(key);
+    const all = (await __viewDetail(viewId)).columns;
     let ranked = __rank(all, query, (c) => c.columnName ?? c.name, limit);
 
     // A view has few columns, so an unmatched query should show them all

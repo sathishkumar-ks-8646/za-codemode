@@ -201,12 +201,22 @@ export async function loadConfig(env = process.env) {
     // Measured safe rate on a real org: 53/min ran clean, 105/min tripped.
     maxCallsPerMinute: Number(env.ZA_MAX_CALLS_PER_MINUTE ?? 55),
     throttleRetries: Number(env.ZA_THROTTLE_RETRIES ?? 3),
-    // How long to wait between two status reads of the same export or import
-    // job. Measured on a live organization, a small SQL export completes
-    // between the first and second poll, so a second is the right order of
-    // magnitude — fast enough not to add latency, slow enough not to spend
-    // the call budget on polling.
+    // Job-status polling, paced by the host because the isolate has no timer.
+    //
+    // Measured on a live organization: an export job is never ready on an
+    // immediate first poll, and takes anywhere from under a second to over
+    // five to finish. So the first read waits a little, and the gap grows as
+    // the job proves slow — a fixed interval either wastes a call on a fast
+    // job or spends six on a slow one.
+    // How long a view's SHAPE — its name, type, row count and columns — may
+    // be reused between programs. A session asks several questions about one
+    // table and each used to re-read the same metadata; the shape only moves
+    // when somebody edits the model, and a write through this server clears
+    // the cache outright. Set to 0 to disable.
+    metadataCacheMs: Number(env.ZA_METADATA_CACHE_MS ?? 60_000),
+    jobFirstPollMs: Number(env.ZA_JOB_FIRST_POLL_MS ?? 700),
     jobPollIntervalMs: Number(env.ZA_JOB_POLL_INTERVAL_MS ?? 1000),
+    jobPollMaxMs: Number(env.ZA_JOB_POLL_MAX_MS ?? 5000),
     timeoutMs: Number(env.ZA_EXEC_TIMEOUT_MS ?? 60_000),
     memoryLimitMb: Number(env.ZA_EXEC_MEMORY_MB ?? 256),
     ...resultCaps(env, problems),
@@ -301,12 +311,22 @@ export function loadRemoteConfig(env = process.env) {
     // Measured safe rate on a real org: 53/min ran clean, 105/min tripped.
     maxCallsPerMinute: Number(env.ZA_MAX_CALLS_PER_MINUTE ?? 55),
     throttleRetries: Number(env.ZA_THROTTLE_RETRIES ?? 3),
-    // How long to wait between two status reads of the same export or import
-    // job. Measured on a live organization, a small SQL export completes
-    // between the first and second poll, so a second is the right order of
-    // magnitude — fast enough not to add latency, slow enough not to spend
-    // the call budget on polling.
+    // Job-status polling, paced by the host because the isolate has no timer.
+    //
+    // Measured on a live organization: an export job is never ready on an
+    // immediate first poll, and takes anywhere from under a second to over
+    // five to finish. So the first read waits a little, and the gap grows as
+    // the job proves slow — a fixed interval either wastes a call on a fast
+    // job or spends six on a slow one.
+    // How long a view's SHAPE — its name, type, row count and columns — may
+    // be reused between programs. A session asks several questions about one
+    // table and each used to re-read the same metadata; the shape only moves
+    // when somebody edits the model, and a write through this server clears
+    // the cache outright. Set to 0 to disable.
+    metadataCacheMs: Number(env.ZA_METADATA_CACHE_MS ?? 60_000),
+    jobFirstPollMs: Number(env.ZA_JOB_FIRST_POLL_MS ?? 700),
     jobPollIntervalMs: Number(env.ZA_JOB_POLL_INTERVAL_MS ?? 1000),
+    jobPollMaxMs: Number(env.ZA_JOB_POLL_MAX_MS ?? 5000),
     timeoutMs: Number(env.ZA_EXEC_TIMEOUT_MS ?? 60_000),
     memoryLimitMb: Number(env.ZA_EXEC_MEMORY_MB ?? 256),
     ...resultCaps(env, problems),

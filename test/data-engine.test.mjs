@@ -22,6 +22,9 @@ const ORG_ID = '2375824000000000001';
 const SALES_WS = '2375824000000012345';
 const Q3 = '2375824000000020001';          // Sales Q3: 5 rows, 4 East, 1 West
 const PROFIT_VIEW = '2375824000000020007'; // declared columns, no rows
+const CHART = '2375824000000020008';       // Chart: SQL cannot name it
+const DASHBOARD = '2375824000000020010';   // no row data at all — 8119
+const BIG_TABLE = '2375824000000020011';   // 250,000 rows, worth bounding
 
 let mock; let client;
 
@@ -178,11 +181,11 @@ test('a narrowed-but-still-wide result says so', () => {
     pushdown: { criteria: '"Region"=\'West\'' },
     rows: Array.from({ length: 207 }, () => ({ Region: 'West' })),
   };
-  assert.match(describePushdown('view', wide), /207 rows still reached the model/);
+  assert.match(describePushdown('view', wide), /207 rows reached the model/);
   assert.match(describePushdown('view', wide), /groupBy \+ metrics/);
 
   const narrow = { pushdown: { criteria: 'x' }, rows: [{ a: 1 }, { a: 2 }] };
-  assert.doesNotMatch(describePushdown('view', narrow), /still reached the model/);
+  assert.doesNotMatch(describePushdown('view', narrow), /rows reached the model/);
 });
 
 // ---------------------------------------------------------------------------
@@ -198,8 +201,9 @@ test('a filter is applied by the server, not by the model', async () => {
   const sent = mock.requests.slice(before);
 
   assert.equal(res.rowCount, 4, 'Sales Q3 has 4 East rows of 5');
-  assert.equal(res.rowsAvailable, 4, 'the West row must never have been sent');
-  assert.match(res.pushedDown, /criteria applied by the server/);
+  assert.equal(res.criteria, '"Region" = \'East\'', 'the expression itself, printed once');
+  assert.equal(res.rowsAvailable, undefined,
+    'nothing was dropped after download, so there is no second number to report');
 
   // Exactly one export, and one metadata read to check the filter's columns
   // before spending it. Two exports would mean a download-then-filter.
@@ -229,7 +233,7 @@ test('an aggregate is computed inside Analytics and comes back as a few rows', a
   });
 
   assert.equal(res.path, 'sql');
-  assert.match(res.pushedDown, /SQL run inside Analytics/);
+  assert.match(res.sql, /sum\("Sales"\).*GROUP BY "Region"/);
   const byRegion = Object.fromEntries(res.rows.map((r) => [r.Region, Number(r.Total)]));
   assert.deepEqual(byRegion, { East: 45800, West: 5100 });
   // The whole point: the answer is smaller than the data it summarises.
@@ -255,19 +259,29 @@ test('a top-N is pushed into the SQL, not sliced after the download', async () =
     limit: 2,
   });
   assert.equal(res.path, 'sql');
-  assert.match(res.pushedDown, /LIMIT 2/);
+  assert.match(res.sql, /LIMIT 2/);
   assert.equal(res.rows.length, 2);
   assert.equal(res.rows[0].Sales, 15500);
 });
 
-test('preview pushes its limit into the SQL rather than slicing a download', async () => {
+test('previewing a BIG table pushes the limit into the SQL', async () => {
+  const res = await json('query_analytics_data', {
+    workspaceId: '2375824000000022222', viewId: BIG_TABLE, mode: 'preview', limit: 2,
+  });
+  assert.equal(res.viewType, 'Table');
+  assert.match(res.sql, /LIMIT 2$/);
+  assert.match(res.note, /bounded inside Analytics/);
+});
+
+test('previewing a SMALL table costs one call, not four', async () => {
+  // Export units are billed per thousand rows produced, so a 5-row table and
+  // a 755-row table cost the same block. Spending three extra round trips to
+  // shrink an export that is already one block buys nothing.
   const res = await json('query_analytics_data', {
     workspaceId: SALES_WS, viewId: Q3, mode: 'preview', limit: 2,
   });
   assert.equal(res.rows.length, 2);
-  assert.equal(res.viewType, 'Table');
-  assert.match(res.pushdown.sql, /LIMIT 2$/);
-  assert.match(res.note, /The limit ran inside Analytics/);
+  assert.equal(res.apiCalls, 2, 'one metadata call plus one export');
 });
 
 test('preview of a view SQL cannot name falls back and admits it', async () => {
@@ -279,7 +293,8 @@ test('preview of a view SQL cannot name falls back and admits it', async () => {
   });
   assert.equal(res.viewType, 'Chart');
   assert.equal(res.rowCount, 0, 'the mock chart has no rows, which is beside the point');
-  assert.equal(res.pushdown.criteria, null);
+  assert.equal(res.sql, undefined, 'no SELECT could name a Chart, and none is claimed');
+  assert.equal(res.path, 'preview');
 });
 
 test('a chart asked for an aggregate is routed to the view export, with a reason', async () => {
@@ -296,7 +311,7 @@ test('a limit on the view path admits it was applied client-side', async () => {
     workspaceId: SALES_WS, viewId: Q3, mode: 'view', limit: 2,
   });
   assert.equal(res.rows.length, 2);
-  assert.match(res.pushedDown, /applied after download.*use the SQL path/s);
+  assert.match(res.pushedDown, /applied after download.*push it into SQL/s);
 });
 
 // ---------------------------------------------------------------------------
@@ -418,4 +433,158 @@ test('a view from another workspace stops rather than being read anyway', async 
   assert.equal(error, true);
   assert.match(text, /STOPPED: view 2375824000000020004 belongs to workspace 2375824000000067890/);
   assert.match(text, /find\.resolve/);
+});
+
+// ---------------------------------------------------------------------------
+// Economy — the point of the engine is calls and bytes, so assert on both
+// ---------------------------------------------------------------------------
+
+test('one metadata call answers the name, the type, the size and the columns', async () => {
+  // Resolving a view used to cost getViewDetails twice: once bare for the
+  // name, once with withInvolvedMetaInfo for the columns, because the
+  // resolver and the engine cached it separately.
+  const res = await json('query_analytics_data', {
+    workspaceId: SALES_WS, viewId: Q3,
+    filters: [{ column: 'Region', value: 'East' }],
+  });
+  assert.equal(res.path, 'view');
+  assert.equal(res.apiCalls, 2, 'one metadata call plus one export, never two metadata calls');
+});
+
+test('a limit is pushed into SQL rather than sliced off a full download', async () => {
+  const res = await json('query_analytics_data', { workspaceId: SALES_WS, viewId: Q3, limit: 2 });
+  assert.equal(res.path, 'sql');
+  assert.match(res.sql, /LIMIT 2/);
+  assert.equal(res.rows.length, 2);
+  assert.equal(res.pushedDown, undefined, 'nothing was faked after the download');
+});
+
+test('a big table is bounded with SQL instead of exported whole', async () => {
+  const res = await json('query_analytics_data', {
+    workspaceId: '2375824000000022222', viewId: BIG_TABLE,
+  });
+  assert.equal(res.path, 'sql');
+  assert.match(res.routedToSql, /250000 rows/);
+  assert.match(res.sql, /LIMIT/);
+});
+
+test('a small table is still read in one call, not three', async () => {
+  const res = await json('query_analytics_data', { workspaceId: SALES_WS, viewId: Q3 });
+  assert.equal(res.path, 'view');
+  assert.equal(res.apiCalls, 2);
+});
+
+test('an unbounded SELECT is capped at what the result can carry', async () => {
+  const res = await json('query_analytics_data', {
+    workspaceId: SALES_WS, table: 'Sales Q3',
+  });
+  assert.match(res.sql, /LIMIT 501/);
+  assert.match(res.safetyLimit, /bounded at 501 rows/);
+});
+
+// ---------------------------------------------------------------------------
+// Views that cannot answer, and the ones that answer differently
+// ---------------------------------------------------------------------------
+
+test('a dashboard is refused with what to read instead, not retried twice', async () => {
+  const { error, text } = await call('query_analytics_data', {
+    workspaceId: '2375824000000022222', viewId: DASHBOARD,
+  });
+  assert.equal(error, true);
+  assert.match(text, /has no row data/);
+  assert.match(text, /8119/);
+  assert.match(text, /tables or reports it is built from/);
+});
+
+test('counting a view SQL cannot name counts the rows it produces', async () => {
+  const res = await json('query_analytics_data', {
+    workspaceId: '2375824000000022222', viewId: CHART, mode: 'count',
+  });
+  assert.equal(res.path, 'view', 'it reports the route it actually took');
+  assert.match(res.countedBy, /cannot be named in a SELECT/);
+  assert.equal(typeof res.rowCount, 'number');
+});
+
+// ---------------------------------------------------------------------------
+// Formulas — free when absent, which is the normal case
+// ---------------------------------------------------------------------------
+
+test('a table with no formulas never pays a call to establish that', async () => {
+  const res = await json('query_analytics_data', {
+    workspaceId: SALES_WS, viewId: Q3,
+    filters: [{ column: 'Region', value: 'East' }],
+  });
+  assert.equal(res.apiCalls, 2, 'no speculative customformulas/aggregateformulas lookup');
+});
+
+test('a name that misses is checked against the formulas before it is refused', async () => {
+  const { error, text } = await call('query_analytics_data', {
+    workspaceId: '2375824000000022222', viewId: PROFIT_VIEW,
+    filters: [{ column: 'Gross Margin', value: 1 }],
+  });
+  assert.equal(error, true);
+  assert.match(text, /is an aggregate formula on this view, not a column/);
+  assert.match(text, /data\.metricValue/);
+});
+
+test('an aggregate formula is read as a value rather than recomputed', async () => {
+  const res = await json('run_analytics_code', {
+    code: `return await data.metricValue('2375824000000022222', '33000001');`,
+  });
+  assert.equal(res.result.value, '0.3184');
+  assert.equal(res.apiCalls, 1);
+});
+
+// ---------------------------------------------------------------------------
+// Windows and formats that used to be dropped in silence
+// ---------------------------------------------------------------------------
+
+test('an offset is pushed into SQL, not silently ignored', async () => {
+  const res = await json('query_analytics_data', {
+    workspaceId: SALES_WS, viewId: Q3, limit: 2, offset: 1,
+  });
+  assert.equal(res.path, 'sql');
+  assert.match(res.sql, /LIMIT 2 OFFSET 1/);
+});
+
+test('an offset on the view path says it was applied after download', async () => {
+  const res = await json('query_analytics_data', {
+    workspaceId: SALES_WS, viewId: Q3, mode: 'view', offset: 2,
+  });
+  assert.match(res.pushedDown, /offset applied after download/);
+});
+
+test('a csv body over budget is cut on a line boundary and says so', () => {
+  const body = ['a,b', ...Array.from({ length: 400 }, (_, i) => `${i},${'x'.repeat(40)}`)].join('\n');
+  const { value, truncated } = capResult({ format: 'csv', body }, { maxBytes: 2000 });
+  assert.equal(truncated, true);
+  assert.ok(value.body.length <= 2000);
+  assert.equal(value.body.split('\n')[0], 'a,b', 'the header survives');
+  assert.ok(value.rowsOmitted > 0);
+  assert.match(value.truncation, /ZA_MAX_RESULT_BYTES/);
+});
+
+test('8133 "switch to async export" falls back to the export job', async () => {
+  // Measured against a live organization through a different client: some
+  // views refuse the synchronous export with 8133 and the words "Kindly
+  // switch to async export model". Neither the code nor the wording was in
+  // the fallback pattern, so the read simply failed.
+  const program = buildProgram({ workspaceId: '1', viewId: '2' });
+  assert.match(program, /8133/);
+  assert.match(program, /switch to async/);
+});
+
+test('view metadata is read once per session, not once per question', async () => {
+  // A session asks several questions about one table. The shape of that
+  // table — name, type, row count, columns — does not change between them,
+  // and re-reading it was a whole API call per question.
+  // A view no earlier test has touched, so the first read is genuinely cold.
+  const FRESH = '2375824000000020003';   // Regions
+  const before = mock.requests.length;
+  for (let i = 0; i < 3; i += 1) {
+    await json('query_analytics_data', { workspaceId: SALES_WS, viewId: FRESH });
+  }
+  const details = mock.requests.slice(before)
+    .filter((r) => /\/restapi\/v2\/views\/\d+$/.test(r));
+  assert.equal(details.length, 1, `three questions, one metadata read, got ${details.length}`);
 });

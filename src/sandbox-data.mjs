@@ -247,7 +247,124 @@ function __columnsIn(expression) {
   return [...names];
 }
 
-const __dataCache = { columns: new Map(), views: new Map() };
+/**
+ * One metadata call per view, not two.
+ *
+ * Measured live: getViewDetails with withInvolvedMetaInfo:true answers with
+ * EVERYTHING the engine needs about a view, in a single 0.1-unit call -
+ *
+ *     viewName, viewType, workspaceId   routing and the name SQL addresses
+ *     rowCount                          how big the read would be, BEFORE it
+ *     columns[]                         columnName, dataType, dataTypeName,
+ *                                       dateFormat, formulaDisplayName,
+ *                                       isHidden, pkTableName/pkColumnName
+ *
+ * The column payload is the same shape getTableMetadata returns at ten times
+ * the unit cost, so that operation is never worth calling. Before this, the
+ * engine made the call twice per query - once bare for the name and type,
+ * once with withInvolvedMetaInfo for the columns - because two caches were
+ * keyed separately. One call now fills both.
+ *
+ * rowCount is the signal the router could not previously have: whether to
+ * spend one call exporting the view or three bounding it with SQL is a
+ * question about size, and the answer arrives free with the name.
+ */
+/**
+ * Where "small enough to just read" ends; mirrors SMALL_TABLE_ROWS on the
+ * host, which is the only other place the same judgement is made.
+ *
+ * Measured: a 755-row, seven-column table is 128 KB exported whole, about
+ * 170 bytes a row. Past a thousand rows an unbounded export is producing -
+ * and billing for - rows the result cap will discard.
+ */
+const __SMALL_TABLE_ROWS = 1000;
+
+/**
+ * Rows as a header plus arrays, instead of one object per row.
+ *
+ * A preview of twenty seven-column rows repeats every column name twenty
+ * times; measured against the same table, the object form is 4063 bytes and
+ * this one is under half that. The purpose of a preview is to show the shape
+ * and the value formatting, and a header with aligned tuples shows both
+ * without paying for the key names again on every line.
+ *
+ * Only preview uses it. Everything else returns objects, because a result a
+ * program is going to compute with should not need an index to read.
+ */
+function __columnar(sample) {
+  const columns = sample.length ? Object.keys(sample[0]) : [];
+  return {
+    columns,
+    rows: sample.map((r) => columns.map((c) => r[c])),
+    rowCount: sample.length,
+    shape: 'rows[] are value arrays aligned to columns[]',
+  };
+}
+
+const __dataCache = { raw: new Map(), meta: new Map(), formulas: new Map() };
+
+/**
+ * The one getViewDetails call, keyed by view id and shared with the resolver.
+ *
+ * Declared as a function so that find.columns - defined earlier, in the
+ * resolver half of the prelude - can reach it through hoisting. Before this
+ * the two halves each kept their own cache and each made the same call with a
+ * different CONFIG, so every query that resolved a name AND checked a column
+ * paid for the view's metadata twice.
+ */
+async function __viewDetail(viewId, { withColumns = true } = {}) {
+  const key = String(viewId);
+  const held = __dataCache.raw.get(key);
+  // The extended response is a superset, so a cached full one answers a bare
+  // request too. Only the reverse needs another call.
+  if (held && (held.detailed || !withColumns)) return held;
+  // withInvolvedMetaInfo is what adds the columns and the row count, and
+  // measured live it costs about 2.6 KB more off the wire for the same 0.1
+  // units. Worth it when either is going to be used - the row count decides
+  // whether the read is bounded with SQL, which can save a 128 KB export -
+  // and not worth it when all the caller wanted was the name SQL addresses.
+  const res = await za.getViewDetails({
+    'ZANALYTICS-ORGID': ORG_ID, 'view-id': key,
+    CONFIG: JSON.stringify(withColumns ? { withInvolvedMetaInfo: true } : {}),
+  });
+  const v = res.data?.views ?? res.data?.view ?? res.data ?? {};
+  const detail = {
+    viewId: key,
+    detailed: withColumns,
+    viewName: v.viewName ?? null,
+    viewType: v.viewType ?? null,
+    workspaceId: v.workspaceId ? String(v.workspaceId) : null,
+    rowCount: Number.isFinite(Number(v.rowCount)) ? Number(v.rowCount) : null,
+    columns: (v.columns ?? v.columnList ?? []).map((c) => ({
+      columnName: c.columnName ?? c.name,
+      dataType: c.dataType ?? c.columnType,
+      dataTypeName: c.dataTypeName ?? null,
+      dateFormat: c.dateFormat ?? null,
+      // A non-empty formulaDisplayName is how a formula column announces
+      // itself. It costs nothing to read, which is the point: most tables
+      // have no formula columns and must not pay a call to establish that.
+      isFormula: Boolean(c.formulaDisplayName),
+      isHidden: Boolean(c.isHidden),
+      lookupTable: c.pkTableName || null,
+    })),
+  };
+  __dataCache.raw.set(key, detail);
+  return detail;
+}
+
+/**
+ * Row counts are only meaningful where the server actually computes one.
+ *
+ * Measured live: a Table reports its real count, a QueryTable reports 0 even
+ * when a SELECT against it returns rows, and a chart, pivot, summary or
+ * tabular view reports nothing at all. Treating the QueryTable 0 as "empty"
+ * would route a populated view down the cheap path for the wrong reason, so
+ * only a Table's count is believed.
+ */
+function __knownRowCount(view) {
+  return String(view.viewType) === 'Table' && Number.isFinite(view.rowCount)
+    ? view.rowCount : null;
+}
 
 const data = {
   /** Expose the builders: useful on their own, and testable in isolation. */
@@ -257,69 +374,113 @@ const data = {
   literal: __literal,
 
   /**
-   * Column names and types for a view, cached per execution.
+   * Everything known about one view, from one cached call.
    *
-   * getViewDetails is the cheapest call that returns them, and the prelude's
-   * resolver already caches it — this reuses that cache rather than adding a
-   * second one.
+   * Also the tenancy check: reading view X under workspace Y is how one
+   * tenant gets answered with another tenant's numbers, so the pair is
+   * verified here and nowhere else needs to repeat it.
    */
-  async columns(workspaceId, viewId) {
+  async meta(workspaceId, viewId, { withColumns = true } = {}) {
     const key = String(workspaceId) + ':' + String(viewId);
-    if (!__dataCache.columns.has(key)) {
-      const cols = await find.columns(workspaceId, viewId, null, { limit: 500 });
-      __dataCache.columns.set(key, cols);
+    const held = __dataCache.meta.get(key);
+    if (held && (held.detailed || !withColumns)) return held;
+
+    let detail = null;
+    try {
+      const v = await __viewDetail(viewId, { withColumns });
+      if (v.viewName) detail = { ...v, workspaceId: v.workspaceId ?? String(workspaceId) };
+    } catch (err) {
+      // Fall through to the list, which some deployments answer when the
+      // detail call does not.
+      console.log('getViewDetails did not answer for ' + viewId + ': ' + err.message);
     }
-    return __dataCache.columns.get(key);
+
+    if (!detail) {
+      const all = await find.viewsIn(workspaceId, null, { limit: 1000 });
+      const hit = all.find((v) => String(v.viewId) === String(viewId));
+      if (!hit) {
+        throw new Error('STOPPED: view ' + viewId + ' is not in workspace ' + workspaceId
+          + '. Views there: ' + all.slice(0, 40).map((v) => v.viewName).join(', ') + '.');
+      }
+      detail = { viewId: String(viewId), detailed: withColumns, viewName: hit.viewName,
+        viewType: hit.viewType ?? null, workspaceId: String(workspaceId),
+        rowCount: null, columns: [] };
+    }
+
+    if (detail.workspaceId !== String(workspaceId)) {
+      throw new Error('STOPPED: view ' + viewId + ' belongs to workspace '
+        + detail.workspaceId + ', not ' + workspaceId + '. Reading it under the wrong '
+        + 'workspace is how one tenant answers with another tenant numbers, so this '
+        + 'stops. Resolve the workspace and the view together with find.resolve().');
+    }
+    __dataCache.meta.set(key, detail);
+    return detail;
+  },
+
+  /** Name, type and owning workspace of one view. */
+  async view(workspaceId, viewId) {
+    return data.meta(workspaceId, viewId);
   },
 
   /**
-   * Name, type and owning workspace of one view, cached per execution.
+   * Column names and types for a view.
    *
-   * getViewDetails rather than a workspace-wide list: measured live, the
-   * detail call is 516 bytes against 5.7 KB for listing 17 views, and the
-   * gap widens with the workspace. It also answers the question the list
-   * could only answer by coincidence — whether this view really belongs to
-   * the workspace the caller named.
+   * Empty for a chart, pivot, summary or tabular view: measured live, the
+   * server returns column definitions only for tables and query tables.
+   * Callers must treat an empty list as "unknown", never as "no columns".
    */
-  async view(workspaceId, viewId) {
+  async columns(workspaceId, viewId) {
+    return (await data.meta(workspaceId, viewId, { withColumns: true })).columns;
+  },
+
+  /**
+   * The formulas defined on a view - looked up ONLY when a name has already
+   * missed against the real columns.
+   *
+   * Measured on a live organization: a workspace with no formulas answers
+   * both of these with empty lists, so calling them speculatively would spend
+   * 0.2 units per query to learn nothing. Most tables have no formula columns
+   * and no aggregate formulas, so the happy path must never reach here. It is
+   * the error path that benefits: "Revenue is not a column" is a worse answer
+   * than "Revenue is an aggregate formula on this view, use metric instead".
+   */
+  async formulas(workspaceId, viewId) {
     const key = String(workspaceId) + ':' + String(viewId);
-    if (!__dataCache.views.has(key)) {
-      let detail = null;
-      try {
-        const res = await za.getViewDetails({
-          'ZANALYTICS-ORGID': ORG_ID, 'view-id': String(viewId), CONFIG: '{}',
-        });
-        const v = res.data?.views ?? res.data?.view ?? res.data ?? {};
-        if (v.viewName) {
-          detail = { viewId: String(viewId), viewName: v.viewName,
-            viewType: v.viewType ?? null, workspaceId: String(v.workspaceId ?? workspaceId) };
-        }
-      } catch (err) {
-        // Fall through to the list, which some deployments answer when the
-        // detail call does not.
-        console.log('getViewDetails did not answer for ' + viewId + ': ' + err.message);
-      }
+    if (__dataCache.formulas.has(key)) return __dataCache.formulas.get(key);
+    const found = { columns: [], aggregates: [] };
+    try {
+      const r = await za.getCustomFormulaList({
+        'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': String(workspaceId), 'view-id': String(viewId) });
+      found.columns = (r.data?.customFormulas ?? r.customFormulas ?? []).map((f) => ({
+        name: f.formulaName ?? f.columnName, id: f.formulaId ?? f.columnId,
+        expression: f.expression ?? null }));
+    } catch (err) { console.log('custom formulas unavailable: ' + err.message); }
+    try {
+      const r = await za.getAggregateFormulaList({
+        'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': String(workspaceId), 'view-id': String(viewId) });
+      found.aggregates = (r.data?.aggregateFormulas ?? r.aggregateFormulas ?? []).map((f) => ({
+        name: f.formulaName, id: f.formulaId, expression: f.expression ?? null }));
+    } catch (err) { console.log('aggregate formulas unavailable: ' + err.message); }
+    __dataCache.formulas.set(key, found);
+    return found;
+  },
 
-      if (!detail) {
-        const all = await find.viewsIn(workspaceId, null, { limit: 1000 });
-        const hit = all.find((v) => String(v.viewId) === String(viewId));
-        if (!hit) {
-          throw new Error('STOPPED: view ' + viewId + ' is not in workspace ' + workspaceId
-            + '. Views there: ' + all.slice(0, 40).map((v) => v.viewName).join(', ') + '.');
-        }
-        detail = { viewId: String(viewId), viewName: hit.viewName,
-          viewType: hit.viewType ?? null, workspaceId: String(workspaceId) };
-      }
-
-      if (detail.workspaceId !== String(workspaceId)) {
-        throw new Error('STOPPED: view ' + viewId + ' belongs to workspace '
-          + detail.workspaceId + ', not ' + workspaceId + '. Reading it under the wrong '
-          + 'workspace is how one tenant answers with another tenant numbers, so this '
-          + 'stops. Resolve the workspace and the view together with find.resolve().');
-      }
-      __dataCache.views.set(key, detail);
-    }
-    return __dataCache.views.get(key);
+  /**
+   * The live value of an aggregate formula the workspace already defines.
+   *
+   * One call, one number. When a customer has modelled "Gross Margin" as
+   * sum(Profit)/sum(Sales), re-deriving it from a SQL export is three calls
+   * to recompute something Analytics will hand over for one - and a ratio is
+   * not expressible through groupBy + metrics at all. Find the id with
+   * find.require('formula', workspaceId, name).
+   */
+  async metricValue(workspaceId, formulaId) {
+    const r = await za.getAggregateFormulaValue({
+      'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': String(workspaceId),
+      'formula-id': String(formulaId) });
+    const body = r.data ?? r;
+    return { value: body.value ?? body.formulaValue ?? body, formulaId: String(formulaId),
+      pushdown: { metric: 'computed by Analytics from the stored aggregate formula' } };
   },
 
   /**
@@ -329,18 +490,16 @@ const data = {
    * id-driven caller needs this translation.
    */
   async tableFor(workspaceId, viewId) {
-    return (await data.view(workspaceId, viewId)).viewName;
+    return (await data.meta(workspaceId, viewId, { withColumns: false })).viewName;
   },
 
   /**
    * Can a SELECT name this view?
    *
-   * Measured live: a table and a query table can, and a chart, pivot, summary
-   * or dashboard cannot — the server answers 7409, "the table does not exist
-   * in this workspace", which reads as a missing object rather than as the
-   * wrong tool for this view type. So the question is asked before the call,
-   * and an unanswerable one falls back to the view export with criteria,
-   * where the view's own aggregation does the work instead.
+   * Measured live: a table and a query table can; a chart, pivot, summary,
+   * tabular view or dashboard answers 7409, "the table does not exist in this
+   * workspace", which reads as a missing object rather than as the wrong tool
+   * for this view type. So the question is asked before the call.
    */
   sqlAddressable(viewType) {
     return viewType === null || viewType === undefined
@@ -348,10 +507,38 @@ const data = {
   },
 
   /**
-   * Refuse a filter that names a column the view does not have.
+   * Is this view big enough that reading it whole is a waste?
    *
-   * Returns the checked expression. Throws with the available column names,
-   * which is the information the model needs and 7330 does not carry.
+   * Only a Table reports a usable count, so every other view type answers
+   * false and takes the cheap path - which is correct, because for those the
+   * view export is the only path there is.
+   */
+  isLarge(view) {
+    const n = __knownRowCount(view ?? {});
+    return n !== null && n > __SMALL_TABLE_ROWS;
+  },
+
+  /**
+   * Does this view hold row data at all?
+   *
+   * Measured live: a dashboard refuses BOTH the synchronous export and the
+   * export job with 8119, "Invalid value 'json'" - it renders, it does not
+   * tabulate. Retrying the other export path is wasted; the answer is the
+   * views the dashboard is built from.
+   */
+  exportable(viewType) {
+    return String(viewType) !== 'Dashboard' && String(viewType) !== 'Tab';
+  },
+
+  /**
+   * Refuse a filter that names something the view does not have.
+   *
+   * Returns the checked expression. A mismatch costs 7330 after a wasted
+   * round trip, and that error names the column but not the alternatives.
+   * Checking locally costs nothing because the columns arrived with the name.
+   *
+   * Only when a name misses is it worth asking whether it is a formula -
+   * one extra call, on the path that was going to fail anyway.
    */
   async checkCriteria(workspaceId, viewId, expression) {
     const text = String(expression ?? '').trim();
@@ -360,17 +547,37 @@ const data = {
     if (!named.length) return text;
 
     const cols = await data.columns(workspaceId, viewId);
-    // No column list means no check. Refusing a filter because the metadata
-    // call came back empty would turn a working query into a dead end.
+    // No column list means no check. Refusing a filter because the server
+    // does not publish columns for this view type would turn a working query
+    // into a dead end - measured, charts and pivots return none.
     if (!cols.length) return text;
     const have = new Set(cols.map((c) => c.columnName));
     // A qualified reference names the table too; a name that matches the view
     // itself is a table qualifier, not a missing column.
+    const view = await data.meta(workspaceId, viewId);
+    have.add(view.viewName);
     const missing = named.filter((n) => !have.has(n));
     if (missing.length && missing.length === named.length) {
+      const formulas = await data.formulas(workspaceId, viewId);
+      const asFormula = [...formulas.columns, ...formulas.aggregates]
+        .filter((f) => missing.includes(f.name));
+      if (asFormula.length) {
+        const agg = formulas.aggregates.filter((f) => missing.includes(f.name));
+        if (agg.length) {
+          throw new Error('STOPPED: "' + agg[0].name + '" is an aggregate formula on this '
+            + 'view, not a column, so it cannot appear in a filter. Read its value with '
+            + 'data.metricValue(' + JSON.stringify(String(workspaceId)) + ', '
+            + JSON.stringify(String(agg[0].id)) + ') instead.');
+        }
+        // A formula COLUMN is a real column the metadata call did not list.
+        // It filters like any other, so let it through.
+        return text;
+      }
       throw new Error('STOPPED: the filter names ' + missing.map((m) => '"' + m + '"').join(', ')
         + ', which ' + (missing.length === 1 ? 'is not a column' : 'are not columns')
         + ' of this view. Columns: ' + cols.map((c) => c.columnName).join(', ')
+        + (formulas.aggregates.length
+          ? '. Aggregate formulas: ' + formulas.aggregates.map((f) => f.name).join(', ') : '')
         + '. Fix the filter — do not drop it and filter in code.');
     }
     return text;
@@ -398,7 +605,7 @@ const data = {
   async rows(options = {}) {
     const {
       workspaceId, viewId, filters, criteria, filterJoin,
-      columns, limit, format = 'json', validate = true,
+      columns, limit, offset, format = 'json', validate = true,
     } = options;
 
     if (!workspaceId || !viewId) {
@@ -430,16 +637,24 @@ const data = {
     }
 
     const all = rows.of(response);
-    const capped = limit ? all.slice(0, limit) : all;
+    // The synchronous export has neither a limit nor an offset attribute, so
+    // both are applied here — to what reaches the model, not to what crossed
+    // the network. Saying so is the point: a window that was applied after
+    // the download is a window that cost full price, and the caller needs to
+    // know to move it into SQL. Silently honouring an offset would be worse
+    // still, because page two would look as cheap as page one.
+    const from = offset ? Number(offset) : 0;
+    const windowed = (from || limit) ? all.slice(from, limit ? from + limit : undefined) : all;
     return {
-      rows: capped,
-      rowCount: capped.length,
+      rows: windowed,
+      rowCount: windowed.length,
       rowsAvailable: all.length,
-      truncated: capped.length < all.length,
+      truncated: windowed.length < all.length,
       pushdown: {
         criteria: expression || null,
         selectedColumns: columns ?? null,
-        limitAppliedBy: limit && all.length > limit ? 'client' : null,
+        limitAppliedBy: (limit || from) && all.length > windowed.length ? 'client' : null,
+        offsetAppliedBy: from ? 'client' : null,
       },
       ms: Date.now() - started,
     };
@@ -652,19 +867,27 @@ const data = {
    * Deliberately capped: the purpose is to learn the shape and the value
    * formatting, and twenty rows show that as well as twenty thousand.
    *
-   * The limit is pushed into a SQL LIMIT wherever the view can be named in a
-   * SELECT, because the alternative was measured and is indefensible: a
-   * five-row preview of a 755-row table through the view export moved all
-   * 128 KB of it and threw 750 rows away. On a view SQL cannot name - a
-   * chart, pivot or summary - the view export is the only route, and the
-   * result then says the rows were dropped after download rather than never
-   * produced.
+   * The limit is pushed into a SQL LIMIT when the view can be named in a
+   * SELECT AND the table is big enough for that to be worth three calls. On a
+   * million-row table the difference is indefensible the other way: a
+   * five-row preview through the view export moves every row and throws all
+   * but five away, at three billed units per thousand.
+   *
+   * On a SMALL table it is the reverse. Export units are billed per thousand
+   * rows produced, so a 755-row export and a 5-row export cost the same one
+   * block — and the view export gets there in a single call where the job
+   * needs four. Previewing a small table through SQL was paying three extra
+   * round trips for a saving the billing does not grant.
+   *
+   * On a view SQL cannot name - a chart, pivot or summary - the view export
+   * is the only route, and the result then says the rows were dropped after
+   * download rather than never produced.
    */
   async preview(options = {}) {
     const { workspaceId, viewId, limit = 20 } = options;
     const detail = viewId ? await data.view(workspaceId, viewId) : null;
 
-    if (detail && data.sqlAddressable(detail.viewType)) {
+    if (detail && data.sqlAddressable(detail.viewType) && (data.isLarge(detail) || !viewId)) {
       const out = await data.query({
         ...options,
         workspaceId,
@@ -673,31 +896,26 @@ const data = {
       });
       const sample = out.rows ?? [];
       return {
-        rows: sample,
-        rowCount: sample.length,
-        columns: sample.length ? Object.keys(sample[0]) : [],
+        ...__columnar(sample),
         viewType: detail.viewType,
+        sql: out.sql,
         pushdown: out.pushdown,
-        note: 'Preview only. The limit ran inside Analytics, so only these rows were '
-          + 'produced. For a total or a breakdown use data.aggregate() rather than '
-          + 'reading rows.',
+        note: 'Sample only, bounded inside Analytics. Do not total or count from it — '
+          + 'use groupBy + metrics.',
       };
     }
 
     const out = await data.rows({ ...options, workspaceId, viewId, limit });
     const sample = out.rows ?? [];
     return {
-      rows: sample,
-      rowCount: sample.length,
+      ...__columnar(sample),
       rowsAvailable: out.rowsAvailable,
-      columns: sample.length ? Object.keys(sample[0]) : [],
       viewType: detail ? detail.viewType : null,
       pushdown: out.pushdown,
       note: out.truncated
-        ? 'Preview only - all ' + out.rowsAvailable + ' matching rows were exported, '
-          + 'because a ' + (detail && detail.viewType ? detail.viewType : 'view')
-          + ' cannot be named in a SELECT and the view export has no limit '
-          + 'attribute. Narrow with filters instead.'
+        ? 'Sample only. All ' + out.rowsAvailable + ' rows were exported first — a '
+          + (detail && detail.viewType ? detail.viewType : 'view') + ' has no SQL name '
+          + 'and no limit attribute. Do not total from it.'
         : undefined,
     };
   },

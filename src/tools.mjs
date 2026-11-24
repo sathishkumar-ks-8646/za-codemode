@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { createHash } from 'node:crypto';
 import { renderSignatures } from './search.mjs';
 import { DOMAINS, DISCOVERY } from './catalog.mjs';
-import { buildProgram, capResult, describePushdown, validate } from './data-engine.mjs';
+import { buildProgram, capResult, leanResult, validate } from './data-engine.mjs';
 
 export function registerTools(server, resolve, {
   operationCount, domains, knowledge, audit, scope, limits,
@@ -24,19 +24,13 @@ export function registerTools(server, resolve, {
     {
       title: 'Search the Zoho Analytics API',
       description:
-        'Find the Zoho Analytics operations relevant to a task and get their exact '
-        + 'call signatures for run_analytics_code. The signatures are type-annotated to '
-        + 'show argument shapes, but the code you write is plain JavaScript — do not copy '
-        + 'the annotations. ALWAYS call this first: there '
-        + `are ${operationCount} operations and you need the signatures before you can write `
-        + 'code. Describe the operation you need in API terms rather than quoting the '
-        + 'user — "export rows from a view with a filter" or "list users in an '
-        + 'organization" work better than "how much did we sell".\n\n'
-        + 'If the task is READING DATA — rows matching a filter, a total, a breakdown, '
-        + 'a top-N, a row count — use query_analytics_data instead of searching for an '
-        + 'export operation and writing the call yourself. It applies the filter, the '
-        + 'column selection and the aggregation inside Analytics, which is where they '
-        + `belong.\n\nDomains available: ${domainList.join(', ')}.`,
+        `Find which of the ${operationCount} Zoho Analytics operations a task needs, and `
+        + 'get their exact signatures for run_analytics_code. Call this before writing '
+        + 'code. Describe the operation in API terms, not the user\'s words: "export '
+        + 'rows from a view with a filter" beats "how much did we sell".\n\n'
+        + 'For READING DATA — rows, a total, a breakdown, a top-N, a count — use '
+        + 'query_analytics_data instead; do not search for an export operation and '
+        + `write the call yourself.\n\nDomains: ${domainList.join(', ')}.`,
       inputSchema: {
         task: z.string().min(2).describe('The operation you need, in API vocabulary'),
         domain: z.enum(domainList).optional()
@@ -162,22 +156,16 @@ export function registerTools(server, resolve, {
     {
       title: 'Find workspaces, views and columns by name',
       description:
-        "Resolve what the user MEANT into real IDs. People say \"my profit table\" "
-        + 'when the table is called "Sales_Profit_by_Country", and they often name '
-        + 'nothing at all. Use this BEFORE writing code whenever a workspace, view, '
-        + 'table or column is referred to by name — never guess an ID and never '
-        + 'hardcode a name into a filter.\n\n'
-        + 'Searches workspaces, views, columns, variables, folders, groups, '
-        + 'datasources and aggregate formulas. Everything except workspaces and views '
-        + 'needs a workspaceId; columns also need a viewId.\n\n'
-        + 'Call it with no query to list what exists. Matching is fuzzy and ranked: '
-        + 'every result carries a score and why it matched, so you can tell a '
-        + 'confident hit from a weak one. If nothing matches, the response lists what '
-        + 'was searched — report that to the user rather than claiming their data '
-        + 'does not exist.\n\n'
-        + 'NEVER substitute. If the user names something and nothing matches it, stop '
-        + 'and ask. Using a different variable, column or table than the one they '
-        + 'named produces a confident wrong answer, which is the worst outcome here.',
+        'Resolve what the user MEANT into real ids — "my profit table" is called '
+        + '"Sales_Profit_by_Country". Use it BEFORE any other tool whenever something '
+        + 'is named rather than given as an id.\n\n'
+        + 'Searches workspaces, views, columns, variables, folders, groups, datasources '
+        + 'and aggregate formulas. All but workspaces and views need a workspaceId; '
+        + 'columns also need a viewId. Omit the query to list what exists.\n\n'
+        + 'Matching is fuzzy and ranked, and every hit carries a score and why it '
+        + 'matched. NEVER substitute: if the user named something and nothing matches, '
+        + 'stop and ask. Answering about a different column than the one they named is '
+        + 'a confident wrong answer, which is the worst outcome here.',
       inputSchema: {
         query: z.string().optional()
           .describe('The name the user used. Omit to list everything available.'),
@@ -246,70 +234,52 @@ export function registerTools(server, resolve, {
     {
       title: 'Read Zoho Analytics data with server-side filtering',
       description:
-        'Read rows or aggregates from a table, report or dashboard with the filtering, '
-        + 'grouping and limiting done INSIDE Analytics, so only the answer crosses the '
-        + 'wire. Use this instead of exporting a view and filtering the rows yourself — '
-        + 'measured on a live 755-row table, the same question produced 128 KB of '
-        + 'exported rows that way and 1.2 KB this way, and the gap grows with the '
-        + 'table. Export units are billed per 1000 rows produced, so it is cheaper in '
-        + 'quota as well as in context.\n\n'
-        + 'Give it the narrowest request that answers the question:\n'
-        + '  • `filters` — row selection, as [{ column, op, value }]. Operators: eq, ne, '
-        + 'gt, gte, lt, lte, in, notIn, like, contains, startsWith, endsWith, between, '
-        + 'isNull, notNull. Quoting is handled for you; never build the expression by '
-        + 'hand.\n'
-        + '  • `columns` — the columns you actually need.\n'
-        + '  • `groupBy` + `metrics` — aggregate server-side. [{ fn: "sum", column: '
-        + '"Sales" }] with groupBy ["Region"] returns one row per region, not the table.\n'
-        + '  • `limit` / `orderBy` — top-N, pushed into the SQL.\n'
-        + '  • `mode: "count"` — how many rows match, without fetching any.\n'
-        + '  • `mode: "preview"` — twenty rows to see the shape and the value formatting.\n\n'
-        + 'Resolve workspaceId and viewId with find_analytics_objects first — never guess '
-        + 'an id, and never pass a name where an id belongs. Column names must be the '
-        + "view's own display names; a filter naming a column the view does not have is "
-        + 'refused with the list of real ones rather than silently dropped.\n\n'
-        + 'This tool only reads. For anything it cannot express, use run_analytics_code — '
-        + 'the same engine is available there as `data.*`.',
+        'Read rows or aggregates from any Analytics view, with the filtering, grouping '
+        + 'and limiting done INSIDE Analytics. Use this for every data question rather '
+        + 'than exporting a view and filtering it yourself.\n\n'
+        + 'Ask for the narrowest thing that answers the question: `groupBy` + `metrics` '
+        + 'for a total or breakdown, `mode:"count"` for how many, `orderBy` + `limit` '
+        + 'for a top-N, `filters` + `columns` for rows. Quoting is handled — never '
+        + 'build an expression by hand.\n\n'
+        + 'Get workspaceId and viewId from find_analytics_objects; never guess an id or '
+        + 'pass a name in its place. A filter naming a column the view lacks is refused '
+        + 'with the real column names, not dropped.\n\n'
+        + 'Reads only. For anything it cannot express use run_analytics_code, where the '
+        + 'same engine is `data.*`.',
       inputSchema: {
-        workspaceId: z.string().describe('Workspace id, from find_analytics_objects'),
-        viewId: z.string().optional()
-          .describe('View, table, report or dashboard id. Required unless you pass table or sql.'),
+        workspaceId: z.string().describe('From find_analytics_objects'),
+        viewId: z.string().optional().describe('Any view id. Required unless table or sql.'),
         table: z.string().optional()
-          .describe('Table name for the SQL path, when you know it. Otherwise viewId is '
-            + "resolved to the view's name."),
+          .describe('Table name, when known — saves resolving viewId to a name'),
         sql: z.string().optional()
-          .describe('A SELECT statement to run inside Analytics. Only use this when the '
-            + 'structured fields cannot express the question; they quote identifiers for you.'),
+          .describe('A SELECT, only when the structured fields cannot express it'),
         filters: z.array(z.object({
           column: z.string(),
-          op: z.string().optional().describe('eq (default), ne, gt, gte, lt, lte, in, '
-            + 'notIn, like, contains, startsWith, endsWith, between, isNull, notNull'),
+          op: z.string().optional().describe('eq ne gt gte lt lte in notIn like contains '
+            + 'startsWith endsWith between isNull notNull'),
           value: z.any().optional().describe('A value, or an array for in / between'),
-          table: z.string().optional().describe('Qualify the column when the view joins tables'),
+          table: z.string().optional().describe('Qualify when the view joins tables'),
         })).optional().describe('Row selection, applied by the server'),
-        filterJoin: z.enum(['and', 'or']).optional().describe('How to combine filters (default and)'),
-        columns: z.array(z.string()).optional()
-          .describe('Only these columns are exported'),
-        groupBy: z.array(z.string()).optional().describe('Group the aggregate by these columns'),
+        filterJoin: z.enum(['and', 'or']).optional().describe('default and'),
+        columns: z.array(z.string()).optional().describe('Only these columns'),
+        groupBy: z.array(z.string()).optional(),
         metrics: z.array(z.object({
           fn: z.enum(['sum', 'avg', 'min', 'max', 'count', 'count_distinct', 'stddev', 'variance'])
             .optional(),
-          column: z.string().describe('Column to aggregate, or "*" for count'),
-          as: z.string().optional().describe('Name for the result column'),
+          column: z.string().describe('Column, or "*" for count'),
+          as: z.string().optional(),
         })).optional().describe('Aggregates computed inside Analytics'),
         orderBy: z.array(z.object({
           column: z.string(),
           dir: z.enum(['asc', 'desc']).optional(),
         })).optional(),
         limit: z.number().int().min(1).max(10_000).optional()
-          .describe('Maximum rows. Pushed into the SQL when the SQL path is used.'),
+          .describe('Maximum rows, pushed into the SQL'),
         offset: z.number().int().min(0).optional(),
         distinct: z.boolean().optional(),
         mode: z.enum(['auto', 'view', 'sql', 'count', 'preview']).optional()
-          .describe('auto picks the view export for a plain filtered read and the SQL '
-            + 'export job when the question needs SQL'),
-        format: z.enum(['json', 'csv']).optional()
-          .describe('csv is denser for many rows; json is easier to reason about'),
+          .describe('auto routes by question shape and table size'),
+        format: z.enum(['json', 'csv']).optional(),
       },
     },
     async (request, extra) => {
@@ -324,7 +294,7 @@ export function registerTools(server, resolve, {
       const requestId = audit?.newRequest?.() ?? undefined;
       const actor = actorOf(session, extra);
       const started = Date.now();
-      const program = buildProgram(request);
+      const program = buildProgram(request, { maxRows: caps.maxRows });
 
       try {
         const { result, logs, calls } = await catalog.execute(program, { requestId, actor });
@@ -336,22 +306,23 @@ export function registerTools(server, resolve, {
           code: program, outcome: 'ok', ms: Date.now() - started, apiCalls: calls,
         });
 
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              ...JSON.parse(text),
-              path,
-              // Say what ran on the server. Without this the model cannot tell
-              // a small answer from a small table, so it never learns to push
-              // the next filter down either.
-              pushedDown: describePushdown(path, value),
-              oversized,
-              apiCalls: calls,
-              logs: logs.length ? logs.slice(0, 20) : undefined,
-            }),
-          }],
-        };
+        // `path` here was chosen from the shape of the request, before any
+        // call. The program revises it once it knows the view's type and
+        // size — a chart falls back to the view export, a large table is
+        // bounded with SQL — so the route it actually took is the one to
+        // report. Overwriting it with the guess made the result describe a
+        // pushdown that had not happened.
+        const took = value?.path ?? path;
+
+        // Say what ran on the server, but only when it is not already
+        // obvious from the statement. Without it the model cannot tell a
+        // small answer from a small table, so it never learns to push the
+        // next filter down; with it repeated three times it is just tax.
+        const lean = leanResult(JSON.parse(text), { path: took, apiCalls: calls });
+        if (oversized) lean.oversized = oversized;
+        if (logs.length) lean.logs = logs.slice(0, 20);
+
+        return { content: [{ type: 'text', text: JSON.stringify(lean) }] };
       } catch (err) {
         audit?.execution({
           requestId, actor, org: orgId, client: clientOf(extra),
@@ -369,32 +340,23 @@ export function registerTools(server, resolve, {
     {
       title: 'Run code against Zoho Analytics',
       description:
-        'Execute JavaScript against the Zoho Analytics API in a sandbox and return the '
-        + 'result. Call search_analytics_api first for signatures, and '
-        + 'get_analytics_guide if you are unsure how an operation behaves.\n\n'
-        + 'PLAIN JavaScript only — the sandbox is a bare V8 isolate with no compiler, so '
-        + 'TypeScript syntax is a syntax error. The signatures are type-annotated to show '
-        + 'you the shape of each argument; do not copy the annotations into your code. No '
-        + '`const x: number`, no `interface`, no `as` casts. Modern JavaScript is fine: '
-        + 'async/await, optional chaining, destructuring.\n\n'
-        + 'The sandbox provides one global, `za`, with every available operation as an '
-        + 'async method, plus the `ORG_ID` constant. It has no network, no imports and '
-        + 'no filesystem — `za` is the only way out.\n\n'
-        + 'Three helpers are predefined. `find.*` turns a name into an id and refuses to '
-        + 'guess. `rows.*` reads results safely (export rows arrive as a flat array, and '
-        + 'values are formatted strings like "$1,682.39" that Number() turns into NaN). '
-        + '`data.*` is the data engine — USE IT INSTEAD OF EXPORTING AND FILTERING:\n'
-        + '  data.rows({ workspaceId, viewId, filters, columns })   server-side criteria\n'
-        + '  data.query({ workspaceId, table, metrics, groupBy, filters, orderBy, limit })\n'
-        + '  data.count({ workspaceId, table, filters })            how many match\n'
-        + '  data.aggregate / data.preview / data.export / data.awaitJob\n'
-        + 'Downloading a table and filtering it in JavaScript is the one pattern to '
-        + 'avoid: it bills API units per 1000 rows exported and can exhaust the timeout '
-        + 'on a large table. Push the filter down.\n\n'
-        + 'Use loops, polling and aggregation freely, and `return` ONLY the final answer: '
-        + 'keeping raw rows out of the response is the entire point — results are capped '
-        + 'and a truncated one says so. Use console.log for progress notes. CONFIG '
-        + "parameters must be JSON.stringify()'d strings.",
+        'Run JavaScript against the Zoho Analytics API in a sandbox. Use it for writes, '
+        + 'multi-step work and anything query_analytics_data cannot express; for plain '
+        + 'data questions use that tool instead. Call search_analytics_api first for '
+        + 'signatures.\n\n'
+        + 'PLAIN JavaScript only — a bare V8 isolate, no compiler, so TypeScript syntax '
+        + 'is a syntax error. Signatures are annotated to show argument shapes; do not '
+        + 'copy the annotations. No timers, no network, no imports: `za` is the only way '
+        + "out, `ORG_ID` is predefined, and CONFIG arguments must be JSON.stringify()'d.\n\n"
+        + 'Predefined helpers:\n'
+        + '  find.*   name -> id, refuses to guess\n'
+        + '  rows.*   read results safely; values are strings like "$1,682.39"\n'
+        + '  data.rows({workspaceId, viewId, filters, columns})     server-side criteria\n'
+        + '  data.query({workspaceId, table, metrics, groupBy, filters, orderBy, limit})\n'
+        + '  data.count / aggregate / preview / export / awaitJob / metricValue\n'
+        + 'Never download a table to filter it in JavaScript — push the filter down.\n\n'
+        + '`return` ONLY the final answer; results are capped and say so when truncated. '
+        + 'console.log for progress notes.',
       inputSchema: {
         code: z.string().min(1)
           .describe('Plain JavaScript statements, no type annotations. Use await, and '
@@ -489,8 +451,30 @@ const TS_SYNTAX = [
 ];
 
 /** Turn an execution failure into something the model can act on. */
+/**
+ * Drop the isolate's stack frames from an error the model will read.
+ *
+ * A refused filter came back as the refusal followed by four lines of
+ * "at Object.checkCriteria (<isolated-vm>:935:13)" — line numbers into a
+ * generated prelude that the model cannot open, cannot act on, and pays for
+ * anyway. The message says what to fix; the frames say where in a file that
+ * does not exist on disk.
+ *
+ * Frames from the model's OWN program are worth keeping, so only the ones
+ * pointing into the prelude are dropped; a program that throws on its own
+ * line 12 should still be told so.
+ */
+export function stripIsolateStack(message) {
+  return message
+    .split('\n')
+    .filter((line) => !/^\s*at .*<isolated-vm>:\d+:\d+\)?\s*$/.test(line))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export function explain(err, knowledge, code) {
-  const message = String(err?.message ?? err);
+  const message = stripIsolateStack(String(err?.message ?? err));
   const hints = [];
 
   // Checked first: a syntax error from a type annotation explains every other

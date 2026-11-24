@@ -288,6 +288,10 @@ caught — all fixed and pinned:
 | `tableCriteriaList` on the SQL export job is **silently ignored** | Documented as one filter per referenced table, with 7836 for a table the statement does not touch. Measured: HTTP 200 and unfiltered rows. Row selection for that path goes in the `WHERE` clause |
 | A `SELECT` cannot name a chart, pivot, summary or dashboard | 7409, "the table does not exist in this workspace" — reads as a missing object rather than the wrong route. The engine checks the view type first and falls back to the view export with `criteria` |
 | The isolate has **no `setTimeout`** | A polling loop cannot sleep; reaching for one is a `ReferenceError` inside an export. The tool bridge blocks the isolate anyway, so job polling is paced in the host process (`ZA_JOB_POLL_INTERVAL_MS`) |
+| A **dashboard** refuses *both* export paths with `8119` | The message names the file format, for a view that has no rows in any format. Falling back from one export to the other was dead code for the view type most likely to need it; a dashboard is now refused with the views to read instead |
+| Some views refuse the synchronous export with `8133` | *"Kindly switch to async export model"* — a real instruction, and neither the code nor the wording was in the fallback pattern, so the read simply failed |
+| `getViewDetails` with `withInvolvedMetaInfo` answers **everything at once** | Name, type, owning workspace, row count AND the full column list with `formulaDisplayName` and `dateFormat`, for 0.1 units. The engine was calling it twice with different `CONFIG` because two caches were keyed separately, and `getTableMetadata` — ten times the unit cost — was never needed |
+| An export job is **never ready on the first poll** | Measured from under a second to over five. An immediate first poll spent one call per job learning nothing; waiting, then backing off, turned four calls per SQL read into three |
 
 The two shape bugs mattered most: neither throws, both produce a plausible
 wrong number. They survived every mock test because the mock returned the
