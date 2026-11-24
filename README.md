@@ -148,7 +148,7 @@ visible rather than silently authoritative.
 za-codemode/
 ├── package.json             npm manifest — bin: za-codemode
 ├── .npmrc                   pins the public registry (@utcp/* is not mirrored)
-├── .github/workflows/ci.yml tests on Node 20 + 22; guide links; HTML in step
+├── .github/workflows/ci.yml tests on Node 22 + 24; guide links; HTML in step
 ├── deploy/                  UNRELEASED remote mode only — see its README
 │   ├── Dockerfile           builds the HTTP server; isolated-vm, non-root
 │   ├── docker-compose.yml   reference deployment with Redis
@@ -201,7 +201,7 @@ cd guide && python3 build.py --check    # validate the guide
 cd guide && python3 build.py            # re-render it — commit the HTML too
 ```
 
-CI runs the tests on Node 20 and 22, validates the guide's links and anchors,
+CI runs the tests on Node 22 and 24, validates the guide's links and anchors,
 and fails if the committed `guide/*.html` is out of step with the `.md`. The
 `.html` files are generated *and committed*, so a doc change that touches only
 the Markdown leaves the published guide stale — always re-render.

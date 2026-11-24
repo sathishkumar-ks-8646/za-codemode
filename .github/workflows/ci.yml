@@ -10,9 +10,17 @@
 #      the published guide stale. Re-rendering and diffing is the only way to
 #      catch that before a reader does.
 #
-# isolated-vm is a native addon. Prebuilt binaries cover linux-x64, so `npm ci`
-# needs no toolchain here; `--foreground-scripts` makes a fallback compile
-# visible in the log rather than silent.
+# isolated-vm is a native addon, and the Node versions tested here are exactly
+# the ones it ships a prebuilt binary for. isolated-vm 6.2.0 carries abi127
+# (Node 22) and abi137 (Node 24) for linux-x64, so `npm ci` needs no toolchain;
+# `--foreground-scripts` makes a fallback compile visible rather than silent.
+#
+# Node 20 was tested here until it was removed on 2026-11-24. It never passed:
+# there is no abi115 prebuild, so npm fell back to compiling from source, and
+# the source uses `v8::SourceLocation`, which does not exist before Node 22 —
+# an unbuildable combination, not a flake. Node 20 also reached end of life on
+# 2026-04-30, and no isolated-vm 6.x supports it (the last one that did is
+# 5.0.4, two majors back). Do not add it back; add the next LTS instead.
 
 name: CI
 
@@ -32,7 +40,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ['20', '22']
+        node: ['22', '24']
 
     steps:
       - uses: actions/checkout@v4

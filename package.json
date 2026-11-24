@@ -42,7 +42,7 @@
     "status": "node src/bin.mjs status"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",

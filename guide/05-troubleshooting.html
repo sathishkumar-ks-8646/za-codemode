@@ -158,8 +158,9 @@ npm link</code></pre>
 <p>No. They stay in the host process and are substituted into requests after the sandbox hands over a call.</p>
 <h3 id="q-is-there-an-audit-log">Q. Is there an audit log?</h3>
 <p>Yes. One line per outbound Zoho call is written by default; set <code>ZA_AUDIT=full</code> to also record the program each execution ran. Secrets are redacted, files rotate, and each line carries a hash of the previous one so edits are detectable. See <a href="10-audit.html">Audit logging</a>.</p>
-<h3 id="q-why-does-it-need-node-20">Q. Why does it need Node 20?</h3>
-<p>The sandbox is a V8 isolate from a native module that requires a modern Node. Older versions will fail to install it.</p>
+<h3 id="q-why-does-it-need-node-22">Q. Why does it need Node 22?</h3>
+<p>The sandbox is a V8 isolate provided by <code>isolated-vm</code>, a native module. It ships prebuilt binaries only for Node 22 and Node 24; on anything older there is nothing to install, so npm falls back to compiling it from source — and the source uses a part of V8 that does not exist before Node 22, so the compile fails too.</p>
+<p>Node 20 was <em>claimed</em> as supported until November 2026, but it never actually worked: the pinned <code>isolated-vm</code> has required Node 22 since the first release. The claim was removed rather than the requirement lowered — Node 20 reached end of life on 30 April 2026, and the last <code>isolated-vm</code> that runs on it is two major versions behind.</p>
 <h3 id="q-can-i-add-my-own-operations">Q. Can I add my own operations?</h3>
 <p>Yes — point <code>ZA_MANUAL_PATH</code> at your own catalog, or regenerate the bundled one from the OpenAPI specs with <code>npm run build:manual</code>. See <a href="06-operating.html#building-the-catalog-from-source">Operating</a>.</p>
 </section>

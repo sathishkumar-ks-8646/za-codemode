@@ -16,7 +16,7 @@ A server that runs on your own machine, spawned by your agent. Nothing is hosted
 |---|---|
 | A Zoho Analytics organization | You will need its ID — [step 1](#step-1-get-your-zoho-credentials) |
 | An MCP-capable agent | Claude Code, Claude Desktop, Cursor, VS Code, Windsurf |
-| Node.js 20 or newer | `node --version` |
+| Node.js 22 or newer | `node --version` — the sandbox ships no binary for anything older |
 | git | `git --version` |
 | A terminal | `login` asks questions; your agent cannot answer them for you |
 
