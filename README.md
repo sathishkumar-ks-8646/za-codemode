@@ -154,7 +154,7 @@ za-codemode/
 │   └── build-knowledge.mjs  github.com/zoho/analytics-okf -> knowledge bundle
 ├── manual/                  generated catalog; never hand-edited
 ├── knowledge/               generated OKF bundle; never hand-edited
-├── test/                    offline mocks, 101 tests
+├── test/                    offline mocks, 112 tests
 └── guide/                   the published setup & usage guide (md -> html)
     └── unpublished/         written but held back; see its README
 ```
@@ -164,7 +164,7 @@ za-codemode/
 ```bash
 npm install                  # public registry, pinned in .npmrc
 npm link                     # puts `za-codemode` on PATH, for the CLI
-npm test                     # 101 tests, fully offline
+npm test                     # 112 tests, fully offline
 npm run build                # rebuild both artifacts from the published repos
 npm start                    # stdio server
 
@@ -177,7 +177,7 @@ and fails if the committed `guide/*.html` is out of step with the `.md`. The
 `.html` files are generated *and committed*, so a doc change that touches only
 the Markdown leaves the published guide stale — always re-render.
 
-## Four invariants
+## Five invariants
 
 **`src/quiet.mjs` must stay the first import of `server.mjs`.** An MCP stdio
 server's stdout *is* the JSON-RPC channel, and the UTCP SDK logs progress with
@@ -189,6 +189,17 @@ downloads/month) with several undocumented behaviours — all four of which are
 documented at the top of that file. Keeping every import in one module means
 replacing it later touches one file. Nothing else in the codebase should import
 `@utcp/*`.
+
+**One consumer of stdin at a time, and never destroy it.** `src/cli.mjs`
+prompts for secrets by reading raw keystrokes, and that must not happen while
+a readline interface is attached to the same stream — readline echoes the
+keystrokes the prompt exists to hide. Nor may the read use
+`for await (const chunk of stdin)`: leaving that loop with `break` calls the
+iterator's `return()`, which *destroys* the stream, and every prompt after it
+then dies with `AbortError: The operation was aborted`. Both shipped, and
+neither was visible to a test, because the suite pipes its answers in and a
+pipe takes the other branch entirely. `test/cli-prompt.test.mjs` drives the
+terminal branch against fake TTY streams and pins both.
 
 **The resolver must never substitute.** `find.require()` resolves a named
 object or halts: no match, or two matches too close to separate, and the run
@@ -244,11 +255,12 @@ documented pattern returned `{ rowCount: 0 }`.
 
 ## Status
 
-101 tests pass offline: search quality and domain filtering, name resolution
+112 tests pass offline: search quality and domain filtering, name resolution
 (fuzzy matching, ambiguity, misses, columns, variables, enforced refusal),
 result reading, call pacing, stdio end-to-end, audit streams and hash chaining,
-credential resolution, token caching, the knowledge tool, and — for the
-unreleased mode — the full OAuth flow and organization allowlist enforcement.
+credential resolution, token caching, the knowledge tool, the login prompts on
+a simulated terminal, and — for the unreleased mode — the full OAuth flow and
+organization allowlist enforcement.
 
 Not yet done:
 

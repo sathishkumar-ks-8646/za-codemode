@@ -102,56 +102,145 @@ async function chooseWrites(prompt) {
  * up front and serves answers from that list — sequential `question()` calls
  * against a pipe lose lines, because readline emits them all before the next
  * call has registered, and the script then hangs forever on a closed stream.
+ *
+ * On a terminal there is exactly ONE consumer of the input stream at a time:
+ * `ask` opens a readline interface and closes it again, and `secret` reads
+ * keystrokes with a listener it removes afterwards. That rule is the fix for
+ * two defects that between them made every interactive login unusable, and
+ * neither was visible to a test, because a test pipes its answers in and a
+ * pipe takes the other path entirely:
+ *
+ *  - **`for await (const chunk of stdin)` destroys stdin.** Leaving the loop
+ *    with `break` calls the async iterator's `return()`, which destroys the
+ *    stream with an AbortError. A readline interface still attached to the
+ *    same stdin re-emitted that as an unhandled 'error' event, so the prompt
+ *    *after* the secret — Organization ID — died with "AbortError: The
+ *    operation was aborted" before it could be answered. Nothing here ever
+ *    destroys the stream now; listeners are added and removed instead.
+ *  - **A readline interface left open echoes what the secret prompt hides.**
+ *    Reading raw keystrokes does not stop readline, attached to the same
+ *    stdin, from writing them out — so the client secret was printed in full,
+ *    into the scrollback it exists to stay out of. That is the quiet half of
+ *    this bug: the crash announces itself, the leaked secret does not.
+ *
+ * Streams are injected rather than imported so the terminal path can be
+ * tested. It is the only path these two defects lived on.
  */
-class Prompter {
-  #rl = null;
+export class Prompter {
+  #input;
+  #output;
+  #tty = false;
   #lines = null;
 
-  async open() {
-    if (stdin.isTTY) {
-      this.#rl = createInterface({ input: stdin, output: stdout });
-    } else {
-      let data = '';
-      for await (const chunk of stdin) data += chunk;
-      this.#lines = data.split(/\r?\n/);
-    }
+  constructor({ input = stdin, output = stdout } = {}) {
+    this.#input = input;
+    this.#output = output;
   }
 
-  close() { this.#rl?.close(); }
+  async open() {
+    if (this.#input.isTTY) { this.#tty = true; return; }
+    // Reading to the end is the one place a for-await is right: there is no
+    // early exit, and nothing needs the stream afterwards.
+    let data = '';
+    for await (const chunk of this.#input) data += chunk;
+    this.#lines = data.split(/\r?\n/);
+  }
+
+  /** Nothing is held open between questions, so there is nothing to close. */
+  close() {}
+
+  /** The next piped answer, or '' once they run out. */
+  #nextLine() {
+    return (this.#lines?.shift() ?? '').trim();
+  }
 
   /** A visible question. */
   async ask(label) {
-    if (this.#rl) return (await this.#rl.question(label)).trim();
-    const value = (this.#lines.shift() ?? '').trim();
-    stdout.write(`${label}${value}\n`);
-    return value;
-  }
-
-  /** A question whose answer must not reach the scrollback. */
-  async secret(label) {
-    if (!this.#rl) {
-      const value = (this.#lines.shift() ?? '').trim();
-      stdout.write(`${label}${value ? '(from stdin)' : ''}\n`);
+    if (!this.#tty) {
+      const value = this.#nextLine();
+      this.#output.write(`${label}${value}\n`);
       return value;
     }
 
-    stdout.write(label);
-    stdin.setRawMode(true);
-    stdin.resume();
-    let value = '';
+    const rl = createInterface({ input: this.#input, output: this.#output });
     try {
-      for await (const chunk of stdin) {
-        const text = chunk.toString('utf8');
-        if (text === CTRL_C) { stdout.write('\n'); process.exit(130); }
-        if (/[\r\n]/.test(text)) break;
-        if (BACKSPACE.test(text)) { value = value.slice(0, -1); continue; }
-        value += text.replace(/[\r\n]/g, '');
-      }
+      return (await rl.question(label)).trim();
     } finally {
-      stdin.setRawMode(false);
-      stdin.pause();
+      // close() detaches readline from the stream; it does not destroy it.
+      rl.close();
     }
-    stdout.write('\n');
+  }
+
+  /**
+   * A question whose answer must not reach the scrollback.
+   *
+   * Reads raw keystrokes directly, with no readline interface open, so
+   * nothing echoes them. Resolves on Enter, on end-of-input and on Ctrl-D,
+   * and always restores the terminal mode it changed.
+   */
+  async secret(label) {
+    if (!this.#tty) {
+      const value = this.#nextLine();
+      this.#output.write(`${label}${value ? '(from stdin)' : ''}\n`);
+      return value;
+    }
+
+    this.#output.write(label);
+    const input = this.#input;
+    const output = this.#output;
+    const wasRaw = input.isRaw === true;
+    input.setRawMode(true);
+    input.resume();
+
+    const value = await new Promise((done, fail) => {
+      let buffer = '';
+
+      const detach = () => {
+        input.off('data', onData);
+        input.off('end', onEnd);
+        input.off('error', onError);
+        input.setRawMode(wasRaw);
+        input.pause();
+      };
+      const finish = () => { detach(); output.write('\n'); done(buffer); };
+
+      function onData(chunk) {
+        const text = chunk.toString('utf8');
+
+        if (text.includes(CTRL_C)) {
+          detach();
+          output.write('\n');
+          process.exit(130);
+        }
+
+        // A paste arrives as a single chunk and often carries its own
+        // newline. Splitting at it keeps what came before; the previous code
+        // discarded the whole chunk, so a correctly pasted secret vanished
+        // and the run ended with "Nothing was stored."
+        const end = text.search(/[\r\n\u0004]/);
+        // Arrow keys and friends arrive as whole escape sequences. Dropping
+        // just the ESC byte would leave "[A" in the secret, so the sequence
+        // goes as a unit before anything else is looked at.
+        const typed = (end === -1 ? text : text.slice(0, end))
+          .replace(/\u001b\[[0-9;]*[A-Za-z~]/g, '')
+          .replace(/\u001b[@-Z\\-_]/g, '');
+
+        for (const ch of typed) {
+          if (BACKSPACE.test(ch)) { buffer = buffer.slice(0, -1); continue; }
+          if (ch.charCodeAt(0) < 0x20) continue;
+          buffer += ch;
+        }
+
+        if (end !== -1) finish();
+      }
+      function onEnd() { finish(); }
+      function onError(err) { detach(); fail(err); }
+
+      input.on('data', onData);
+      input.once('end', onEnd);
+      input.once('error', onError);
+    });
+
     return value.trim();
   }
 }

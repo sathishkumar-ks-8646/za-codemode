@@ -2,7 +2,7 @@
 #
 # Three things are checked, in rising order of how often they break:
 #
-#   1. The test suite — 101 tests, fully offline against the mock Analytics API.
+#   1. The test suite — 112 tests, fully offline against the mock Analytics API.
 #   2. The guide validates — every page has an H1 and every internal link and
 #      anchor resolves.
 #   3. The rendered HTML matches the authored Markdown. The `.html` files are

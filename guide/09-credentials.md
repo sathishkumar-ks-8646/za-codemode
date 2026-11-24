@@ -324,3 +324,4 @@ Hence the keychain itself.
 | Verification fails at login | Wrong data centre, or a reused grant code | Grant codes are single-use and expire in minutes |
 | Fewer tools than expected | The profile's groups | `status` shows them; `login` again to change them |
 | Works in a terminal, not in the agent | The agent's environment differs | Check the `[za] credentials —` line in the server log |
+| `AbortError: The operation was aborted` right after the Client Secret | A bug in `login` up to and including the first release: the secret prompt destroyed the input stream, so every prompt after it died. The secret was also echoed in full, and a pasted one was discarded | Fixed. Update, and if a secret was typed into an affected version, treat it as exposed and rotate it in the [Developer Console](https://api-console.zoho.com) |
