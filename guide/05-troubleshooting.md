@@ -165,9 +165,11 @@ No. They stay in the host process and are substituted into requests after the sa
 
 Yes. One line per outbound Zoho call is written by default; set `ZA_AUDIT=full` to also record the program each execution ran. Secrets are redacted, files rotate, and each line carries a hash of the previous one so edits are detectable. See [Audit logging](10-audit.md).
 
-### Q. Why does it need Node 20?
+### Q. Why does it need Node 22?
 
-The sandbox is a V8 isolate from a native module that requires a modern Node. Older versions will fail to install it.
+The sandbox is a V8 isolate provided by `isolated-vm`, a native module. It ships prebuilt binaries only for Node 22 and Node 24; on anything older there is nothing to install, so npm falls back to compiling it from source — and the source uses a part of V8 that does not exist before Node 22, so the compile fails too.
+
+Node 20 was *claimed* as supported until November 2026, but it never actually worked: the pinned `isolated-vm` has required Node 22 since the first release. The claim was removed rather than the requirement lowered — Node 20 reached end of life on 30 April 2026, and the last `isolated-vm` that runs on it is two major versions behind.
 
 ### Q. Can I add my own operations?
 
