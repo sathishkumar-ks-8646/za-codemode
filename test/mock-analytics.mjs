@@ -378,16 +378,64 @@ function apply(term, bucket) {
   }
 }
 
+
+/**
+ * Enough multipart parsing to check what an import actually sent.
+ *
+ * Not a general implementation — it reads the parts this API uses (CONFIG,
+ * DATA, FILE), which is the point: the assertion is that CONFIG arrived as
+ * its own part beside the payload, not that we can parse arbitrary MIME.
+ */
+function parseMultipart(raw, contentType) {
+  const boundary = /boundary=(?:"([^"]+)"|([^;]+))/.exec(contentType);
+  if (!boundary) return {};
+  const marker = `--${boundary[1] ?? boundary[2]}`;
+  const found = {};
+  for (const chunk of raw.split(marker)) {
+    const split = chunk.indexOf('\r\n\r\n');
+    if (split === -1) continue;
+    const name = /name="([^"]+)"/.exec(chunk.slice(0, split));
+    if (!name) continue;
+    found[name[1]] = chunk.slice(split + 4).replace(/\r\n$/, '');
+  }
+  return found;
+}
+
 export function startMockAnalytics(port = 0) {
   const requests = [];
+  // What each import actually carried, so a test can assert on the parts
+  // rather than only on the fact that a 200 came back.
+  const importedParts = [];
+  const importJobs = new Map();
 
-  const server = createServer((req, res) => {
+  const server = createServer(async (req, res) => {
+    const raw = await new Promise((resolve) => {
+      const chunks = [];
+      req.on('data', (c) => chunks.push(c));
+      req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    });
     const url = new URL(req.url, 'http://localhost');
     const path = url.pathname;
     requests.push(`${req.method} ${path}`);
 
+    // Where CONFIG is read from mirrors the live server, because that is the
+    // thing being tested: a write that puts CONFIG in the query string is
+    // answered 8504 there, so it is answered 8504 here. A mock that accepted
+    // either would have let the original defect through, which is exactly
+    // what it did.
+    const contentType = String(req.headers['content-type'] ?? '');
+    const parts = contentType.startsWith('multipart/form-data')
+      ? parseMultipart(raw, contentType) : null;
+    let configText = null;
+    if (parts) {
+      configText = parts.CONFIG ?? null;
+    } else if (req.method !== 'GET' && contentType.includes('x-www-form-urlencoded')) {
+      configText = new URLSearchParams(raw).get('CONFIG');
+    } else {
+      configText = url.searchParams.get('CONFIG');
+    }
     let config = {};
-    try { config = JSON.parse(url.searchParams.get('CONFIG') ?? '{}'); } catch { /* ignore */ }
+    try { config = JSON.parse(configText ?? '{}'); } catch { /* ignore */ }
 
     const send = (payload, status = 200) => {
       const body = JSON.stringify(payload);
@@ -482,6 +530,53 @@ export function startMockAnalytics(port = 0) {
       return send({ status: 'success', data: { views: payload } });
     }
 
+    // A modelling write, for checking where CONFIG arrived from. The live
+    // server answers 8504 when it is in the query string, because it reads
+    // the body only — so this does too, and a transport regression fails
+    // here rather than in production.
+    if (req.method === 'POST' && (m = /^\/restapi\/v2\/workspaces\/(\d+)\/tables$/.exec(path))) {
+      if (!contentType.includes('x-www-form-urlencoded')) return fail(8504, 400);
+      if (!config.tableDesign?.TABLENAME) return fail(8504, 400);
+      return send({ status: 'success', summary: 'Create table',
+        data: { viewId: '2375824000000020098',
+          columns: (config.tableDesign.COLUMNS ?? []).length } });
+    }
+
+    // Imports. The payload rides as a multipart part beside CONFIG, which no
+    // single body field can express — so these exist to prove the host built
+    // the multipart body itself, and that CONFIG came with it.
+    if (req.method === 'POST'
+        && (m = /^\/restapi\/v2\/(bulk\/)?workspaces\/(\d+)\/(views\/(\d+)\/)?data(\/batch)?$/
+          .exec(path))) {
+      if (!parts) return fail(8504, 400);            // CONFIG must be a part
+      const payload = parts.DATA ?? parts.FILE;
+      if (payload === undefined) return fail(8504, 400);
+      const lines = payload.trim().split('\n').filter(Boolean);
+      const bulk = Boolean(m[1]);
+      importedParts.push({ config, hasFile: parts.FILE !== undefined,
+        hasData: parts.DATA !== undefined, rows: Math.max(0, lines.length - 1) });
+      if (bulk) {
+        const jobId = String(8800000000000000000n + BigInt(++jobSeq));
+        importJobs.set(jobId, { polls: 0 });
+        return send({ status: 'success', data: { jobId } });
+      }
+      return send({ status: 'success', data: {
+        viewId: '2375824000000020099',
+        importSummary: { totalRowCount: lines.length - 1, successRowCount: lines.length - 1 },
+      } });
+    }
+
+    if ((m = /^\/restapi\/v2\/bulk\/workspaces\/(\d+)\/importjobs\/(\d+)$/.exec(path))) {
+      const job = importJobs.get(m[2]);
+      if (!job) return fail(8120, 404);
+      job.polls += 1;
+      const done = job.polls >= 2;
+      return send({ status: 'success', data: { jobId: m[2],
+        jobCode: done ? '1004' : '1002',
+        jobStatus: done ? 'JOB COMPLETED' : 'JOB IN PROGRESS',
+        jobInfo: done ? { successRowCount: 3 } : undefined } });
+    }
+
     // Synchronous view export. criteria and selectedColumns are applied HERE,
     // by the server, which is the whole point of the pushdown path.
     if ((m = /^\/restapi\/v2\/workspaces\/(\d+)\/views\/(\d+)\/data$/.exec(path))) {
@@ -569,6 +664,7 @@ export function startMockAnalytics(port = 0) {
       resolve({
         url: `http://127.0.0.1:${actual}`,
         requests,
+        importedParts,
         close: () => new Promise((done) => server.close(done)),
       });
     });

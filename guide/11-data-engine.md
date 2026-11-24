@@ -137,7 +137,8 @@ The same engine, for the questions the tool cannot express. It is predefined in 
 | `data.aggregate({ workspaceId, table, by, measure })` | `data.query` with the aggregate spelled out. |
 | `data.preview({ workspaceId, viewId, limit })` | A bounded look at the shape, with the limit pushed down where possible. |
 | `data.export({ workspaceId, viewId, filters, columns })` | Asynchronous view export, for what the synchronous one refuses. |
-| `data.awaitJob(workspaceId, jobId)` | Poll a job to completion and download it. |
+| `data.awaitJob(workspaceId, jobId)` | Poll an export job to completion and download it. |
+| `data.awaitImportJob(workspaceId, jobId)` | Poll an import job to completion. There is nothing to download — the rows went into a table, so the answer is the summary. |
 | `data.meta(workspaceId, viewId)` | Name, type, owning workspace, **row count** and columns — one cached call. |
 | `data.columns(workspaceId, viewId)` | Just the columns, from that same call. Each carries `isFormula`, `dataTypeName` and `dateFormat`. |
 | `data.view(workspaceId, viewId)` | An alias for `data.meta`. |

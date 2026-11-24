@@ -131,15 +131,34 @@ for (const [domain, doc] of await loadSpecs()) {
       }
 
       // Request body, if any, flattened into the inputs.
+      //
+      // PATCH 5: the body is a BODY. The v2 convention is that the HTTP
+      // method decides where CONFIG goes — query string on GET, a
+      // form-encoded body field on POST, PUT and DELETE, a multipart part
+      // when a file rides along. Leaving the body undeclared made UTCP sweep
+      // every unconsumed argument into the query string, which measured
+      // live fails three different ways: createTable answers 8504 "CONFIG
+      // has not been sent" because it reads the body only, a 5 KB CONFIG is
+      // a 400, and a 17 KB CONFIG is a 414 Request-URI Too Large.
       const body = deref(doc, op.requestBody ?? {});
+      const multipart = body?.content?.['multipart/form-data']?.schema;
       const bodySchema = body?.content?.['application/json']?.schema
-        ?? body?.content?.['application/x-www-form-urlencoded']?.schema;
+        ?? body?.content?.['application/x-www-form-urlencoded']?.schema
+        ?? multipart;
       if (bodySchema?.properties) {
         for (const [k, v] of Object.entries(bodySchema.properties)) {
-          properties[k] = k === 'CONFIG' ? { type: 'string', description: "JSON.stringify()'d object" } : v;
+          properties[k] = k === 'CONFIG'
+            ? { type: 'string', description: "JSON.stringify()'d object" }
+            : v;
         }
         for (const r of bodySchema.required ?? []) required.push(r);
       }
+      // The import endpoints upload a file part beside CONFIG, which no
+      // single body field can express. They are flagged here and handled by
+      // the host, which builds the multipart body itself.
+      const upload = Boolean(multipart);
+      const bodyField = !upload && bodySchema?.properties?.CONFIG
+        && method.toUpperCase() !== 'GET' ? 'CONFIG' : undefined;
 
       tools.push(prune({
         name: op.operationId,
@@ -155,9 +174,16 @@ for (const [domain, doc] of await loadSpecs()) {
         tool_call_template: {
           call_template_type: 'http',
           http_method: method.toUpperCase(),
+          // Named so UTCP lifts CONFIG out of the query string and sends it
+          // as the request body. The host form-encodes the value on the way
+          // out, because the wire format is `CONFIG=<url-encoded JSON>` and
+          // not the bare JSON.
+          body_field: bodyField,
+          upload: upload || undefined,
           // PATCH 2: the DC is a variable, not a baked-in host.
           url: '${ZA_BASE_URL}' + path.replace(/\{([^}]+)\}/g, '{$1}'),
-          content_type: 'application/json',
+          content_type: upload ? 'multipart/form-data'
+            : (bodyField ? 'application/x-www-form-urlencoded' : 'application/json'),
           header_fields: headerFields,
           // PATCH 1: Zoho accepts Bearer, so api_key auth on the Authorization
           // header is correct and avoids UTCP's client_credentials oauth2 path.

@@ -783,6 +783,47 @@ const data = {
   },
 
   /**
+   * Poll an IMPORT job to completion.
+   *
+   * An import job reports progress the same way an export job does, but
+   * there is nothing to download afterwards — the rows went into a table,
+   * and the answer is the summary. Without this a program would reach for
+   * setTimeout to pace its own loop, which does not exist in the isolate;
+   * the host spaces these reads exactly as it spaces export polls.
+   */
+  async awaitImportJob(workspaceId, jobId, { timeoutMs = 50000 } = {}) {
+    const deadline = Date.now() + timeoutMs;
+    let polls = 0;
+    for (;;) {
+      const details = await za.getImportJobDetails({
+        'ZANALYTICS-ORGID': ORG_ID,
+        'workspace-id': String(workspaceId),
+        'job-id': String(jobId),
+      });
+      polls += 1;
+      const last = details?.data ?? details ?? {};
+      const code = String(last.jobCode ?? '');
+      const text = String(last.jobStatus ?? '');
+      if (code === '1004' || /COMPLETED/i.test(text)) {
+        return { jobId: String(jobId), polls, jobStatus: text || code,
+          summary: last.jobInfo ?? last.importSummary ?? null };
+      }
+      if (code === '1003' || /ERROR/i.test(text)) {
+        throw new Error('The import job failed (jobCode 1003): '
+          + (last.errorMessage ?? JSON.stringify(last).slice(0, 300)));
+      }
+      if (code === '1005' || /NOT FOUND/i.test(text)) {
+        throw new Error('Import job ' + jobId + ' does not exist (jobCode 1005).');
+      }
+      if (Date.now() > deadline) {
+        throw new Error('The import job was still running after ' + polls + ' polls, last '
+          + 'status "' + (text || code) + '". Pick it up later with data.awaitImportJob('
+          + JSON.stringify(String(workspaceId)) + ', ' + JSON.stringify(String(jobId)) + ').');
+      }
+    }
+  },
+
+  /**
    * Asynchronous export of a whole view, with the same pushdown.
    *
    * The synchronous export refuses tables over a million rows, live-connect

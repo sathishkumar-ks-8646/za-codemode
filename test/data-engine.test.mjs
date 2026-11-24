@@ -26,11 +26,23 @@ const CHART = '2375824000000020008';       // Chart: SQL cannot name it
 const DASHBOARD = '2375824000000020010';   // no row data at all — 8119
 const BIG_TABLE = '2375824000000020011';   // 250,000 rows, worth bounding
 
-let mock; let client;
+let mock; let client; let writeClient;
 
 const call = async (name, args) => {
   const res = await client.callTool({ name, arguments: args });
   return { error: res.isError === true, text: res.content[0].text };
+};
+// A second server with writes enabled. They are hidden by default — every
+// POST, PUT and DELETE is filtered out of the catalogue — so a write test
+// against the read-only server only ever proves that the filter works.
+const callWrite = async (name, args) => {
+  const res = await writeClient.callTool({ name, arguments: args });
+  return { error: res.isError === true, text: res.content[0].text };
+};
+const jsonWrite = async (name, args) => {
+  const { error, text } = await callWrite(name, args);
+  assert.equal(error, false, `tool failed: ${text}`);
+  return JSON.parse(text);
 };
 const json = async (name, args) => {
   const { error, text } = await call(name, args);
@@ -52,10 +64,25 @@ before(async () => {
     },
     stderr: 'pipe',
   }));
+
+  writeClient = new Client({ name: 'data-engine-write-test', version: '1.0' });
+  await writeClient.connect(new StdioClientTransport({
+    command: process.execPath,
+    args: [join(HERE, '..', 'src', 'server.mjs')],
+    env: {
+      PATH: process.env.PATH,
+      ANALYTICS_SERVER_URL: mock.url,
+      ANALYTICS_ACCESS_TOKEN: 'test-token',
+      ANALYTICS_ORG_ID: ORG_ID,
+      ZA_ALLOW_WRITES: 'true',
+    },
+    stderr: 'pipe',
+  }));
 });
 
 after(async () => {
   await client?.close().catch(() => {});
+  await writeClient?.close().catch(() => {});
   await mock?.close();
   setTimeout(() => process.exit(0), 200).unref();
 });
@@ -587,4 +614,90 @@ test('view metadata is read once per session, not once per question', async () =
   const details = mock.requests.slice(before)
     .filter((r) => /\/restapi\/v2\/views\/\d+$/.test(r));
   assert.equal(details.length, 1, `three questions, one metadata read, got ${details.length}`);
+});
+
+// ---------------------------------------------------------------------------
+// Where CONFIG goes — the HTTP method decides, not the caller
+// ---------------------------------------------------------------------------
+
+test('a write sends CONFIG as a form-encoded body, not in the query string', async () => {
+  // Measured live before this: createTable answered 8504 "CONFIG has not been
+  // sent" because it reads the body only, a 5 KB CONFIG was a bare 400, and a
+  // 17 KB CONFIG was 414 Request-URI Too Large. The mock now answers 8504 to a
+  // query-string CONFIG exactly as the live server does, so this would fail
+  // again if the transport regressed.
+  const res = await jsonWrite('run_analytics_code', {
+    code: `return await za.createTable({
+      'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': '${SALES_WS}',
+      CONFIG: JSON.stringify({ tableDesign: { TABLENAME: 'T',
+        COLUMNS: [{ COLUMNNAME: 'a', DATATYPE: 'PLAIN' }] } }),
+    });`,
+  });
+  assert.equal(res.result.status, 'success');
+});
+
+test('a CONFIG far too long for a URL still gets through', async () => {
+  // 17 KB was 414 Request-URI Too Large. In a body it is unremarkable.
+  const res = await jsonWrite('run_analytics_code', {
+    code: `const COLUMNS = Array.from({ length: 400 }, (_, i) => (
+        { COLUMNNAME: 'col_' + i, DATATYPE: 'PLAIN' }));
+      const CONFIG = JSON.stringify({ tableDesign: { TABLENAME: 'Wide', COLUMNS } });
+      const out = await za.createTable({
+        'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': '${SALES_WS}', CONFIG });
+      return { configBytes: CONFIG.length, status: out.status };`,
+  });
+  assert.ok(res.result.configBytes > 15000, 'the CONFIG must be far past any URL limit');
+  assert.equal(res.result.status, 'success');
+});
+
+// ---------------------------------------------------------------------------
+// Imports — a multipart body the call template cannot express
+// ---------------------------------------------------------------------------
+
+test('a synchronous import sends CONFIG and DATA as separate parts', async () => {
+  const before = mock.importedParts.length;
+  const res = await jsonWrite('run_analytics_code', {
+    code: `return await za.importDataNewTable({
+      'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': '${SALES_WS}',
+      CONFIG: JSON.stringify({ tableName: 'Imported', fileType: 'csv', autoIdentify: 'true' }),
+      DATA: 'Region,Sales\\nWest,10\\nEast,20\\n',
+    });`,
+  });
+  assert.equal(res.result.data.importSummary.successRowCount, 2);
+  const sent = mock.importedParts.slice(before);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].hasData, true, 'the rows travelled as a DATA part');
+  assert.equal(sent[0].config.tableName, 'Imported', 'CONFIG travelled as its own part');
+});
+
+test('an import job takes the payload as a FILE part and is pollable', async () => {
+  const created = await jsonWrite('run_analytics_code', {
+    code: `return await za.createImportJobNewTable({
+      'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': '${SALES_WS}',
+      CONFIG: JSON.stringify({ tableName: 'Bulk', fileType: 'csv', autoIdentify: 'true' }),
+      FILE: 'Region,Sales\\nWest,10\\n',
+    });`,
+  });
+  const jobId = created.result.data.jobId;
+  assert.ok(jobId, 'a job id comes back');
+
+  // The isolate has no setTimeout, so the loop cannot pace itself; the host
+  // spaces import polls exactly as it spaces export polls.
+  const done = await jsonWrite('run_analytics_code', {
+    code: `return await data.awaitImportJob('${SALES_WS}', '${jobId}');`,
+  });
+  assert.match(done.result.jobStatus, /COMPLETED/);
+  assert.ok(done.result.polls >= 1);
+});
+
+test('an import with no rows is refused by name, before it is sent', async () => {
+  const { text } = await callWrite('run_analytics_code', {
+    code: `return await za.importDataNewTable({
+      'ZANALYTICS-ORGID': ORG_ID, 'workspace-id': '${SALES_WS}',
+      CONFIG: JSON.stringify({ tableName: 'X', fileType: 'csv' }),
+    });`,
+  });
+  assert.match(text, /An import needs the rows to import/);
+  assert.match(text, /DATA/);
+  assert.match(text, /FILE/);
 });

@@ -106,6 +106,39 @@ export const DOMAINS = {
 registerHttp();   // the manual's tools call Analytics over HTTPS
 registerText();   // the manual itself is handed over inline, never fetched
 
+
+/**
+ * Put CONFIG where the method says it goes.
+ *
+ * The v2 convention is not decorative: GET takes CONFIG as a percent-encoded
+ * query parameter, POST/PUT/DELETE take it as a form-encoded body field, and
+ * an upload takes it as a multipart part. Sending it as a query parameter on
+ * a write was tolerated by some endpoints and measured failing on others
+ * three different ways — 8504 "CONFIG has not been sent" from an endpoint
+ * that reads only the body, a bare 400 at five kilobytes, and 414
+ * Request-URI Too Large at seventeen.
+ *
+ * UTCP sends a body field verbatim, so the value handed to it has to be the
+ * finished pair rather than the bare JSON.
+ */
+function formEncodeConfig(args) {
+  if (args?.CONFIG === undefined || args.CONFIG === null) return args;
+  return { ...args, CONFIG: `CONFIG=${encodeURIComponent(String(args.CONFIG))}` };
+}
+
+/**
+ * A filename for an uploaded part, from the format CONFIG declares.
+ *
+ * The server reads `fileType` from CONFIG rather than from the name, but a
+ * multipart file part without a filename is not a file part, and some
+ * gateways drop it.
+ */
+function uploadFilename(config) {
+  let ext = 'csv';
+  try { ext = String(JSON.parse(config ?? '{}').fileType ?? 'csv').toLowerCase(); } catch { /* default */ }
+  return `upload.${ext.replace(/[^a-z0-9]/g, '') || 'csv'}`;
+}
+
 export class Catalog {
   #config;
   #tokens;
@@ -265,6 +298,62 @@ export class Catalog {
   }
 
   /**
+   * Perform an import ourselves, because no single body field can express it.
+   *
+   * The six import endpoints take CONFIG beside a payload part — FILE for a
+   * binary upload, or DATA for raw text on the two synchronous ones. UTCP's
+   * call template carries exactly one body field, so these are flagged
+   * `upload` in the manual and built here instead.
+   *
+   * The sandbox has no filesystem, so a program cannot hand over a path. What
+   * it can produce is text, and text is what both parts accept: DATA takes it
+   * directly, and FILE takes it as a named part, which is what makes the
+   * asynchronous job and batch endpoints reachable from generated code at all.
+   */
+  async #upload(template, args) {
+    const token = await this.#tokens.get();
+    const url = template.url
+      .replace('${ZA_BASE_URL}', this.#config.analyticsUrl)
+      .replace(/\{([^}]+)\}/g, (whole, key) => (
+        args[key] !== undefined ? encodeURIComponent(String(args[key])) : whole));
+
+    const form = new FormData();
+    if (args.CONFIG !== undefined) form.append('CONFIG', String(args.CONFIG));
+    if (args.DATA !== undefined) form.append('DATA', String(args.DATA));
+    if (args.FILE !== undefined) {
+      form.append('FILE', new Blob([String(args.FILE)]), uploadFilename(args.CONFIG));
+    }
+    if (args.DATA === undefined && args.FILE === undefined) {
+      throw new Error('An import needs the rows to import: pass DATA with the text '
+        + '(synchronous imports, up to 10,000,000 characters) or FILE with the file '
+        + "contents. CONFIG alone says how to read them, not what they are.");
+    }
+
+    // Content-Type is deliberately unset: fetch derives it from the FormData,
+    // including the boundary, and setting it by hand loses the boundary and
+    // the server rejects the body.
+    const res = await fetch(url, {
+      method: template.http_method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(args['ZANALYTICS-ORGID'] !== undefined
+          ? { 'ZANALYTICS-ORGID': String(args['ZANALYTICS-ORGID']) } : {}),
+      },
+      body: form,
+    });
+
+    const text = await res.text();
+    if (!res.ok) {
+      // Shaped like the transport's own failures so that explain() and the
+      // error-code hints keep working for an import exactly as they do for
+      // every other call.
+      throw new Error(`HTTP ${res.status} calling tool 'za.${template.operationId}': `
+        + text.slice(0, 600));
+    }
+    try { return JSON.parse(text); } catch { return text; }
+  }
+
+  /**
    * The HTTP method an operation uses, for telling a read from a write.
    *
    * Looked up from the manual rather than guessed from the name: `getViews`
@@ -272,8 +361,13 @@ export class Catalog {
    * are not.
    */
   #methodOf(operation) {
+    return this.#templateOf(operation)?.http_method ?? 'GET';
+  }
+
+  /** The call template for one operation, by either naming convention. */
+  #templateOf(operation) {
     return this.#exposed.find((t) => t.name === operation
-      || t.name === `za.${operation}`)?.tool_call_template?.http_method ?? 'GET';
+      || t.name === `za.${operation}`)?.tool_call_template ?? null;
   }
 
   /** Every exposed operation, for offline search strategies. */
@@ -365,8 +459,17 @@ export class Catalog {
         if (held && Date.now() - held.at < this.#config.metadataCacheMs) return held.value;
       }
 
+      // Where CONFIG belongs is decided by the operation, not the caller.
+      // An upload is built here because no call template can express two
+      // body parts; everything else with a declared body field gets its
+      // CONFIG form-encoded on the way out.
+      const template = this.#templateOf(operation);
+      const send = template?.upload
+        ? () => this.#upload({ ...template, operationId: operation }, args)
+        : () => original(name, template?.body_field ? formEncodeConfig(args) : args);
+
       try {
-        const result = await this.#throttled(() => original(name, args));
+        const result = await this.#throttled(send);
         if (cacheKey) this.#metaCache.set(cacheKey, { at: Date.now(), value: result });
         // Anything that changes the model makes every remembered shape
         // suspect. Clearing on write is cheaper than reasoning about which
